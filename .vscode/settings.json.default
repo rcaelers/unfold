@@ -1,0 +1,24 @@
+{
+  "editor.formatOnPaste": false,
+  "editor.formatOnSave": true,
+  "editor.formatOnType": true,
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "cmake.configureOnEdit": false,
+  "cmake.configureOnOpen": false,
+  "cmake.sourceDirectory": "${workspaceFolder}/",
+  "cmake.buildDirectory": "${workspaceFolder}/_build",
+  "cmake.installPrefix": "${workspaceFolder}/_deploy",
+  "cmake.generator": "Ninja",
+  "cmake.configureSettings": {
+    "WITH_TESTS": "ON",
+    "CODE_COVERAGE": "OFF",
+    "WITH_TRACING": "ON",
+    "CMAKE_PREFIX_PATH": "${workspaceFolder}/_ext",
+    "CMAKE_BUILD_TYPE": "Debug",
+    "CMAKE_C_COMPILER": "clang",
+    "CMAKE_CXX_COMPILER": "clang++",
+    "CMAKE_VERBOSE_MAKEFILE": "ON",
+    "OPENSSL_ROOT_DIR": "/usr/local/opt/openssl"
+  }
+}

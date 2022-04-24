@@ -1,0 +1,57 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+
+jobs:
+  build-msys2:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: >-
+            git
+            mingw-w64-x86_64-boost
+            mingw-w64-x86_64-clang
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-lld
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-openssl
+            mingw-w64-x86_64-python
+            mingw-w64-x86_64-python-pip
+            mingw-w64-x86_64-spdlog
+            tar
+            xz
+
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
+
+      - shell: msys2 {0}
+        run: |
+          mkdir _build _deploy
+          export MINGW_ROOT=/c/msys64
+          cmake -GNinja -B_build -H. -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/msys2.cmake -DCMAKE_INSTALL_PREFIX=_deploy
+          ninja -C _build -v install
+
+  # build-mingw:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #       with:
+  #         fetch-depth: 0
+
+  #     - name: Build
+  #       run: |
+  #         docker run --security-opt seccomp=unconfined --rm \
+  #             -v $GITHUB_WORKSPACE:/workspace/source \
+  #             ghcr.io/rcaelers/workrave-build:mingw-fedora-rawhide \
+  #             sh -c "cmake -GNinja -B_build -H. -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/mingw64-clang.cmake -DCMAKE_INSTALL_PREFIX=_deploy && ninja -C _build -v install"

@@ -1,0 +1,9 @@
+*~
+/_dist
+/_deploy*
+/_build*
+.DS_Store
+
+.vscode/*
+!.vscode/settings.json.default
+!.vscode/tasks.json.default

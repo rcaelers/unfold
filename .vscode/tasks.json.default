@@ -1,0 +1,25 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "build",
+      "type": "process",
+      "command": "ninja",
+      "args": ["-v" ],
+      "options": {
+        "cwd": "${workspaceRoot}/_build"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "problemMatcher": [
+        {
+          "base": "$gcc",
+          "fileLocation": ["relative", "${workspaceRoot}/_build"]
+        }
+      ],
+      "promptOnClose": true
+    }
+  ]
+}

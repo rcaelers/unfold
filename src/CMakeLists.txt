@@ -22,7 +22,7 @@ if(WIN32)
   target_link_libraries(unfold PUBLIC ws2_32 mswsock)
 endif()
 
-target_link_libraries(unfold PUBLIC spdlog::spdlog Boost::coroutine OpenSSL::SSL OpenSSL::Crypto)
+target_link_libraries(unfold PUBLIC Boost::coroutine PRIVATE spdlog::spdlog semver::semver OpenSSL::SSL OpenSSL::Crypto)
 target_compile_definitions(unfold PRIVATE BOOST_URL_NO_LIB)
 
 target_include_directories(

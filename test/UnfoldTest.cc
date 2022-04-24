@@ -117,11 +117,60 @@ BOOST_TEST_GLOBAL_FIXTURE(GlobalFixture);
 
 BOOST_FIXTURE_TEST_SUITE(s, Fixture)
 
+BOOST_AUTO_TEST_CASE(appcast_load_from_string)
+{
+  auto reader = std::make_shared<AppcastReader>();
+
+  std::string appcast_str =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\"\n"
+    "    xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Workrave Test Appcast</title>\n"
+    "        <description>Most recent updates to Workrave Test</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://workrave.org/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <link>https://workrave.org</link>\n"
+    "            <sparkle:version>1.0</sparkle:version>\n"
+    "            <sparkle:releaseNotesLink>https://workrave.org/v1.html</sparkle:releaseNotesLink>\n"
+    "            <pubDate>Sun Apr 17 19:30:14 CEST 2022</pubDate>\n"
+    "            <enclosure url=\"http://localhost:1337/v2.zip\" sparkle:edSignature=\"xx\" length=\"1234\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(appcast_str);
+
+  BOOST_CHECK_EQUAL(appcast->title, "Workrave Test Appcast");
+  BOOST_CHECK_EQUAL(appcast->description, "Most recent updates to Workrave Test");
+  BOOST_CHECK_EQUAL(appcast->language, "en");
+  BOOST_CHECK_EQUAL(appcast->link, "https://workrave.org/");
+
+  BOOST_CHECK_EQUAL(appcast->items.size(), 1);
+
+  BOOST_CHECK_EQUAL(appcast->items[0]->channel, "");
+  BOOST_CHECK_EQUAL(appcast->items[0]->title, "Version 1.0");
+  BOOST_CHECK_EQUAL(appcast->items[0]->link, "https://workrave.org");
+  BOOST_CHECK_EQUAL(appcast->items[0]->version, "1.0");
+  BOOST_CHECK_EQUAL(appcast->items[0]->short_version, "");
+  BOOST_CHECK_EQUAL(appcast->items[0]->description, "");
+  BOOST_CHECK_EQUAL(appcast->items[0]->release_notes_link, "https://workrave.org/v1.html");
+  BOOST_CHECK_EQUAL(appcast->items[0]->publication_date, "Sun Apr 17 19:30:14 CEST 2022");
+  BOOST_CHECK_EQUAL(appcast->items[0]->minimum_system_version, "");
+  BOOST_CHECK_EQUAL(appcast->items[0]->minimum_auto_update_version, "");
+  BOOST_CHECK_EQUAL(appcast->items[0]->ignore_skipped_upgrades_below_version, "");
+  BOOST_CHECK_EQUAL(appcast->items[0]->critical_update, false);
+  BOOST_CHECK_EQUAL(appcast->items[0]->critical_update_version, "");
+  BOOST_CHECK_EQUAL(appcast->items[0]->phased_rollout_interval, 0);
+}
+
 BOOST_AUTO_TEST_CASE(appcast_load_from_file)
 {
   auto reader = std::make_shared<AppcastReader>();
 
-  auto appcast = reader->load("testappcast.xml");
+  auto appcast = reader->load_from_file("testappcast.xml");
 
   BOOST_CHECK_EQUAL(appcast->title, "Workrave Test Appcast");
   BOOST_CHECK_EQUAL(appcast->description, "Most recent updates to Workrave Test");
@@ -159,6 +208,24 @@ BOOST_AUTO_TEST_CASE(appcast_load_from_file)
   BOOST_CHECK_EQUAL(appcast->items[1]->critical_update, true);
   BOOST_CHECK_EQUAL(appcast->items[1]->critical_update_version, "1.5");
   BOOST_CHECK_EQUAL(appcast->items[1]->phased_rollout_interval, 0);
+}
+
+BOOST_AUTO_TEST_CASE(appcast_load_invalid_from_string)
+{
+  auto reader = std::make_shared<AppcastReader>();
+
+  std::string appcast_str = "Foo\n";
+
+  auto appcast = reader->load_from_string(appcast_str);
+  BOOST_CHECK_EQUAL(appcast.get(), nullptr);
+}
+
+BOOST_AUTO_TEST_CASE(appcast_load_invalid_from_file)
+{
+  auto reader = std::make_shared<AppcastReader>();
+
+  auto appcast = reader->load_from_file("invalidappcast.xml");
+  BOOST_CHECK_EQUAL(appcast.get(), nullptr);
 }
 
 BOOST_AUTO_TEST_CASE(http_client_get)

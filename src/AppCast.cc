@@ -20,17 +20,50 @@
 
 #include "AppCast.hh"
 
+#include <exception>
 #include <iostream>
 #include <boost/property_tree/xml_parser.hpp>
+#include <boost/iostreams/stream.hpp>
 
 std::shared_ptr<Appcast>
-AppcastReader::load(const std::string &filename)
+AppcastReader::load_from_file(const std::string &filename)
 {
-  using boost::property_tree::ptree;
-  ptree pt;
+  try
+    {
+      boost::property_tree::ptree pt;
+      read_xml(filename, pt);
+      return parse_channel(pt);
+    }
+  catch (std::exception &e)
+    {
+      logger->error("failed to load XML file {} ({})", filename, e.what());
+    }
+  return {};
+}
 
-  read_xml(filename, pt);
+std::shared_ptr<Appcast>
+AppcastReader::load_from_string(const std::string &str)
+{
+  try
+    {
+      boost::property_tree::ptree pt;
 
+      boost::iostreams::array_source source(str.c_str(), str.size());
+      boost::iostreams::stream<boost::iostreams::array_source> stream(source);
+
+      boost::property_tree::read_xml(stream, pt);
+      return parse_channel(pt);
+    }
+  catch (std::exception &e)
+    {
+      logger->error("failed to parse XML ({})", e.what());
+    }
+  return {};
+}
+
+std::shared_ptr<Appcast>
+AppcastReader::parse_channel(boost::property_tree::ptree pt)
+{
   auto appcast = std::make_shared<Appcast>();
   auto channel_pt = pt.get_child("rss.channel");
 
@@ -48,7 +81,6 @@ AppcastReader::load(const std::string &filename)
           appcast->items.push_back(item);
         }
     }
-
   return appcast;
 }
 

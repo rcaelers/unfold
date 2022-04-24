@@ -27,6 +27,8 @@
 
 #include <boost/property_tree/ptree.hpp>
 
+#include "Logging.hh"
+
 struct AppcastEnclosure
 {
   std::string url;
@@ -71,11 +73,16 @@ class AppcastReader
 public:
   AppcastReader() = default;
 
-  std::shared_ptr<Appcast> load(const std::string &filename);
+  std::shared_ptr<Appcast> load_from_file(const std::string &filename);
+  std::shared_ptr<Appcast> load_from_string(const std::string &str);
 
 private:
+  std::shared_ptr<Appcast> parse_channel(boost::property_tree::ptree pt);
   std::shared_ptr<AppcastItem> parse_item(boost::property_tree::ptree item_pt);
   std::shared_ptr<AppcastEnclosure> parse_enclosure(boost::property_tree::ptree enclosure_pt);
+
+private:
+  std::shared_ptr<spdlog::logger> logger{Logging::create("unfold:appcast")};
 };
 
 #endif // APPCAST_HH

@@ -18,12 +18,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "SignatureVerifierErrors.hh"
 #ifdef HAVE_CONFIG_H
 #  include "config.h"
 #endif
 
 #include <memory>
+#include <fstream>
 
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -36,13 +36,12 @@
 #endif
 
 #include "AppCast.hh"
-#include "HTTPClient.hh"
-#include "HTTPServer.hh"
-#include "Logging.hh"
-#include "SignatureVerifier.hh"
+#include "utils/Logging.hh"
 
 #define BOOST_TEST_MODULE "unfold"
 #include <boost/test/unit_test.hpp>
+
+using namespace unfold::utils;
 
 namespace
 {
@@ -115,7 +114,7 @@ private:
 
 BOOST_TEST_GLOBAL_FIXTURE(GlobalFixture);
 
-BOOST_FIXTURE_TEST_SUITE(s, Fixture)
+BOOST_FIXTURE_TEST_SUITE(unfold_test, Fixture)
 
 BOOST_AUTO_TEST_CASE(appcast_load_from_string)
 {
@@ -226,203 +225,6 @@ BOOST_AUTO_TEST_CASE(appcast_load_invalid_from_file)
 
   auto appcast = reader->load_from_file("invalidappcast.xml");
   BOOST_CHECK_EQUAL(appcast.get(), nullptr);
-}
-
-BOOST_AUTO_TEST_CASE(http_client_get)
-{
-  HTTPServer server;
-  server.add("/foo", "foo\n");
-  server.run();
-
-  HTTPClient d;
-  d.add_ca_cert(cert);
-  auto [result, body] = d.get("https://localhost:1337/foo");
-
-  BOOST_CHECK_EQUAL(result, 200);
-  BOOST_CHECK_EQUAL(body, "foo\n");
-
-  server.stop();
-}
-
-BOOST_AUTO_TEST_CASE(http_client_get_not_found)
-{
-  HTTPServer server;
-  server.add("/foo", "foo\n");
-  server.run();
-
-  HTTPClient d;
-  d.add_ca_cert(cert);
-  auto [result, body] = d.get("https://localhost:1337/bar");
-
-  BOOST_CHECK_EQUAL(result, 404);
-  BOOST_CHECK_EQUAL(body, "The resource '/bar' was not found.");
-
-  server.stop();
-}
-
-// TODO: properly report HTTPClient errors
-// BOOST_AUTO_TEST_CASE(http_client_not_reachable)
-// {
-//   HTTPServer server;
-//   server.add("/foo", "foo\n");
-//   server.run();
-//   server.stop();
-
-//   HTTPClient d;
-//   d.add_ca_cert(cert);
-//   auto [result, body] = d.get("https://localhost:1337/bar");
-
-//   BOOST_CHECK_EQUAL(result, 404);
-//   BOOST_CHECK_EQUAL(body, "The resource '/bar' was not found.");
-// }
-
-// BOOST_AUTO_TEST_CASE(http_client_host_not_found)
-// {
-//   HTTPClient d;
-//   d.add_ca_cert(cert);
-//   auto [result, body] = d.get("https://does-not-exist:1337/bar");
-
-//   BOOST_CHECK_EQUAL(result, 404);
-//   BOOST_CHECK_EQUAL(body, "The resource '/bar' was not found.");
-// }
-
-// BOOST_AUTO_TEST_CASE(http_client_invalid_url)
-// {
-//   HTTPClient d;
-//   d.add_ca_cert(cert);
-//   auto [result, body] = d.get("https://does-not-exist:1337:/bar");
-
-//   BOOST_CHECK_EQUAL(result, 404);
-//   BOOST_CHECK_EQUAL(body, "The resource '/bar' was not found.");
-// }
-
-BOOST_AUTO_TEST_CASE(http_client_download_file)
-{
-  HTTPServer server;
-
-  std::string body(10000, 'x');
-
-  server.add("/foo", body);
-  server.run();
-
-  HTTPClient d;
-  d.add_ca_cert(cert);
-
-  double previous_progress = 0.0;
-  auto [result, patload] = d.download("https://localhost:1337/foo", "foo.txt", [&](double progress) {
-    BOOST_CHECK_GE(progress, previous_progress);
-    previous_progress = progress;
-  });
-
-  BOOST_CHECK_EQUAL(result, 200);
-  BOOST_CHECK_GE(previous_progress + 0.0001, 1.0);
-
-  server.stop();
-}
-
-BOOST_AUTO_TEST_CASE(http_client_download_file_not_found)
-{
-  HTTPServer server;
-
-  std::string body(10000, 'x');
-
-  server.add("/foo", body);
-  server.run();
-
-  HTTPClient d;
-  d.add_ca_cert(cert);
-
-  double previous_progress = 0.0;
-  auto [result, payload] = d.download("https://localhost:1337/bar", "foo.txt", [&](double progress) {
-    BOOST_CHECK_GE(progress, previous_progress);
-    previous_progress = progress;
-  });
-
-  BOOST_CHECK_EQUAL(result, 404);
-  BOOST_CHECK_LE(previous_progress, 0.0001);
-
-  server.stop();
-}
-
-BOOST_AUTO_TEST_CASE(signature_verify_file_ok_pem)
-{
-  // openssl genpkey -algorithm Ed25519 -out ed25519key.pem
-  // openssl pkey -in ed25519key.pem -pubout >ed25519pub.pem
-  // openssl pkeyutl -sign -inkey ed25519key.pem -out junk.ed25519 -rawin -in junk
-  // openssl pkeyutl -verify -pubin -inkey ed25519pub.pem  -rawin -in junk -sigfile junk.ed25519
-  // openssl pkey -in ../../test/data/ed25519key.pem -pubout
-
-  std::string signature = "aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==";
-  std::string pub_key =
-    "-----BEGIN PUBLIC KEY-----\n"
-    "MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=\n"
-    "-----END PUBLIC KEY-----\n";
-
-  SignatureVerifier verifier(unfold::SignatureAlgorithmType::ECDSA, pub_key);
-  auto result = verifier.verify("junk", signature);
-  BOOST_CHECK_EQUAL(result.error(), SignatureVerifierErrc::Success);
-}
-
-BOOST_AUTO_TEST_CASE(signature_verify_file_ok_der)
-{
-  // openssl genpkey -algorithm Ed25519 -out ed25519key.pem
-  // openssl pkey -in ed25519key.pem -pubout >ed25519pub.pem
-  // openssl pkeyutl -sign -inkey ed25519key.pem -out junk.ed25519 -rawin -in junk
-  // openssl pkeyutl -verify -pubin -inkey ed25519pub.pem  -rawin -in junk -sigfile junk.ed25519
-  // openssl pkey -in ../../test/data/ed25519key.pem -pubout -outform DER | base64
-
-  std::string signature = "aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==";
-  std::string pub_key = "MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=";
-
-  SignatureVerifier verifier(unfold::SignatureAlgorithmType::ECDSA, pub_key);
-  auto result = verifier.verify("junk", signature);
-  BOOST_CHECK_EQUAL(result.error(), SignatureVerifierErrc::Success);
-}
-
-BOOST_AUTO_TEST_CASE(signature_verify_invalid_pubkey)
-{
-  std::string signature = "aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==";
-  std::string pub_key = "foo";
-
-  SignatureVerifier verifier(unfold::SignatureAlgorithmType::ECDSA, pub_key);
-  auto result = verifier.verify("junk", signature);
-  BOOST_CHECK_EQUAL(result.error(), SignatureVerifierErrc::InvalidPublicKey);
-}
-
-BOOST_AUTO_TEST_CASE(signature_verify_invalid_signature)
-{
-  std::string signature;
-  std::string pub_key = "MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=";
-
-  SignatureVerifier verifier(unfold::SignatureAlgorithmType::ECDSA, pub_key);
-  auto result = verifier.verify("junk", signature);
-  BOOST_CHECK_EQUAL(result.error(), SignatureVerifierErrc::InvalidSignature);
-}
-
-BOOST_AUTO_TEST_CASE(signature_verify_file_nok)
-{
-  std::string signature = "aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==";
-  std::string pub_key =
-    "-----BEGIN PUBLIC KEY-----\n"
-    "MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=\n"
-    "-----END PUBLIC KEY-----\n";
-
-  SignatureVerifier verifier(unfold::SignatureAlgorithmType::ECDSA, pub_key);
-  auto result = verifier.verify("morejunk", signature);
-  BOOST_CHECK_EQUAL(result.error(), SignatureVerifierErrc::Mismatch);
-}
-
-BOOST_AUTO_TEST_CASE(signature_verify_file_not_found)
-{
-  std::string signature = "aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==";
-  std::string pub_key =
-    "-----BEGIN PUBLIC KEY-----\n"
-    "MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=\n"
-    "-----END PUBLIC KEY-----\n";
-
-  SignatureVerifier verifier(unfold::SignatureAlgorithmType::ECDSA, pub_key);
-  auto result = verifier.verify("notfound", signature);
-  BOOST_CHECK_EQUAL(result.error(), SignatureVerifierErrc::NotFound);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -18,8 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef SIGNATURE_VERIFIER_HH
-#define SIGNATURE_VERIFIER_HH
+#ifndef CRYPTO_SIGNATURE_VERIFIER_HH
+#define CRYPTO_SIGNATURE_VERIFIER_HH
 
 #include <string>
 #include <string_view>
@@ -27,34 +27,37 @@
 
 #include <boost/outcome/std_result.hpp>
 
-#include "unfold/SignatureAlgorithmType.hh"
+#include "SignatureAlgorithmType.hh"
+#include "utils/Logging.hh"
 #include "SignatureVerifierErrors.hh"
-#include "Logging.hh"
 
 namespace outcome = boost::outcome_v2;
 
-class SignatureAlgorithm
+namespace unfold::crypto
 {
-public:
-  virtual ~SignatureAlgorithm() = default;
-  virtual outcome::std_result<void> verify(std::string_view data, const std::string &signature) = 0;
-};
+  class SignatureAlgorithm
+  {
+  public:
+    virtual ~SignatureAlgorithm() = default;
+    virtual outcome::std_result<void> verify(std::string_view data, const std::string &signature) = 0;
+  };
 
-class SignatureVerifier
-{
-public:
-  SignatureVerifier(unfold::SignatureAlgorithmType type, const std::string &public_key);
-  outcome::std_result<void> verify(const std::string &filename, const std::string &signature);
+  class SignatureVerifier
+  {
+  public:
+    SignatureVerifier(SignatureAlgorithmType type, const std::string &public_key);
+    outcome::std_result<void> verify(const std::string &filename, const std::string &signature);
 
-private:
-  std::shared_ptr<SignatureAlgorithm> algo;
-  std::shared_ptr<spdlog::logger> logger{Logging::create("unfold:signatures")};
-};
+  private:
+    std::shared_ptr<SignatureAlgorithm> algo;
+    std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:signatures")};
+  };
 
-class SignatureAlgorithmFactory
-{
-public:
-  static std::shared_ptr<SignatureAlgorithm> create(unfold::SignatureAlgorithmType type, const std::string &public_key);
-};
+  class SignatureAlgorithmFactory
+  {
+  public:
+    static std::shared_ptr<SignatureAlgorithm> create(SignatureAlgorithmType type, const std::string &public_key);
+  };
+} // namespace unfold::crypto
 
-#endif // SIGNATURE_VERIFIER_HH
+#endif // CRYPTO_SIGNATURE_VERIFIER_HH

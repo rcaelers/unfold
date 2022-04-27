@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "SignatureVerifier.hh"
+#include "crypto/SignatureVerifier.hh"
 
 #include <exception>
 #include <memory>
@@ -33,20 +33,22 @@
 #include <spdlog/fmt/ostr.h>
 
 #include "ECDSASignatureAlgorithm.hh"
-#include "Base64.hh"
-#include "SignatureVerifierErrors.hh"
+#include "utils/Base64.hh"
+#include "crypto/SignatureVerifierErrors.hh"
+
+using namespace unfold::crypto;
 
 std::shared_ptr<SignatureAlgorithm>
-SignatureAlgorithmFactory::create(unfold::SignatureAlgorithmType type, const std::string &public_key)
+SignatureAlgorithmFactory::create(SignatureAlgorithmType type, const std::string &public_key)
 {
   switch (type)
     {
-    case unfold::SignatureAlgorithmType::ECDSA:
+    case SignatureAlgorithmType::ECDSA:
       return std::make_shared<ECDSASignatureAlgorithm>(public_key);
     }
 }
 
-SignatureVerifier::SignatureVerifier(unfold::SignatureAlgorithmType type, const std::string &public_key)
+SignatureVerifier::SignatureVerifier(SignatureAlgorithmType type, const std::string &public_key)
   : algo(SignatureAlgorithmFactory::create(type, public_key))
 {
 }
@@ -67,7 +69,7 @@ SignatureVerifier::verify(const std::string &filename, const std::string &signat
       boost::interprocess::mapped_region region(fm, mode, 0, 0);
       std::string_view data(static_cast<const char *>(region.get_address()), region.get_size());
 
-      return algo->verify(data, Base64::decode(signature));
+      return algo->verify(data, unfold::utils::Base64::decode(signature));
     }
   catch (boost::interprocess::interprocess_exception &e)
     {

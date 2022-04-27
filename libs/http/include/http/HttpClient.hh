@@ -18,16 +18,40 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef BASE64_HH
-#define BASE64_HH
+#ifndef NET_HTTP_CLIENT_HH
+#define NET_HTTP_CLIENT_HH
 
 #include <string>
+#include <iostream>
 
-class Base64
+#include <boost/asio.hpp>
+#include <boost/asio/ssl.hpp>
+#include <boost/outcome/std_result.hpp>
+
+#include "utils/Logging.hh"
+
+namespace unfold::http
 {
-public:
-  static std::string decode(const std::string &val);
-  static std::string encode(const std::string &val);
-};
+  using ProgressCallback = std::function<void(double progress)>;
+  using Response = std::pair<int, std::string>;
 
-#endif // BASE64_HH
+  namespace outcome = boost::outcome_v2;
+
+  class HttpClient
+  {
+  public:
+    HttpClient();
+
+    void add_ca_cert(const std::string &cert);
+
+    outcome::std_result<Response> get(const std::string &url, std::ostream &file, ProgressCallback cb);
+    outcome::std_result<Response> get(const std::string &url);
+
+  private:
+    boost::asio::io_context ioc;
+    boost::asio::ssl::context ctx{boost::asio::ssl::context::tlsv12_client};
+    std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:http")};
+  };
+} // namespace unfold::http
+
+#endif // NET_HTTP_CLIENT_HH

@@ -18,8 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include "utils/Base64.hh"
 #include "PublicKey.hh"
-#include "Base64.hh"
 
 #include <openssl/evp.h>
 
@@ -61,7 +61,7 @@ PublicKey::load_der()
 void
 PublicKey::load_base64_der()
 {
-  std::string p = Base64::decode(public_key);
+  std::string p = unfold::utils::Base64::decode(public_key);
   BIO *bio = BIO_new_mem_buf(reinterpret_cast<const unsigned char *>(p.data()), static_cast<int>(p.size()));
   if (bio != nullptr)
     {

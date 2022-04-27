@@ -18,26 +18,27 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "Base64.hh"
+#ifndef ECDSA_SIGNATURE_VERIFIER_HH
+#define ECDSA_SIGNATURE_VERIFIER_HH
 
-#include <boost/archive/iterators/binary_from_base64.hpp>
-#include <boost/archive/iterators/base64_from_binary.hpp>
-#include <boost/archive/iterators/transform_width.hpp>
-#include <boost/algorithm/string.hpp>
+#include "crypto/SignatureVerifier.hh"
 
-std::string
-Base64::decode(const std::string &val)
+#include <memory>
+
+#include "PublicKey.hh"
+#include "utils/Logging.hh"
+
+class ECDSASignatureAlgorithm : public unfold::crypto::SignatureAlgorithm
 {
-  using namespace boost::archive::iterators;
-  using It = transform_width<binary_from_base64<std::string::const_iterator>, 8, 6>;
-  return boost::algorithm::trim_right_copy_if(std::string(It(std::begin(val)), It(std::end(val))), [](char c) { return c == '\0'; });
-}
+public:
+  explicit ECDSASignatureAlgorithm(const std::string &public_key);
+  ~ECDSASignatureAlgorithm() override = default;
 
-std::string
-Base64::encode(const std::string &val)
-{
-  using namespace boost::archive::iterators;
-  using It = base64_from_binary<transform_width<std::string::const_iterator, 6, 8>>;
-  auto tmp = std::string(It(std::begin(val)), It(std::end(val)));
-  return tmp.append((3 - val.size() % 3) % 3, '=');
-}
+  outcome::std_result<void> verify(std::string_view data, const std::string &signature) override;
+
+private:
+  PublicKey public_key;
+  std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:signatures:ecdsa")};
+};
+
+#endif

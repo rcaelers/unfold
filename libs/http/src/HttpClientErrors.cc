@@ -18,44 +18,46 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "SignatureVerifierErrors.hh"
+#include "http/HttpClientErrors.hh"
+
+using namespace unfold::http;
 
 namespace
 {
-  struct SignatureVerifierErrorCategory : std::error_category
+  struct HttpClientErrorCategory : std::error_category
   {
     const char *name() const noexcept override
     {
-      return "signatures";
+      return "httpclient";
     }
     std::string message(int ev) const override;
   };
 
-  std::string SignatureVerifierErrorCategory::message(int ev) const
+  std::string HttpClientErrorCategory::message(int ev) const
   {
-    switch (static_cast<SignatureVerifierErrc>(ev))
+    switch (static_cast<HttpClientErrc>(ev))
       {
-      case SignatureVerifierErrc::Success:
+      case HttpClientErrc::Success:
         return "signature correct";
-      case SignatureVerifierErrc::NotFound:
-        return "file not found";
-      case SignatureVerifierErrc::InvalidPublicKey:
-        return "invalid public key";
-      case SignatureVerifierErrc::InvalidSignature:
-        return "invalid signature";
-      case SignatureVerifierErrc::InternalFailure:
-        return "internal failure";
-      case SignatureVerifierErrc::Mismatch:
-        return "signature mismatch";
+      case HttpClientErrc::MalformedURL:
+        return "malformed URL";
+      case HttpClientErrc::InternalError:
+        return "internal error";
+      case HttpClientErrc::NameResolutionFailed:
+        return "name resolution failed";
+      case HttpClientErrc::ConnectionRefused:
+        return "connection refused";
+      case HttpClientErrc::CommunicationError:
+        return "connection error";
       }
     return "(unknown)";
   }
 
-  const SignatureVerifierErrorCategory globalSignatureVerifierErrorCategory{};
+  const HttpClientErrorCategory globalHttpClientErrorCategory{};
 } // namespace
 
 std::error_code
-make_error_code(SignatureVerifierErrc ec)
+unfold::http::make_error_code(HttpClientErrc ec)
 {
-  return std::error_code{static_cast<int>(ec), globalSignatureVerifierErrorCategory};
+  return std::error_code{static_cast<int>(ec), globalHttpClientErrorCategory};
 }

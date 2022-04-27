@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "HTTPServer.hh"
+#include "HttpServer.hh"
 
 #include <spdlog/fmt/ostr.h>
 
@@ -89,14 +89,20 @@ namespace
 
 } // namespace
 
-Connection::Connection(boost::beast::ssl_stream<boost::beast::tcp_stream> &stream, Documents &documents)
-  : stream(stream)
+Session::Session(boost::beast::ssl_stream<boost::beast::tcp_stream> stream, Documents &documents)
+  : stream(std::move(stream))
+  , documents(documents)
+{
+}
+
+Session::Session(boost::asio::ip::tcp::socket socket, boost::asio::ssl::context &ctx, Documents &documents)
+  : stream(std::move(socket), ctx)
   , documents(documents)
 {
 }
 
 std::string_view
-Connection::mime_type(std::string_view path)
+Session::mime_type(std::string_view path)
 {
   auto pos = path.rfind(".");
   if (pos != std::string_view::npos)
@@ -116,10 +122,10 @@ Connection::mime_type(std::string_view path)
 }
 
 void
-Connection::send_error(boost::beast::http::status status,
-                       const std::string &text,
-                       boost::beast::error_code &ec,
-                       boost::asio::yield_context yield) const
+Session::send_error(boost::beast::http::status status,
+                    const std::string &text,
+                    boost::beast::error_code &ec,
+                    boost::asio::yield_context yield)
 {
   logger->error("sending http response: ({})", text);
 
@@ -133,19 +139,19 @@ Connection::send_error(boost::beast::http::status status,
 }
 
 void
-Connection::send_bad_request(std::string_view why, boost::beast::error_code &ec, boost::asio::yield_context yield) const
+Session::send_bad_request(std::string_view why, boost::beast::error_code &ec, boost::asio::yield_context yield)
 {
   send_error(boost::beast::http::status::bad_request, std::string(why), ec, yield);
 }
 
 void
-Connection::send_not_found(std::string_view target, boost::beast::error_code &ec, boost::asio::yield_context yield) const
+Session::send_not_found(std::string_view target, boost::beast::error_code &ec, boost::asio::yield_context yield)
 {
   send_error(boost::beast::http::status::not_found, "The resource '" + std::string(target) + "' was not found.", ec, yield);
 }
 
 bool
-Connection::handle_request(boost::beast::error_code &ec, boost::asio::yield_context yield)
+Session::handle_request(boost::beast::error_code &ec, boost::asio::yield_context yield)
 {
   if (req.method() != boost::beast::http::verb::get)
     {
@@ -173,7 +179,7 @@ Connection::handle_request(boost::beast::error_code &ec, boost::asio::yield_cont
 }
 
 void
-Connection::run(boost::asio::yield_context yield)
+Session::run(boost::asio::yield_context yield)
 {
   bool close = false;
   boost::beast::error_code ec;
@@ -183,7 +189,7 @@ Connection::run(boost::asio::yield_context yield)
   stream.async_handshake(boost::asio::ssl::stream_base::server, yield[ec]);
   if (ec)
     {
-      logger->error("connection handshake failed ({})", ec.message());
+      logger->error("session handshake failed ({})", ec.message());
       return;
     }
 
@@ -200,14 +206,14 @@ Connection::run(boost::asio::yield_context yield)
         }
       if (ec)
         {
-          logger->error("connection read failed ({})", ec.message());
+          logger->error("session read failed ({})", ec.message());
           return;
         }
 
       close = handle_request(ec, yield);
       if (ec)
         {
-          logger->error("connection write failed ({})", ec.message());
+          logger->error("session write failed ({})", ec.message());
           return;
         }
 
@@ -218,16 +224,15 @@ Connection::run(boost::asio::yield_context yield)
     }
 
   boost::beast::get_lowest_layer(stream).expires_after(std::chrono::seconds(30));
-
   stream.async_shutdown(yield[ec]);
   if (ec)
     {
-      logger->error("connection shutdown failed ({})", ec.message());
+      logger->error("session shutdown failed ({})", ec.message());
     }
 }
 
 void
-HTTPServer::do_listen(boost::asio::ip::tcp::endpoint endpoint, boost::asio::yield_context yield)
+HttpServer::do_listen(boost::asio::ip::tcp::endpoint endpoint, boost::asio::yield_context yield)
 {
   boost::beast::error_code ec;
 
@@ -270,16 +275,16 @@ HTTPServer::do_listen(boost::asio::ip::tcp::endpoint endpoint, boost::asio::yiel
           return;
         }
 
-      boost::asio::spawn(acceptor.get_executor(), [&](boost::asio::yield_context yield) {
-        auto stream = boost::beast::ssl_stream<boost::beast::tcp_stream>(std::move(socket), ctx);
-        Connection connection(stream, documents);
-        connection.run(yield);
+      boost::asio::spawn(acceptor.get_executor(), [this, &socket](boost::asio::yield_context yield) {
+        // auto stream = boost::beast::ssl_stream<boost::beast::tcp_stream>(std::move(socket), ctx);
+        Session session(std::move(socket), ctx, documents);
+        session.run(yield);
       });
     }
 }
 
 void
-HTTPServer::run()
+HttpServer::run()
 {
   auto address = boost::asio::ip::make_address("127.0.0.1");
   unsigned short port = 1337;
@@ -304,7 +309,7 @@ HTTPServer::run()
 }
 
 void
-HTTPServer::stop()
+HttpServer::stop()
 {
   ioc.stop();
   for (auto &w: workers)
@@ -314,7 +319,7 @@ HTTPServer::stop()
 }
 
 void
-HTTPServer::add(std::string_view file, const std::string &body)
+HttpServer::add(std::string_view file, const std::string &body)
 {
   documents.add(file, body);
 }

@@ -128,5 +128,6 @@ configure_file(${CMAKE_SOURCE_DIR}/cmake/config.h.in ${CMAKE_CURRENT_BINARY_DIR}
 #----------------------------------------------------------------------------------------------------
 #
 
+add_subdirectory(libs)
 add_subdirectory(src)
 add_subdirectory(test)

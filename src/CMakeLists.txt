@@ -2,14 +2,7 @@ add_library(unfold SHARED)
 
 target_sources(unfold PRIVATE
   AppCast.cc
-  Base64.cc
-  ECDSASignatureAlgorithm.cc
-  HTTPClient.cc
-  Logging.cc
-  PublicKey.cc
-  SignatureVerifier.cc
-  SignatureVerifierErrors.cc
-)
+  )
 
 target_code_coverage(unfold)
 
@@ -22,6 +15,7 @@ if(WIN32)
   target_link_libraries(unfold PUBLIC ws2_32 mswsock)
 endif()
 
+target_link_libraries(unfold PRIVATE unfold-utils unfold-crypto unfold-http)
 target_link_libraries(unfold PUBLIC Boost::coroutine PRIVATE spdlog::spdlog semver::semver OpenSSL::SSL OpenSSL::Crypto)
 target_compile_definitions(unfold PRIVATE BOOST_URL_NO_LIB)
 
@@ -29,6 +23,7 @@ target_include_directories(
   unfold
   PRIVATE
   ${CMAKE_SOURCE_DIR}/include/unfold
+  ${CMAKE_SOURCE_DIR}/src
   ${boosturl_SOURCE_DIR}/include
   PUBLIC
   ${CMAKE_SOURCE_DIR}/include)

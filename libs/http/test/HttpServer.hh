@@ -31,7 +31,7 @@
 
 #include <spdlog/spdlog.h>
 
-#include "Logging.hh"
+#include "utils/Logging.hh"
 
 class Documents
 {
@@ -46,18 +46,17 @@ private:
   std::map<std::string_view, std::string> content;
 };
 
-class Connection
+class Session
 {
 public:
-  Connection(boost::beast::ssl_stream<boost::beast::tcp_stream> &stream, Documents &documents);
+  Session(boost::beast::ssl_stream<boost::beast::tcp_stream> stream, Documents &documents);
+  Session(boost::asio::ip::tcp::socket socket, boost::asio::ssl::context &ctx, Documents &documents);
 
   void run(boost::asio::yield_context yield);
 
 private:
   template<bool isRequest, class Body, class Fields>
-  bool send(boost::beast::http::message<isRequest, Body, Fields> &&msg,
-            boost::beast::error_code &ec,
-            boost::asio::yield_context yield) const
+  bool send(boost::beast::http::message<isRequest, Body, Fields> &&msg, boost::beast::error_code &ec, boost::asio::yield_context yield)
   {
     auto eof = msg.need_eof();
     boost::beast::http::serializer<isRequest, Body, Fields> sr{msg};
@@ -70,19 +69,19 @@ private:
   void send_error(boost::beast::http::status status,
                   const std::string &text,
                   boost::beast::error_code &ec,
-                  boost::asio::yield_context yield) const;
-  void send_bad_request(boost::beast::string_view why, boost::beast::error_code &ec, boost::asio::yield_context yield) const;
-  void send_not_found(boost::beast::string_view target, boost::beast::error_code &ec, boost::asio::yield_context yield) const;
+                  boost::asio::yield_context yield);
+  void send_bad_request(boost::beast::string_view why, boost::beast::error_code &ec, boost::asio::yield_context yield);
+  void send_not_found(boost::beast::string_view target, boost::beast::error_code &ec, boost::asio::yield_context yield);
   bool handle_request(boost::beast::error_code &ec, boost::asio::yield_context yield);
 
 private:
-  boost::beast::ssl_stream<boost::beast::tcp_stream> &stream;
+  boost::beast::ssl_stream<boost::beast::tcp_stream> stream;
   Documents &documents;
   boost::beast::http::request<boost::beast::http::string_body> req;
-  std::shared_ptr<spdlog::logger> logger{Logging::create("test:server:connection")};
+  std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("test:server:session")};
 };
 
-class HTTPServer
+class HttpServer
 {
 public:
   void run();
@@ -99,7 +98,7 @@ private:
   boost::asio::io_context ioc{threads};
   boost::asio::ssl::context ctx{boost::asio::ssl::context::tlsv12};
   std::vector<std::thread> workers;
-  std::shared_ptr<spdlog::logger> logger{Logging::create("test:server")};
+  std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("test:server")};
 };
 
 #endif // HTTP_SERVER_HH

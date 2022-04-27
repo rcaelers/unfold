@@ -18,60 +18,47 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef HTTPClient_HH
-#define HTTPClient_HH
+#ifndef NET_CONNECTION_HH
+#define NET_CONNECTION_HH
 
 #include <string>
 
 #include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp>
-#include <boost/asio/spawn.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/ssl.hpp>
+#include <boost/url/url.hpp>
+#include <boost/outcome/std_result.hpp>
 
-#include "Logging.hh"
+#include "utils/Logging.hh"
 
-using ProgressCallback = std::function<void(double progress)>;
+#include "http/HttpClient.hh"
+#include "http/HttpClientErrors.hh"
 
-using Response = std::pair<int, std::string>;
+namespace outcome = boost::outcome_v2;
 
-class Request
+class Connection
 {
 public:
-  Request(std::string url, boost::asio::io_context &ioc, boost::asio::ssl::context &ctx);
+  Connection(boost::asio::io_context &ioc, boost::asio::ssl::context &ctx);
 
-  boost::asio::awaitable<Response> get();
-  boost::asio::awaitable<Response> download(const std::string &filename, ProgressCallback cb);
+  boost::asio::awaitable<outcome::std_result<unfold::http::Response>> get(const std::string &url);
+  boost::asio::awaitable<outcome::std_result<unfold::http::Response>> get(const std::string &url, std::ostream &file, unfold::http::ProgressCallback cb);
 
 private:
-  boost::asio::awaitable<Response> receive_reponse();
-  boost::asio::awaitable<Response> download_reponse(const std::string &filename, ProgressCallback cb);
-  boost::asio::awaitable<void> request();
+  boost::asio::awaitable<outcome::std_result<void>> send_request();
+  boost::asio::awaitable<outcome::std_result<unfold::http::Response>> receive_reponse();
+  boost::asio::awaitable<outcome::std_result<unfold::http::Response>> receive_reponse(std::ostream &file, unfold::http::ProgressCallback cb);
   boost::asio::awaitable<void> shutdown();
+  outcome::std_result<void> parse_url(const std::string &u);
 
 private:
   static constexpr int BUFFER_SIZE = 1024;
   static constexpr std::chrono::seconds TIMEOUT{30};
 
-  std::string url;
+  boost::urls::url_view url;
   boost::asio::io_context &ioc;
   boost::beast::ssl_stream<boost::beast::tcp_stream> stream;
-  std::shared_ptr<spdlog::logger> logger{Logging::create("unfold::http:request")};
+  std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold::http:connection")};
 };
 
-class HTTPClient
-{
-public:
-  HTTPClient();
-
-  void add_ca_cert(const std::string &cert);
-
-  Response download(const std::string &url, const std::string &filename, ProgressCallback cb);
-  Response get(const std::string &url);
-
-private:
-  boost::asio::io_context ioc;
-  boost::asio::ssl::context ctx{boost::asio::ssl::context::tlsv12_client};
-  std::shared_ptr<spdlog::logger> logger{Logging::create("unfold:http")};
-};
-#endif
+#endif // NET_CONNECTION_HH

@@ -18,16 +18,19 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef LOGGING_HH
-#define LOGGING_HH
+#ifndef UTILS_BASE64_HH
+#define UTILS_BASE64_HH
 
 #include <string>
-#include <spdlog/spdlog.h>
 
-class Logging
+namespace unfold::utils
 {
-public:
-  static std::shared_ptr<spdlog::logger> create(std::string domain);
-};
+  class Base64
+  {
+  public:
+    static std::string decode(const std::string &val);
+    static std::string encode(const std::string &val);
+  };
+} // namespace unfold::utils
 
-#endif // WORKAVE_LIBS_UTILS_LOGGING_HH
+#endif // UTILS_BASE64_HH

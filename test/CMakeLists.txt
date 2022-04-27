@@ -1,8 +1,8 @@
 if (HAVE_TESTS)
-  add_executable(unfold-test UnfoldTest.cc HTTPServer.cc)
+  add_executable(unfold-test UnfoldTest.cc)
   target_code_coverage(unfold-test AUTO)
 
-  target_link_libraries(unfold-test PRIVATE unfold)
+  target_link_libraries(unfold-test PRIVATE unfold unfold-utils)
   target_link_libraries(unfold-test PRIVATE Boost::test_exec_monitor)
   target_link_libraries(unfold-test PRIVATE spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto)
   target_link_libraries(unfold-test PRIVATE ${EXTRA_LIBRARIES})
@@ -11,8 +11,6 @@ if (HAVE_TESTS)
 
   add_test(NAME unfold-test COMMAND unfold-test)
 
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/data/junk" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
-  file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/data/morejunk" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/data/testappcast.xml" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/data/invalidappcast.xml" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 

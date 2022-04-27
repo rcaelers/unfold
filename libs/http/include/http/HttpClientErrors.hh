@@ -18,16 +18,33 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifdef HAVE_CONFIG_H
-#  include "config.h"
-#endif
+#ifndef NET_HTTP_CLIENT_ERRORS_HH
+#define NET_HTTP_CLIENT_ERRORS_HH
 
-#include "Logging.hh"
+#include <system_error>
 
-#include <spdlog/spdlog.h>
-
-std::shared_ptr<spdlog::logger>
-Logging::create(std::string domain)
+namespace unfold::http
 {
-  return spdlog::default_logger()->clone(domain);
-}
+  enum class HttpClientErrc
+  {
+    Success = 0,
+    MalformedURL = 1,
+    NameResolutionFailed,
+    ConnectionRefused,
+    InternalError,
+    CommunicationError,
+  };
+
+  std::error_code make_error_code(HttpClientErrc ec);
+
+} // namespace unfold::http
+
+namespace std
+{
+  template<>
+  struct is_error_code_enum<unfold::http::HttpClientErrc> : true_type
+  {
+  };
+} // namespace std
+
+#endif // NET_HTTP_CLIENT_ERRORS_HH

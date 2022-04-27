@@ -27,7 +27,7 @@
 
 #include <boost/property_tree/ptree.hpp>
 
-#include "Logging.hh"
+#include "utils/Logging.hh"
 
 struct AppcastEnclosure
 {
@@ -82,7 +82,7 @@ private:
   std::shared_ptr<AppcastEnclosure> parse_enclosure(boost::property_tree::ptree enclosure_pt);
 
 private:
-  std::shared_ptr<spdlog::logger> logger{Logging::create("unfold:appcast")};
+  std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:appcast")};
 };
 
 #endif // APPCAST_HH

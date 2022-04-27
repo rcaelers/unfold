@@ -18,29 +18,19 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef SIGNATURE_VERIFIER_ERRORS_HH
-#define SIGNATURE_VERIFIER_ERRORS_HH
+#ifndef UTILS_LOGGING_HH
+#define UTILS_LOGGING_HH
 
-#include <system_error>
+#include <string>
+#include <spdlog/spdlog.h>
 
-enum class SignatureVerifierErrc
+namespace unfold::utils
 {
-  Success = 0,
-  NotFound = 1,
-  InvalidPublicKey = 2,
-  InvalidSignature = 3,
-  InternalFailure = 4,
-  Mismatch = 5,
-};
-
-std::error_code make_error_code(SignatureVerifierErrc ec);
-
-namespace std
-{
-  template<>
-  struct is_error_code_enum<SignatureVerifierErrc> : true_type
+  class Logging
   {
+  public:
+    static std::shared_ptr<spdlog::logger> create(std::string domain);
   };
-} // namespace std
+} // namespace unfold::utils
 
-#endif // SIGNATURE_VERIFIER_ERRORS_HH
+#endif // UTILS_WORKAVE_LIBS_UTILS_LOGGING_HH

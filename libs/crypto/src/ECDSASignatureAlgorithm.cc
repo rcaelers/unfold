@@ -19,13 +19,15 @@
 // THE SOFTWARE.
 
 #include "ECDSASignatureAlgorithm.hh"
-#include "SignatureVerifierErrors.hh"
+#include "crypto/SignatureVerifierErrors.hh"
 
 #include <cstddef>
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
 
 #include <openssl/err.h>
+
+using namespace unfold::crypto;
 
 ECDSASignatureAlgorithm::ECDSASignatureAlgorithm(const std::string &public_key)
   : public_key(public_key)

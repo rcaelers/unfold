@@ -18,15 +18,53 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef UNFOLD_SIGNATURE_ALGORITHM_TYPE_HH
-#define UNFOLD_SIGNATURE_ALGORITHM_TYPE_HH
+#ifdef HAVE_CONFIG_H
+#  include "config.h"
+#endif
 
-namespace unfold
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/sinks/basic_file_sink.h>
+#if SPDLOG_VERSION >= 10600
+#  include <spdlog/pattern_formatter.h>
+#endif
+#if SPDLOG_VERSION >= 10801
+#  include <spdlog/cfg/env.h>
+#endif
+
+#include "HttpServer.hh"
+
+static void
+setup_loggin()
 {
-  enum class SignatureAlgorithmType
-  {
-    ECDSA
-  };
-} // namespace unfold
+  const auto *log_file = "unfold-test.log";
 
-#endif // UNFOLD_SIGNATURE_ALGORITHM_TYPE_HH
+  auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(log_file, false);
+  auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+
+  auto logger{std::make_shared<spdlog::logger>("unfold", std::initializer_list<spdlog::sink_ptr>{file_sink, console_sink})};
+  logger->flush_on(spdlog::level::critical);
+  spdlog::set_default_logger(logger);
+
+  spdlog::set_level(spdlog::level::info);
+  spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%^%-5l%$] %v");
+
+#if SPDLOG_VERSION >= 10801
+  spdlog::cfg::load_env_levels();
+#endif
+}
+
+int
+main(int argc, char **argv)
+{
+  setup_loggin();
+
+  HttpServer server;
+  server.add("/foo", "foo\n");
+  server.run();
+
+  while (true)
+    {
+      sleep(1);
+    }
+}

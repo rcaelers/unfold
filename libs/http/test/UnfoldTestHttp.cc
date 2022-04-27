@@ -130,25 +130,13 @@ BOOST_AUTO_TEST_CASE(http_client_get)
   d.add_ca_cert(cert);
   auto rc = d.get("https://localhost:1337/foo");
 
-  // auto [result, content] = rc.value();
-
-  // BOOST_CHECK_EQUAL(rc.has_error(), false);
-  // BOOST_CHECK_EQUAL(result, 200);
-  // BOOST_CHECK_EQUAL(content, "foo\n");
-
-  server.stop();
-}
-
-BOOST_AUTO_TEST_CASE(http_client_get2)
-{
-  HttpClient d;
-  d.add_ca_cert(cert);
-  auto rc = d.get("https://snapshots.workrave.org/snapshots/v1.11/testappcast.xml");
-
   auto [result, content] = rc.value();
 
   BOOST_CHECK_EQUAL(rc.has_error(), false);
   BOOST_CHECK_EQUAL(result, 200);
+  BOOST_CHECK_EQUAL(content, "foo\n");
+
+  server.stop();
 }
 
 BOOST_AUTO_TEST_CASE(http_client_get_not_found)

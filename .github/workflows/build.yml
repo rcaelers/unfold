@@ -42,7 +42,7 @@ jobs:
           cmake -GNinja -B_build -H. -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/msys2.cmake -DCMAKE_INSTALL_PREFIX=_deploy -DWITH_TESTS=ON
           ninja -C _build -v install
           cd _build
-          ctest
+          ctest -V
 
   # build-mingw:
   #   runs-on: ubuntu-latest

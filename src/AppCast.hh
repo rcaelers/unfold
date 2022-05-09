@@ -27,6 +27,8 @@
 
 #include <boost/property_tree/ptree.hpp>
 
+#include "semver.hpp"
+
 #include "utils/Logging.hh"
 
 struct AppcastEnclosure
@@ -35,13 +37,13 @@ struct AppcastEnclosure
   std::string signature;
   uint64_t length = 0;
   std::string mime_type;
-  std::string install_arguments;
+  std::string installer_arguments;
   std::string os;
 };
 
 struct AppcastItem
 {
-  std::string channel;
+  std::string channel; // TODO: not supported
   std::string title;
   std::string link;
   std::string version;
@@ -50,11 +52,11 @@ struct AppcastItem
   std::string release_notes_link;
   std::string publication_date;
   std::string minimum_system_version;
-  std::string minimum_auto_update_version;
-  std::string ignore_skipped_upgrades_below_version;
-  bool critical_update{false};
-  std::string critical_update_version;
-  uint64_t phased_rollout_interval{0};
+  std::string minimum_auto_update_version; // TODO: not supported
+  std::string ignore_skipped_upgrades_below_version; // TODO: not supported
+  bool critical_update{false}; // TODO: not supported
+  std::string critical_update_version; // TODO: not supported
+  uint64_t phased_rollout_interval{0}; // TODO: not supported
 
   std::vector<std::shared_ptr<AppcastEnclosure>> enclosures;
 };

@@ -169,7 +169,7 @@ BOOST_AUTO_TEST_CASE(appcast_load_from_file)
 {
   auto reader = std::make_shared<AppcastReader>();
 
-  auto appcast = reader->load_from_file("testappcast.xml");
+  auto appcast = reader->load_from_file("okappcast.xml");
 
   BOOST_CHECK_EQUAL(appcast->title, "Workrave Test Appcast");
   BOOST_CHECK_EQUAL(appcast->description, "Most recent updates to Workrave Test");

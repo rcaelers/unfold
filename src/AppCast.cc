@@ -112,7 +112,7 @@ AppcastReader::parse_item(boost::property_tree::ptree item_pt)
   for (const auto &i: item_pt)
     {
       auto [name, enclosure_pt] = i;
-      if (name == "sparkle:enclosure")
+      if (name == "enclosure")
         {
           auto enclosure = parse_enclosure(enclosure_pt);
           item->enclosures.push_back(enclosure);
@@ -128,9 +128,9 @@ AppcastReader::parse_enclosure(boost::property_tree::ptree enclosure_pt)
   auto enclosure = std::make_shared<AppcastEnclosure>();
 
   enclosure->url = enclosure_pt.get<std::string>("<xmlattr>.url", "");
-  enclosure->signature = enclosure_pt.get<std::string>("<xmlattr>,sparkle:edSignature", "");
+  enclosure->signature = enclosure_pt.get<std::string>("<xmlattr>.sparkle:edSignature", "");
   enclosure->mime_type = enclosure_pt.get<std::string>("<xmlattr>.type", "");
-  enclosure->install_arguments = enclosure_pt.get<std::string>("installArguments", "");
+  enclosure->installer_arguments = enclosure_pt.get<std::string>("<xmlattr>.installerArguments", "");
   enclosure->os = enclosure_pt.get<std::string>("<xmlattr>.os", "");
   enclosure->length = enclosure_pt.get<uint64_t>("<xmlattr>.length", 0);
 

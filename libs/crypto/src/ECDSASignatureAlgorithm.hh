@@ -18,27 +18,28 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef ECDSA_SIGNATURE_VERIFIER_HH
-#define ECDSA_SIGNATURE_VERIFIER_HH
+#ifndef ECDSA_SIGNATURE_ALGORITHM_HH
+#define ECDSA_SIGNATURE_ALGORITHM_HH
 
-#include "crypto/SignatureVerifier.hh"
+#include "SignatureAlgorithm.hh"
 
 #include <memory>
 
 #include "PublicKey.hh"
 #include "utils/Logging.hh"
 
-class ECDSASignatureAlgorithm : public unfold::crypto::SignatureAlgorithm
+class ECDSASignatureAlgorithm : public SignatureAlgorithm
 {
 public:
-  explicit ECDSASignatureAlgorithm(const std::string &public_key);
+  ECDSASignatureAlgorithm() = default;
   ~ECDSASignatureAlgorithm() override = default;
 
+  outcome::std_result<void> set_key(const std::string &public_key) override;
   outcome::std_result<void> verify(std::string_view data, const std::string &signature) override;
 
 private:
-  PublicKey public_key;
+  std::unique_ptr<PublicKey> public_key;
   std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:signatures:ecdsa")};
 };
 
-#endif
+#endif // ECDSA_SIGNATURE_ALGORITHM_HH

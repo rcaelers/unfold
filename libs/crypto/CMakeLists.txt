@@ -3,6 +3,7 @@ add_library(unfold-crypto OBJECT)
 target_sources(unfold-crypto PRIVATE
   src/ECDSASignatureAlgorithm.cc
   src/PublicKey.cc
+  src/SignatureAlgorithm.cc
   src/SignatureVerifier.cc
   src/SignatureVerifierErrors.cc
 

@@ -19,9 +19,11 @@
 // THE SOFTWARE.
 
 #include "ECDSASignatureAlgorithm.hh"
+#include "PublicKey.hh"
 #include "crypto/SignatureVerifierErrors.hh"
 
 #include <cstddef>
+#include <memory>
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
 
@@ -29,15 +31,25 @@
 
 using namespace unfold::crypto;
 
-ECDSASignatureAlgorithm::ECDSASignatureAlgorithm(const std::string &public_key)
-  : public_key(public_key)
+outcome::std_result<void>
+ECDSASignatureAlgorithm::set_key(const std::string &key)
 {
+  public_key = std::make_unique<PublicKey>(key);
+
+  EVP_PKEY *pkey = public_key->get();
+
+  if (pkey == nullptr)
+    {
+      logger->error("failed load public key ({})", ERR_error_string(ERR_get_error(), nullptr));
+      return SignatureVerifierErrc::InvalidPublicKey;
+    }
+  return SignatureVerifierErrc::Success;
 }
 
 outcome::std_result<void>
 ECDSASignatureAlgorithm::verify(std::string_view data, const std::string &signature)
 {
-  EVP_PKEY *pkey = public_key.get();
+  EVP_PKEY *pkey = public_key->get();
 
   if (pkey == nullptr)
     {

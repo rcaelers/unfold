@@ -18,8 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef SIGNATURE_VERIFIER_HH
-#define SIGNATURE_VERIFIER_HH
+#ifndef SIGNATURE_ALGORITHM_HH
+#define SIGNATURE_ALGORITHM_HH
 
 #include <string>
 #include <string_view>
@@ -27,29 +27,22 @@
 
 #include <boost/outcome/std_result.hpp>
 
-#include "SignatureAlgorithmType.hh"
-#include "utils/Logging.hh"
-#include "SignatureVerifierErrors.hh"
+#include "crypto/SignatureAlgorithmType.hh"
 
 namespace outcome = boost::outcome_v2;
 
-class SignatureAlgorithm;
-
-namespace unfold::crypto
+class SignatureAlgorithm
 {
-  class SignatureVerifier
-  {
-  public:
-    SignatureVerifier() = default;
+public:
+  virtual ~SignatureAlgorithm() = default;
+  virtual outcome::std_result<void> set_key(const std::string &public_key) = 0;
+  virtual outcome::std_result<void> verify(std::string_view data, const std::string &signature) = 0;
+};
 
-    outcome::std_result<void> set_key(SignatureAlgorithmType type, const std::string &public_key);
-    outcome::std_result<void> verify(const std::string &filename, const std::string &signature);
+class SignatureAlgorithmFactory
+{
+public:
+  static std::shared_ptr<SignatureAlgorithm> create(unfold::crypto::SignatureAlgorithmType type);
+};
 
-  private:
-    std::shared_ptr<SignatureAlgorithm> algo;
-    std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:signatures")};
-  };
-
-} // namespace unfold::crypto
-
-#endif // SIGNATURE_VERIFIER_HH
+#endif // SIGNATURE_ALGORITHM_HH

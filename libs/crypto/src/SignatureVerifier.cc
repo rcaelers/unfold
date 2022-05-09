@@ -38,24 +38,22 @@
 
 using namespace unfold::crypto;
 
-std::shared_ptr<SignatureAlgorithm>
-SignatureAlgorithmFactory::create(SignatureAlgorithmType type, const std::string &public_key)
+outcome::std_result<void>
+SignatureVerifier::set_key(SignatureAlgorithmType type, const std::string &public_key)
 {
-  switch (type)
-    {
-    case SignatureAlgorithmType::ECDSA:
-      return std::make_shared<ECDSASignatureAlgorithm>(public_key);
-    }
-}
-
-SignatureVerifier::SignatureVerifier(SignatureAlgorithmType type, const std::string &public_key)
-  : algo(SignatureAlgorithmFactory::create(type, public_key))
-{
+  algo = SignatureAlgorithmFactory::create(type);
+  return algo->set_key(public_key);
 }
 
 outcome::std_result<void>
 SignatureVerifier::verify(const std::string &filename, const std::string &signature)
 {
+  if (!algo)
+    {
+      logger->error("no algorithm");
+      return SignatureVerifierErrc::InvalidPublicKey;
+    }
+
   if (signature.empty())
     {
       logger->error("signature empty");

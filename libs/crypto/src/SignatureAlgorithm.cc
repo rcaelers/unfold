@@ -18,38 +18,23 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef SIGNATURE_VERIFIER_HH
-#define SIGNATURE_VERIFIER_HH
+#include "SignatureAlgorithm.hh"
 
-#include <string>
-#include <string_view>
 #include <memory>
 
-#include <boost/outcome/std_result.hpp>
+#include <spdlog/spdlog.h>
+#include <spdlog/fmt/ostr.h>
 
-#include "SignatureAlgorithmType.hh"
-#include "utils/Logging.hh"
-#include "SignatureVerifierErrors.hh"
+#include "ECDSASignatureAlgorithm.hh"
 
-namespace outcome = boost::outcome_v2;
+using namespace unfold::crypto;
 
-class SignatureAlgorithm;
-
-namespace unfold::crypto
+std::shared_ptr<SignatureAlgorithm>
+SignatureAlgorithmFactory::create(SignatureAlgorithmType type)
 {
-  class SignatureVerifier
-  {
-  public:
-    SignatureVerifier() = default;
-
-    outcome::std_result<void> set_key(SignatureAlgorithmType type, const std::string &public_key);
-    outcome::std_result<void> verify(const std::string &filename, const std::string &signature);
-
-  private:
-    std::shared_ptr<SignatureAlgorithm> algo;
-    std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:signatures")};
-  };
-
-} // namespace unfold::crypto
-
-#endif // SIGNATURE_VERIFIER_HH
+  switch (type)
+    {
+    case SignatureAlgorithmType::ECDSA:
+      return std::make_shared<ECDSASignatureAlgorithm>();
+    }
+}

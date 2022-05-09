@@ -12,6 +12,7 @@ if(APPLE)
 endif()
 
 if(WIN32)
+  target_sources(unfold PRIVATE windows/WindowsPlatform.cc)
   target_link_libraries(unfold PUBLIC ws2_32 mswsock)
 endif()
 

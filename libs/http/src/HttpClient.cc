@@ -61,16 +61,18 @@ HttpClient::add_ca_cert(const std::string &cert)
 }
 
 outcome::std_result<Response>
-HttpClient::get(const std::string &url, std::ostream &file, ProgressCallback cb)
+HttpClient::get_sync(const std::string &url, std::ostream &file, ProgressCallback cb)
 {
+  boost::asio::io_context ioc;
   outcome::std_result<Response> ret = outcome::failure(HttpClientErrc::InternalError);
   boost::asio::co_spawn(
     ioc,
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          Connection conn(std::ref(ioc), std::ref(ctx));
+          Connection conn(co_await boost::asio::this_coro::executor, std::ref(ctx));
           ret = co_await conn.get(url, file, cb);
+          co_return;
         }
       catch (std::exception &e)
         {
@@ -79,12 +81,14 @@ HttpClient::get(const std::string &url, std::ostream &file, ProgressCallback cb)
     },
     boost::asio::detached);
   ioc.run();
+  ioc.restart();
   return ret;
 }
 
 outcome::std_result<Response>
-HttpClient::get(const std::string &url)
+HttpClient::get_sync(const std::string &url)
 {
+  boost::asio::io_context ioc;
   outcome::std_result<Response> ret = outcome::failure(HttpClientErrc::InternalError);
 
   boost::asio::co_spawn(
@@ -92,8 +96,9 @@ HttpClient::get(const std::string &url)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          Connection conn(std::ref(ioc), std::ref(ctx));
+          Connection conn(co_await boost::asio::this_coro::executor, std::ref(ctx));
           ret = co_await conn.get(url);
+          co_return;
         }
       catch (std::exception &e)
         {
@@ -102,5 +107,24 @@ HttpClient::get(const std::string &url)
     },
     boost::asio::detached);
   ioc.run();
+  ioc.restart();
   return ret;
+}
+
+boost::asio::awaitable<outcome::std_result<Response>>
+HttpClient::get(const std::string &url, std::ostream &file, ProgressCallback cb)
+{
+  auto executor = co_await boost::asio::this_coro::executor;
+  Connection conn(executor, std::ref(ctx));
+  auto r = co_await conn.get(url, file, cb);
+  co_return Response{}; // r;
+}
+
+boost::asio::awaitable<outcome::std_result<Response>>
+HttpClient::get(const std::string &url)
+{
+  auto executor = co_await boost::asio::this_coro::executor;
+  Connection conn(executor, std::ref(ctx));
+  auto r = co_await conn.get(url);
+  co_return r;
 }

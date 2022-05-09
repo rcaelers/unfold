@@ -39,9 +39,8 @@
 
 using namespace unfold::http;
 
-Connection::Connection(boost::asio::io_context &ioc, boost::asio::ssl::context &ctx)
-  : ioc(ioc)
-  , stream(ioc, ctx)
+Connection::Connection(boost::asio::any_io_executor exec_context, boost::asio::ssl::context &ctx)
+  : stream(exec_context, ctx)
 {
 }
 
@@ -93,8 +92,9 @@ Connection::send_request()
     }
 
   boost::system::error_code ec;
-  boost::asio::ip::tcp::resolver resolver(ioc);
+  boost::asio::ip::tcp::resolver resolver(co_await boost::asio::this_coro::executor);
   auto results = co_await resolver.async_resolve(url.host(), port, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+
   if (ec)
     {
       logger->error("failed to resolve hostname '{}' ({})", url.host(), ec.message());

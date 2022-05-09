@@ -32,7 +32,7 @@
 #  include <spdlog/cfg/env.h>
 #endif
 
-#include "HttpServer.hh"
+#include "http/HttpServer.hh"
 
 static void
 setup_loggin()
@@ -59,7 +59,7 @@ main(int argc, char **argv)
 {
   setup_loggin();
 
-  HttpServer server;
+  unfold::http::HttpServer server;
   server.add("/foo", "foo\n");
   server.run();
 

@@ -3,6 +3,7 @@ add_library(unfold-http OBJECT)
 target_sources(unfold-http PRIVATE
   src/HttpClient.cc
   src/HttpClientErrors.cc
+  src/HttpServer.cc
   src/Connection.cc
 )
 

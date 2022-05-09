@@ -39,15 +39,18 @@ namespace outcome = boost::outcome_v2;
 class Connection
 {
 public:
-  Connection(boost::asio::io_context &ioc, boost::asio::ssl::context &ctx);
+  Connection(boost::asio::any_io_executor, boost::asio::ssl::context &ctx);
 
   boost::asio::awaitable<outcome::std_result<unfold::http::Response>> get(const std::string &url);
-  boost::asio::awaitable<outcome::std_result<unfold::http::Response>> get(const std::string &url, std::ostream &file, unfold::http::ProgressCallback cb);
+  boost::asio::awaitable<outcome::std_result<unfold::http::Response>> get(const std::string &url,
+                                                                          std::ostream &file,
+                                                                          unfold::http::ProgressCallback cb);
 
 private:
   boost::asio::awaitable<outcome::std_result<void>> send_request();
   boost::asio::awaitable<outcome::std_result<unfold::http::Response>> receive_reponse();
-  boost::asio::awaitable<outcome::std_result<unfold::http::Response>> receive_reponse(std::ostream &file, unfold::http::ProgressCallback cb);
+  boost::asio::awaitable<outcome::std_result<unfold::http::Response>> receive_reponse(std::ostream &file,
+                                                                                      unfold::http::ProgressCallback cb);
   boost::asio::awaitable<void> shutdown();
   outcome::std_result<void> parse_url(const std::string &u);
 
@@ -56,7 +59,6 @@ private:
   static constexpr std::chrono::seconds TIMEOUT{30};
 
   boost::urls::url_view url;
-  boost::asio::io_context &ioc;
   boost::beast::ssl_stream<boost::beast::tcp_stream> stream;
   std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold::http:connection")};
 };

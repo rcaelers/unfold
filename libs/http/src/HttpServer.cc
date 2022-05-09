@@ -18,11 +18,17 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "HttpServer.hh"
+#include "http/HttpServer.hh"
 
 #include <spdlog/fmt/ostr.h>
 
 #include <thread>
+#include <string>
+#include <fstream>
+#include <streambuf>
+
+using namespace unfold::http;
+using namespace unfold::http::detail;
 
 namespace
 {
@@ -108,17 +114,12 @@ Session::mime_type(std::string_view path)
   if (pos != std::string_view::npos)
     {
       auto ext = path.substr(pos);
-
       if (ext == ".xml")
         {
           return "application/xml";
         }
-      if (ext == ".exe")
-        {
-          return "application/octet-stream";
-        }
     }
-  return "application/text";
+  return "application/octet-stream";
 }
 
 void
@@ -311,10 +312,14 @@ HttpServer::run()
 void
 HttpServer::stop()
 {
-  ioc.stop();
-  for (auto &w: workers)
+  if (!workers.empty())
     {
-      w.join();
+      ioc.stop();
+      for (auto &w: workers)
+        {
+          w.join();
+        }
+      workers.clear();
     }
 }
 
@@ -322,6 +327,15 @@ void
 HttpServer::add(std::string_view file, const std::string &body)
 {
   documents.add(file, body);
+}
+
+void
+HttpServer::add_file(std::string_view file, const std::string &filename)
+{
+  std::ifstream f(filename.c_str());
+  std::string content((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+  spdlog::info("file {} {}", filename, content.size());
+  add(file, content);
 }
 
 void

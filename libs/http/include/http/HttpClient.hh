@@ -44,11 +44,13 @@ namespace unfold::http
 
     void add_ca_cert(const std::string &cert);
 
-    outcome::std_result<Response> get(const std::string &url, std::ostream &file, ProgressCallback cb);
-    outcome::std_result<Response> get(const std::string &url);
+    outcome::std_result<Response> get_sync(const std::string &url, std::ostream &file, ProgressCallback cb);
+    outcome::std_result<Response> get_sync(const std::string &url);
+
+    boost::asio::awaitable<outcome::std_result<Response>> get(const std::string &url, std::ostream &file, ProgressCallback cb);
+    boost::asio::awaitable<outcome::std_result<Response>> get(const std::string &url);
 
   private:
-    boost::asio::io_context ioc;
     boost::asio::ssl::context ctx{boost::asio::ssl::context::tlsv12_client};
     std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:http")};
   };

@@ -3,6 +3,7 @@ add_library(unfold-utils OBJECT)
 target_sources(unfold-utils PRIVATE
   src/Base64.cc
   src/Logging.cc
+  src/TempDirectory.cc
 )
 
 target_code_coverage(unfold-utils)

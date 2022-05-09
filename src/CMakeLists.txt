@@ -2,6 +2,9 @@ add_library(unfold SHARED)
 
 target_sources(unfold PRIVATE
   AppCast.cc
+  UpgradeControl.cc
+  Installer.cc
+  UnfoldErrors.cc
   )
 
 target_code_coverage(unfold)

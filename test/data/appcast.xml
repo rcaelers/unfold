@@ -1,0 +1,1496 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0"
+  xmlns:sparkle="https://www.andymatuschak.org/xml-namespaces/sparkle">
+  <channel>
+    <title>Workrave</title>
+    <description>Workrave</description>
+    <language>en</language>
+    <link>https://workrave.org/</link>
+
+    <item>
+      <title>Workrave 1.11.0-alpha.1</title>
+      <description><![CDATA[
+Workrave 1.11.0-alpha1 has been released.
+Workrave 1.11 has received limited testing and may not be as stable as Workrave 1.10.
+
+Changes since Workrave 1.10.49:
+
+- Major internal code cleanup and code modernization.
+- Initial (incomplete) port to macOS using Qt6
+- The default sound theme was changed to the "Subtle" theme (#362)
+- You can now change the operation mode for a limited amount of time (#98,
+- A portable version is now available for Windows and Linux (#180)
+- Workrave now follows the XDG basedirectory specification (#192)
+- The Windows version is now 64 bit (#295)
+- Workrave can now automatically change the operation mode based on Windows Focus Assist (#255,
+- A dark UI theme is now supported on Windows (#214)
+- Bug fixes:
+  - Fixed Windows system tray menu that would not always properly open (#373)
+  - Fixed vertical positioning of GNOME shell applet (#356)
+  - GGOME shell applet is now compatible with GNOME up to version 42 (#342, #352, #355)
+  - DPI scaling with multiple monitor has been fixed (#308, #315)
+  - Fixed the description of the backward shoulder stretch exercise (#354)
+  - Add version number to installer to support Microsoft's Windows Package Manager (winget) (#349, #353 by Kaleb Luedtke)
+- Translations:
+  - Complete overhaul of Simplified Chinese translation (#385 by sr093906)
+  - Updated Hebrew translation (#361 by Omer I.S.)
+  - Updated Italian translation (#359 by albanobattistella)
+  - Updated Persian translation (#358 by MSKF)
+  - Updated Catalan translation (#338 by Jordi Mallach)
+- and more... (the final 1.11 release will have a more complete list of changes)
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.11.0-alpha.1</sparkle:version>
+      <pubDate>Sun, 27 Feb 2022 11:02:33 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.11.0-alpha.1.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.49</title>
+      <description><![CDATA[
+Workrave 1.10.49 has been released. This release adds support for GNOME Shell 41.
+
+Changes since Workrave 1.10.48:
+
+- Adds support for GNOME Shell 41 (#342, Timo Jyrinki)
+- Inno Setup improvement (#353, Kaleb Luedtke)
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.49</sparkle:version>
+      <pubDate>Wed, 05 Jan 2022 03:05:19 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.49.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.48</title>
+      <description><![CDATA[
+Workrave 1.10.48 has been released. This release fixes the GNOME Shell applet on GNOME Shell 3.30 and older.
+
+Changes since Workrave 1.10.47:
+
+- Fixed GNOME Shell applet on Ubuntu 18.04 (#281)
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.48</sparkle:version>
+      <pubDate>Tue, 03 Aug 2021 05:26:00 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.48.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.47</title>
+      <description><![CDATA[
+Workrave 1.10.47 has been released. This release fixes an number of bugs and add support for GNOME Shell 40.
+
+Changes since Workrave 1.10.45:
+
+- Fixed a crash of the GNOME Shell applet (#281)
+- Adds support for GNOME Shell 40 (#288)
+- Fixed issue where the installer would fail when installing as system user (#291)
+- Fixed incorrect disabling of postpone/skip button (#301)
+- Warn if operation mode is not 'normal' after unlocking the screen (Windows only for now)
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.47</sparkle:version>
+      <pubDate>Mon, 26 Jul 2021 02:20:30 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.47.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.45</title>
+      <description><![CDATA[
+Workrave 1.10.45 has been released. This release adds a new sound theme and several small improvements.
+
+Changes since Workrave 1.10.44:
+
+- Micro breaks without a postpone button could be postponed by starting a
+  rest break while the break prompt window was visible and then clicking
+  postpone in the rest break window. The postpone button is now disabled
+  when the micro break is overdue, and the maximum number of break prompts
+  was reached.
+- A new sound theme calls 'Bells' has been added (#225, Pieter De Decker)
+- Added support for High-DPI displays in the Windows Applet.
+- The Windows applet now correctly enforces a minimum size (#252)
+- Initial support for icon themes.
+- Fixes:
+  - Fixed build issue with libayatana-indicator3
+  - Fixed issue where Workrave would show 2 status icons on Linux (#258)
+  - Fixed a deprecation warning in the Gnome Shell applet (#251)
+  - The cinnamon applet is no longer bouncing up and down (#253)
+  - Fixed issue where the current language was always "Unrecognized language"
+  - Fixed issue where activity monitoring would stop after restarting Gnome Shell
+  - Fixed issue that caused the main window to disappear (#244, #259)
+- Translation updates:
+  - Updated Chinese translation (#232, wintertee)
+  - Updated French translation (Darialalala)
+  - Updated Dutch translation (Matthias Huijgen)
+  - Fixed typo in the Italian translation (#234, albanobattistella)
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.45</sparkle:version>
+      <pubDate>Sat, 27 Mar 2021 02:19:02 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.45.exe" sparkle:`="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.44</title>
+      <description><![CDATA[
+Workrave 1.10.44 has been released.
+
+Changes since Workrave 1.10.43:
+
+- Update Italian translation (Albano Battistella)
+- Support libayatana-indicator3 (Kentaro Hayashi/Rob Caelers)
+- Fixed issue on Gnome where Workrave would not detect that the user is
+  idle (#181)
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.44</sparkle:version>
+      <pubDate>Sat, 09 May 2020 12:52:50 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.44.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.43</title>
+      <description><![CDATA[
+Workrave 1.10.43 has been released.
+
+Changes since Workrave 1.10.42:
+
+- Fix issue where a break window could disappear after a few seconds.
+- Fix issue where the Gnome Shell applet would be reload on Ubuntu 18.04.
+- Update Traditional Chinese translation (Yuenfu Chiu)
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.43</sparkle:version>
+      <pubDate>Mon, 13 Apr 2020 02:43:20 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.43.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.42</title>
+      <description><![CDATA[
+Workrave 1.10.42 has been released.
+
+Changes since Workrave 1.10.41:
+
+- Fix Gnome Shell applet compatibility issue with Ubuntu 18.04.
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.42</sparkle:version>
+      <pubDate>Fri, 10 Apr 2020 03:14:17 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.42.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.41</title>
+      <description><![CDATA[
+Workrave 1.10.41 has been released.
+
+Changes since Workrave 1.10.40:
+
+- Fix incomplete Gnome Shell applet menu with latest version of Gnome
+  Shell
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.41</sparkle:version>
+      <pubDate>Sun, 05 Apr 2020 06:09:55 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.41.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.40</title>
+      <description><![CDATA[
+Workrave 1.10.40 has been released.
+
+Changes since Workrave 1.10.37
+- Fix creation for source tarball.
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.40</sparkle:version>
+      <pubDate>Sat, 04 Apr 2020 05:45:06 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.40.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.39</title>
+      <description><![CDATA[
+Workrave 1.10.39 has been released.
+
+Changes since Workrave 1.10.38:
+
+- When it is time to take a micro break, Workrave may start a rest break
+  instead. This happens when the rest break would start within 30 seconds
+  of the micro break. If the postpone or skip buttons are disabled on the
+  micro break, they will be temporarily disabled on the rest break window.
+  A small progress bar indicates how long the buttons are disabled.
+  Previously, Workrave would restart the micro break when pressing the
+  skip or postpone button.
+- Support applets on Gnome 3.35.1+ using libgnome-panel (Alberts
+  Muktupāvels).
+- Added Indonesian translation (Andika Triwidada).
+- Fixed issue where Workrave was not properly terminated on reinstall.
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.39</sparkle:version>
+      <pubDate>Sat, 04 Apr 2020 04:28:37 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.39.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.38</title>
+      <description><![CDATA[
+Workrave 1.10.38 has been released.
+
+Changes since Workrave 1.10.37:
+
+- Show operation mode in Gnome applet.
+- Fixed focus issue on rest break window that caused muted (grey) text.
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.38</sparkle:version>
+      <pubDate>Fri, 20 Mar 2020 03:34:00 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.38.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.37</title>
+      <description><![CDATA[
+Workrave 1.10.37 has been released.
+
+Changes since Workrave 1.10.34
+- Add Ubuntu 19.10 / 20.04 to Workrave PPA
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.37</sparkle:version>
+      <pubDate>Tue, 17 Mar 2020 06:30:15 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.37.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.36</title>
+      <description><![CDATA[
+Workrave 1.10.36 has been released.
+
+Changes since Workrave 1.10.34:
+
+- Update Irish translation (Seanán Ó Coistín)
+- new Portuguese translation (pmraps)
+- Non-blocking break windows are now centered on Wayland/mutter (#163)
+- Support display scaling
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.36</sparkle:version>
+      <pubDate>Mon, 16 Mar 2020 08:44:08 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.36.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.34</title>
+      <description><![CDATA[
+Workrave 1.10.34 has been released.
+
+Changes since Workrave 1.10.33:
+
+- Ubuntu Trusty and Xenial build fixes.
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.34</sparkle:version>
+      <pubDate>Tue, 04 Jun 2019 08:29:00 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.34.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.33</title>
+      <description><![CDATA[
+Workrave 1.10.33 has been released.
+
+Changes since Workrave 1.10.32:
+
+- Packaging fixes.
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.33</sparkle:version>
+      <pubDate>Sun, 02 Jun 2019 04:27:57 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.33.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.32</title>
+      <description><![CDATA[
+Workrave 1.10.32 has been released.
+
+Changes since Workrave 1.10.31:
+
+- Fixed a bug that caused high CPU load when the main window was open for
+  a long time.
+- \[internal change\] Python 2 is no longer required for building Workrave.
+  The Python2-only Cheetah dependency has been replaced by Jinja 2
+  (python3-jinja2). Additionally, Boost >= 1.52 is now required
+  (libboost-dev).
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.32</sparkle:version>
+      <pubDate>Sun, 02 Jun 2019 02:53:40 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.32.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.31</title>
+      <description><![CDATA[
+Workrave 1.10.31 has been released.
+
+Changes since Workrave 1.10.23
+- Add GetTimerRemaining dbus function.
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.31</sparkle:version>
+      <pubDate>Tue, 26 Mar 2019 09:13:04 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.31.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.30</title>
+      <description><![CDATA[
+Workrave 1.10.30 has been released.
+
+Changes since Workrave 1.10.29:
+
+- Prevent "Workrave wants to inhibit shortcuts" on Wayland
+- Fix timer bar text color under Wayland
+- Do not dim text in time bar when window is not focused.
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.30</sparkle:version>
+      <pubDate>Sun, 24 Mar 2019 07:48:28 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.30.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.29</title>
+      <description><![CDATA[
+Workrave 1.10.29 has been released.
+
+Changes since Workrave 1.10.28:
+
+- Fix PPA upload
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.29</sparkle:version>
+      <pubDate>Thu, 21 Mar 2019 10:47:10 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.29.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.28</title>
+      <description><![CDATA[
+Workrave 1.10.28 has been released.
+
+Changes since Workrave 1.10.27:
+
+- Fix PPA upload
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.28</sparkle:version>
+      <pubDate>Thu, 21 Mar 2019 09:36:38 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.28.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.27</title>
+      <description><![CDATA[
+Workrave 1.10.27 has been released.
+
+Changes since Workrave 1.10.26:
+
+- Fix menu in Cinnamon applet
+- Fix bouncing Cinnamon applet
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.27</sparkle:version>
+      <pubDate>Thu, 21 Mar 2019 07:52:21 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.27.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.26</title>
+      <description><![CDATA[
+Workrave 1.10.26 has been released.
+
+Changes since Workrave 1.10.25:
+
+- Fix Gnome Shell applet for Gnome Shell v3.30
+- Reduce padding in timer window
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.26</sparkle:version>
+      <pubDate>Wed, 20 Mar 2019 09:42:31 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.26.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.25</title>
+      <description><![CDATA[
+Workrave 1.10.25 has been released.
+
+Changes since Workrave 1.10.24:
+
+- Packaging fixes
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.25</sparkle:version>
+      <pubDate>Tue, 19 Mar 2019 05:27:56 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.25.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.24</title>
+      <description><![CDATA[
+Workrave 1.10.24 has been released.
+
+Changes since Workrave 1.10.23:
+
+- Fix AppStream metadata (Balló György)
+- Update Slovak translation (Jose Riha)
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.24</sparkle:version>
+      <pubDate>Mon, 18 Mar 2019 08:44:13 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.24.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.23</title>
+      <description><![CDATA[
+Workrave 1.10.23 has been released.
+
+Changes since Workrave 1.10.22:
+
+- Packaging fixes
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.23</sparkle:version>
+      <pubDate>Sun, 30 Sep 2018 10:33:43 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.23.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.22</title>
+      <description><![CDATA[
+Workrave 1.10.22 has been released.
+
+Changes since Workrave 1.10.21:
+
+- Fix size of Xfce applet
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.22</sparkle:version>
+      <pubDate>Sun, 30 Sep 2018 06:04:46 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.22.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.21</title>
+      <description><![CDATA[
+Workrave 1.10.21 has been released.
+
+Changes since Workrave 1.10.20:
+
+- Support MATE applet with Gtk+3
+- Support Xfce applet with Gtk+3
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.21</sparkle:version>
+      <pubDate>Sun, 09 Sep 2018 12:59:19 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.21.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.20</title>
+      <description><![CDATA[
+Workrave 1.10.20 has been released.
+
+Changes since Workrave 1.10.19:
+
+- Fix activity monitoring on non-Gnome desktop environments
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.20</sparkle:version>
+      <pubDate>Mon, 06 Nov 2017 04:22:18 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.20.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.19</title>
+      <description><![CDATA[
+Workrave 1.10.19 has been released.
+
+Changes since Workrave 1.10.18:
+
+- Fix crash because of missing setting
+- Fix Gnome Shell applet
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.19</sparkle:version>
+      <pubDate>Fri, 27 Oct 2017 04:00:37 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.19.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.18</title>
+      <description><![CDATA[
+Workrave 1.10.18 has been released.
+
+Changes since Workrave 1.10.17:
+
+- Support Gnome Shell 3.24/26
+- macOS compilation fixes (Tom Parker)
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.18</sparkle:version>
+      <pubDate>Mon, 23 Oct 2017 08:10:42 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.18.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.17</title>
+      <description><![CDATA[
+Workrave 1.10.17 has been released.
+
+Changes since Workrave 1.10.16:
+
+- Update Czech translation (Pavel Bborecki)
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.17</sparkle:version>
+      <pubDate>Sun, 03 Sep 2017 04:52:32 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.17.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.16</title>
+      <description><![CDATA[
+Workrave 1.10.16 has been released.
+
+Changes since Workrave 1.10.15:
+
+- Mark applet as compatible with GNOME 3.22 (Francois Marier)
+- Fix text alignment time bar.
+- Fix resuming microbreak after postponing restbreak
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.16</sparkle:version>
+      <pubDate>Thu, 15 Sep 2016 04:51:21 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.16.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.15</title>
+      <description><![CDATA[
+Workrave 1.10.15 has been released.
+
+Changes since Workrave 1.10.14:
+
+- Fix crash when no shutdown/hibernate options are available.
+- Updated traditional Chinese translation (Kevin Kuan)
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.15</sparkle:version>
+      <pubDate>Wed, 11 May 2016 06:14:20 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.15.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.14</title>
+      <description><![CDATA[
+Workrave 1.10.14 has been released.
+
+Changes since Workrave 1.10.13:
+
+- Fixed issue where pressing the down key during a restbreak would lock
+  the screen (bug #1242)
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.14</sparkle:version>
+      <pubDate>Sun, 01 May 2016 12:54:25 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.14.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.13</title>
+      <description><![CDATA[
+Workrave 1.10.13 has been released.
+
+Changes since Workrave 1.10.12:
+
+- Use button instead of combobox if only 'Lock' is available in restbreak
+  window (pedantic-git)
+- Update german translation (rsnitsch)
+- Support Gnome Shell 3.20 (Francois Marier)
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.13</sparkle:version>
+      <pubDate>Wed, 27 Apr 2016 01:01:08 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.13.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.12</title>
+      <description><![CDATA[
+Workrave 1.10.12 has been released.
+
+Changes since Workrave 1.10.11:
+
+- Updated Catalan translation (Jordi Mallach)
+- Fixed Gnome Shell applet (Amir Mohammadi)
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.12</sparkle:version>
+      <pubDate>Sun, 27 Mar 2016 01:38:09 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.12.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.11</title>
+      <description><![CDATA[
+Workrave 1.10.11 has been released.
+
+Changes since Workrave 1.10.9:
+
+- Improved security of network protocol.
+  NOTE: this is a backward incompatible change. This version of Workrave
+  will no longer connect to older Workrave versions.
+- Minor improvements
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.11</sparkle:version>
+      <pubDate>Thu, 07 Jan 2016 07:35:00 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.11.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.9</title>
+      <description><![CDATA[
+Workrave 1.10.9 has been released.
+
+Changes since Workrave 1.10.8:
+
+- UI tweak
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.9</sparkle:version>
+      <pubDate>Sat, 12 Dec 2015 02:10:11 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.9.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.8</title>
+      <description><![CDATA[
+Workrave 1.10.8 has been released.
+
+Changes since Workrave 1.10.7:
+
+- Extra statistics:
+  - Weekly usage statistics (Rob Caelers)
+  - Monthly usage statistics (Denis Nikolaenko)
+- Fix gtkmm 3.18 compilation (Javier Tia, Denis Nikolaenko)
+- Support Gnome 3.16
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.8</sparkle:version>
+      <pubDate>Sat, 24 Oct 2015 11:53:10 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.8.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.7</title>
+      <description><![CDATA[
+Workrave 1.10.7 has been released.
+
+Changes since Workrave 1.10.6:
+
+- Update translations:
+  - Spanish (Fco. Javier Serrador)
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.7</sparkle:version>
+      <pubDate>Thu, 26 Mar 2015 06:58:00 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.7.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.6</title>
+      <description><![CDATA[
+Workrave 1.10.6 has been released.
+
+Changes since Workrave 1.10.5:
+
+- Improved screen lock and shutdown in break window (Mateusz Jończyk)
+- Add suspend/hibernate option to break window on Linux (Mateusz Jończyk)
+- Gnome applet updated to work with latest Gnome 3 flashback (Dmitry Shachnev)
+- Applets added for Cinnamon, XFCE and MATE.
+- Bug fixes:
+  - Break window was transparent when blocking mode was set to 'input and screen'
+  - Text background in exercises window was black, making the text unreadable.
+  - In some cases the timers were shown twice in the panel
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.6</sparkle:version>
+      <pubDate>Wed, 24 Dec 2014 06:29:26 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.6.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.5</title>
+      <description><![CDATA[
+Workrave 1.10.5 has been released.
+
+Changes since Workrave 1.10.4:
+
+- Updated translations:
+  - Danish (Frederik Svarre)
+- Updates Desktop files (Francois Marier, Mike Manger)
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.5</sparkle:version>
+      <pubDate>Fri, 15 Aug 2014 07:31:40 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.5.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.4</title>
+      <description><![CDATA[
+Workrave 1.10.4 has been released.
+
+Changes since Workrave 1.10.3:
+
+- Fix gnome-shell applet for Gnome 3.12.
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.4</sparkle:version>
+      <pubDate>Sun, 27 Apr 2014 02:36:12 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.4.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.3</title>
+      <description><![CDATA[
+Workrave 1.10.3 has been released.
+
+Changes since Workrave 1.10.1:
+
+- Bug fixes:
+  - bug 1113: Unity Indicator icon doesn't change when in suspended mode
+  - bug 1114: Closing timer window closes program.
+  - bug 1120: make the GNOME shell extension compatible with GNOME 3.8
+  - bug 1136: Status window always appears on startup
+  - bug 1137: Make Workrave start up optional
+  - bug 1146: dconf changes not honored for /org/workrave/general/operation-mode
+  - bug 1147: Suspend timer during screensaver
+  - bug 1148: Double deallocation causes crashes during Workrave shutdown
+  - Fix Workrave icon on Unity
+  - Fix size of prelude window
+  - Fix size of unity indicator timebar
+  - Fixed compatibility with gnome-shell 3.10
+  - Allow Gnome Shell status icon to be enabled/disabled
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.3</sparkle:version>
+      <pubDate>Tue, 11 Feb 2014 08:39:55 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.3.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.1</title>
+      <description><![CDATA[
+Workrave 1.10.1 has been released.
+
+Changes since Workrave 1.10.0:
+
+- Fix uninstall on Windows.
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.1</sparkle:version>
+      <pubDate>Wed, 12 Jun 2013 06:41:04 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.1.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.10.0</title>
+      <description><![CDATA[
+Workrave 1.10.0 has been released.
+
+Changes since Workrave 1.9.4:
+
+- Split "show 'postpone' and 'skip'" checkbox into two checkboxes. (Egbert
+  Teeselink)
+- Add the capability to delete all stored statistics (Ray Satiro)
+- Workrave now supports DBus on window.
+  DBus can be used to control Workrave by an external program.
+- Workrave now offers a Gnome 3 applet. Applets for both Gnome 3 classic
+  and the Gnome shell are available.
+- Workrave now offers an application indicator (applet) in Unity.
+- On Windows, Workrave does not stay in the 'suspended' mode after
+  resuming from hibernate/sleep.
+- On Unix, Workrave adds a new activity monitoring method that can be
+  used instead of the XRECORD based monitoring. XRECORD monitoring
+  appear be causing X crashes for some people
+  (See https://issues.workrave.org/show_bug.cgi?id=1066)
+- Infrastructure update. Workrave now supports:
+  - Gtk3/Gtkmm3 (only on Gnome 3; Gtk2/Gtkmm2 is still used on Gnome 2)
+  - Configuration in GSettings (instead of GConf)
+  - GIO based DBus (instead of freedesktop.org DBus)
+- Obsolete KDE3 support has been dropped.
+- Translation updates:
+  - Mykola Rykov translated Workrave into Ukrainian.
+  - Ivan Barkovic translated Workave into Croatian.
+  - Moein Gh translated Workave into Persian.
+  - Jyri-Petteri Paloposki translated Workrave into Finnish
+  - Goran Maričić translated Workrave into Serbian.
+  - Igor Zinovik updated the Russian translation.
+  - Gabor Kelemen updated the Hungarian translation.
+  - Alick Zhao updated the Chinese translation.
+  - Andrey Bondrov updated the Russian translation.
+  - Paweł Szerszon updated the Polish translation.
+- Plus many small fixes and improvements (Ray Satiro, Rob Caelers)
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.10.0</sparkle:version>
+      <pubDate>Sun, 13 Jan 2013 11:25:29 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.9.4</title>
+      <description><![CDATA[
+Workrave 1.9.4 has been released.
+
+Changes since Workrave 1.9.3:
+
+- The automatic start of a restbreak when the screen is locked is now
+  configurable.
+- Fixed crash when the 'mute all audio during breaks' option is enabled.
+- The skip and postpone button now have keyboard shortcuts (Alt-S and
+  Alt-P in the English version).
+- Fixed issue where Workrave remains suspended after hibernate/standby on
+  Window 7.
+- Fixed issue where the reading mode was reset after changing settings.
+- On Windows, Workrave shows a reminder balloon when Workrave starts up in
+  suspended or quiet mode.
+- The (un)installer now automatically shuts down Workrave before
+  (un)installation.
+- It is no longer possible to disable both the notification icon and the
+  main window.
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.9.4</sparkle:version>
+      <pubDate>Thu, 24 Mar 2011 05:42:45 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.9.4.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.9.3</title>
+      <description><![CDATA[
+Workrave 1.9.3 has been released.
+
+Changes since Workrave 1.9.2:
+
+- Seanán Ó Coistín translated Workrave into Irish.
+- 김재용 translated Workrave into Korean.
+- Workrave now stops all timers when the screen is locked. When the screen
+  in unlocked, a natural restbreak is started.
+- Audio muting improvements:
+  - Audio is now muted after the start break sound is played.
+  - Audio is now unmuted when the user becomes active after the break has
+    ended instead of immediately after the break ended.
+- By default, the RECORD extension is now mandatory on X windows systems.
+- Bug fixes:
+  - Fixed crash on Windows systems without audio installed.
+  - Fixed translucency of Deskband applet on Windows 7/Vista.
+  - Fixed Reading mode menu entry in Windows and Gnome applet.
+  - Networking now supports IPV6 addresses.
+  - Activity monitor should now filter out mouse jitter.
+  - Fixed monitoring of (Wacom) tablets.
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.9.3</sparkle:version>
+      <pubDate>Sat, 11 Dec 2010 06:10:11 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.9.3.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.9.2</title>
+      <description><![CDATA[
+Workrave 1.9.2 has been released.
+
+Changes since Workrave 1.9.1:
+
+- Reading mode
+  The activity insensitive breaks have been replaced by a 'reading mode'.
+  This mode can easily be activated from the menu.
+- Workrave can now mute all audio during breaks.
+- Workrave now properly remembers the Window hide/show notification icon
+  settings.
+- The Workrave applet is functional again on Windows 7
+- Updated translations:
+  - Brazilian Portuguese
+  - Catalan
+  - Hungarian
+  - Hebrew
+  - Polish
+- Many bug fixes.
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.9.2</sparkle:version>
+      <pubDate>Sun, 29 Aug 2010 10:08:38 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.9.2.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.9.1</title>
+      <description><![CDATA[
+Workrave 1.9.1 has been released.
+
+Changes since Workrave 1.9.0:
+
+- Updated translations:
+  - new Romanian translation (Alexandru Szasz)
+  - new Estonian translation (Marko Väljaots)
+  - Removed extra "2" character in the Hungarian translation (Márton Németh)
+  - Update of Hungarian translation
+  - Update of Swedish translation
+- Many bug fixes. Including:
+  - Fix saving the username in the networking preferences (Francois Marier)
+  - Fix KDE compilation errors (Stanislav Brabec)
+  - Fixed issue where autostart settings on Windows was not stored
+  - Fixed crashes when trying to add a host in networking preferences
+  - User activity is now recognized on Xorg 1.6.0
+  - Fixed color in dark UI themes on Gnome.
+  - Workrave no longer shows two icons on GNOME notification panel
+  - Fixed tray icon tranparency
+  - Fixed issue on Vista where the break window is not on top of other windows (Ray Satiro)
+  - Improved volume control on Windows
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.9.1</sparkle:version>
+      <pubDate>Sat, 24 Oct 2009 10:16:12 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.9.1.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.9.0</title>
+      <description><![CDATA[
+Workrave 1.9.0 has been released.
+
+Changes since Workrave 1.8.5:
+
+- Many small bugfixes
+- Fixed transparency of tray icon on Linux.
+- New alternate activity moniting for Windows (Ray Satiro)
+- Additional tooltips (Ray Satiro)
+- Improved 64 bit support (Ray Satiro)
+- Improved Vista support (Ray Satiro)
+- Exercises are now randomized
+- On Windows, the language can now be selected in the preferences
+- The option 'Start Workrave when windows starts' has been added to the
+  preferences
+- Extended DBUS support on Unix
+- Initial OSX port
+- Networking supports can now be enabled without accepting incoming
+  connections from other Workraves (Francois Marier)
+- Sounds:
+  - A sound has been added that indicates a next step in the exercise.
+  - The volume can now be configured
+  - All sounds can now be configured
+  - A new sound theme has been added (Ruairi Fullam)
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.9.0</sparkle:version>
+      <pubDate>Mon, 21 Jul 2008 01:01:33 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.9.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.8.5</title>
+      <description><![CDATA[
+Workrave 1.8.5 has been released.
+
+Changes since Workrave 1.8.4:
+
+- Lots of changes by Ray Satiro.
+- Task manager is never blocked by Workrave (Ray Satiro)
+- Workaround for focus loss on Vista (Ray Satiro)
+- Vanja Cvelbar translated Workrave into Slovenian.
+- Many bug fixes, the most visible ones:
+  - Fixed breaks that have 'suspend timer when inactive' disabled (Ray Satiro)
+  - Improved Windows responsiveness under high load. (by reverting a 1.8.4 change)
+  - Mode menu fixed.
+  - Gnome applet no longer 'hangs'.
+  - Gnome applet no longer crashes Workrave.
+  - Fixed crashes during startup on Windows.
+  - Fixed 'end-of-microbreak' sound.
+  - Fixed bug in multi-head support where Workrave showed multiple windows on a single screen.
+  - Fixed locking on Gnome with xscreensaver installed (Philipp Kern)
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.8.5</sparkle:version>
+      <pubDate>Sun, 16 Sep 2007 11:59:37 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.8.5.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.8.4</title>
+      <description><![CDATA[
+Workrave 1.8.4 has been released.
+
+Changes since Workrave 1.8.3:
+
+- Eraldo Girardi translated Workrave into Italian.
+- Better support for vertical applets on Unix.
+- Tao WEI translated Workrave into simplified Chinese.
+- Peter Tuharsky translated Workrave into Slovak.
+- Prokopis Prokopidis translated Workrave into Greek.
+- The status window used to appear empty, only to be resized and filled
+  with the timers shortly thereafter. Now it appears right away in the
+  proper size.
+- The operation mode (normal/quiet/suspended) now persists across Workrave
+  sessions.
+- Enver Altin translated Workrave into Turkish.
+- Masanobu Yokota translated Workrave into Japanese.
+- Ivan Dimov translated Workrave into Bulgarian.
+- ORY Mate translated Workrave into Hungarian.
+- Fixed KDE sound events (Phuah Yee Keat)
+- Fixed Gnome sound events
+- Fixed negative mouse usage when date is changed.
+- Fixed text color on Gnome themes with dark backgrounds (i.e. high
+  contrast inverse)
+- Gnome applets now support transparency.
+- The 'datadir' configuration option in workrave.ini can now be a relative
+  path:
+
+    ```
+    [general]
+    datadir=.\\Data
+    ```
+
+  This will store all Workrave data in the 'Data' directory below the
+  Workrave root directory. (Note the double backslash)
+- Daily limit now properly resets when hibernated.
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.8.4</sparkle:version>
+      <pubDate>Sun, 04 Mar 2007 08:18:53 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.8.4.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.8.3</title>
+      <description><![CDATA[
+Workrave 1.8.3 has been released.
+
+Changes since Workrave 1.8.2:
+
+- Daniel Nylander translated Workrave into Swedish.
+- Jordi Mallach translated Workrave into Catalan.
+- Support for storing configuration in a .ini file This feature can be
+  enabled by creating an empty 'workrave.ini' file in '~/.workrave' (on
+  Unix) or in 'c:\Program files\Workrave\etc' (on Window, assuming
+  Workrave is installed in this directory)
+- Support for configuring the data storage directory. Add the following
+  two lines to your workrave.ini
+  ```
+  [general]
+  datadir=C:\\Workrave\\Data
+  ```
+  This feature can be used to run Workrave from an USB memory stick. Note:
+  On Windows, you have to use double backslashes like in the example
+  above!
+- Support for Gnome screen saver added (Matt Zimmerman).
+- Workrave no longer consumes 100% CPU is if a break is started while the
+  screen is locked.
+- The applet popup menu is now accessible when all timers hidden.
+- Fix czech translation (Jiri Palecek).
+- Fixed a bug that could cause breaks to stop running when 'suspend timer
+  while inactive' was disabled.
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.8.3</sparkle:version>
+      <pubDate>Sat, 13 May 2006 12:04:47 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.8.3.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.8.2</title>
+      <description><![CDATA[
+Workrave 1.8.2 has been released.
+
+Changes since Workrave 1.8.1:
+
+- Fixed a crash when a third party gtk runtime is used.
+- Fixed bug that caused status windows to be disabled when the microbreak
+  timer was hidden.
+- Fixed translations.
+- Better hibernate/standby support on Unix.
+- System tray menu on Windows now disappears when focus is lost.
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.8.2</sparkle:version>
+      <pubDate>Sat, 28 Jan 2006 03:42:00 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.8.2.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.8.1</title>
+      <description><![CDATA[
+Workrave 1.8.1 has been released.
+
+Changes since Workrave 1.8.0:
+
+- Fixed a crash when blocking mode is set to 'none'
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.8.1</sparkle:version>
+      <pubDate>Sat, 28 Jan 2006 03:42:00 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.8.1.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.8.0</title>
+      <description><![CDATA[
+Workrave 1.8.0 has been released.
+
+Changes since Workrave 1.6.2:
+
+- Jon Otegi translated Workrave into Basque.
+- Artūras Šlajus translated Workrave into Lithuanian.
+- Morten Lunde translated Workrave into Norwegian.
+- Juraj Kubelka translated Workrave into Czech.
+- Haggai Eran translated Workrave into Hebrew.
+- Workrave now gives additional feedback when becoming active during a
+  break by flashing the break window border.
+- Workrave now uses the system tray icon to visualize the current mode
+  (normal, suspended or quiet).
+- Added "Restbreak now" button to microbreak window.
+- KDE improvements. Workrave now has a native KDE applet and supports KDE
+  sound events.
+- Decent tooltips for Workrave system tray icon.
+- Miscellaneous distribution improvements.
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.8.0</sparkle:version>
+      <pubDate>Wed, 29 Jun 2005 03:59:00 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.8.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.6.2</title>
+      <description><![CDATA[
+Workrave 1.6.2 has been released.
+
+Changes since Workrave 1.6.1:
+
+- Added a Brazilian Portuguese translation, thanks to Claudio Ferreira
+  Filho!
+- Workrave now respects the "gtk-button-images" property.
+- Upgraded GTK runtime to version 2.4, fixing some minor UI quirks.
+- Fixed some high-profile bugs, especially activity monitoring problems
+  when running X.
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.6.2</sparkle:version>
+      <pubDate>Tue, 13 Jul 2004 10:52:28 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.6.2.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.6.1</title>
+      <description><![CDATA[
+Workrave 1.6.1 has been released.
+
+Changes since Workrave 1.6.0:
+
+- A bug was introduced in version 1.6.0 which could cause the status
+  window to disappear. Version 1.6.1 is only a minor bug fix release that
+  addresses this problem.
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.6.1</sparkle:version>
+      <pubDate>Thu, 13 May 2004 08:43:07 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.6.1.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.6.0</title>
+      <description><![CDATA[
+Workrave 1.6.0 has been released.
+
+Changes since Workrave 1.4.1:
+
+- Workrave has been translated into Chinese thanks to Rex Tsai, into
+  Russian thanks to Sergey Kirkinsky, and into French thanks to Thomas
+  Basset and Benjamin Siband.
+- The explanation of an exercise is now scrollable, if it does not fit
+  onscreen.
+- The Windows version now includes a taskbar applet version of the status
+  window. After installation of Workrave, right click your taskbar and
+  select "Workrave" from the list of toolbars.
+- Timers can be configured to ignore activity.
+- Bloat removal: removed the "Resets at" option from the daily limit panel.
+- Exercises are no longer read at program startup, and are released from
+  memory when not needed anymore.
+- Terminology: we now use the term "micro-break" instead of "micro-pause".
+- When block mode "Block all" is used, we display the break window on top
+  of your current desktop background (wallpaper), instead of on a
+  semi-transparent screen snapshot.
+- Fixed screen locking on X11: previously only xlock was detected and used
+  without passing a display parameter. Now, the proper screen lock command
+  is invoked on the right display. For example, if KDE is detected its
+  kdesktop_lock is executed.
+- High-profile bug fixes (Windows): activity monitoring when working in
+  Exceed has been restored, and ZoneLab interaction problems (hangups)
+  have been corrected.
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.6.0</sparkle:version>
+      <pubDate>Fri, 30 Apr 2004 11:21:35 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.6.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.4.1</title>
+      <description><![CDATA[
+Workrave 1.4.1 has been released.
+
+Changes since Workrave 1.4.0:
+
+- Replaced the "Block input" setting (which was available per break) by a
+  global "Block mode" setting, located in the GUI preferences. The
+  available block modes are "None" (NEW: no input is blocked and break
+  windows have a title bar and can be dragged), "Block input" (blocks
+  input, break windows are fixed), "Block all" (NEW: blocks input and
+  display).
+- The Windows installer now offers the option to install Workrave using
+  the standalone Dropline GTK+ runtime. For more information, see
+  https://www.dropline.net/gtk/.
+- Removed the "Force break after maximum preludes" option. It is now on by
+  default.
+- Some strings in the German translation were too long, fixed.
+- Added multihead support for Windows.
+- Improved suspend (to ram) support. Workrave now assumes that you are
+  idle while suspended instead of assuming that no time passes.
+- Improved multihead support. The status window is now automatically
+  relocated when the monitor on which it is displayed is removed. It moved
+  back to its original location when the monitor returns.
+- Exercises navigation can now be used without causing Workrave to remove
+  the break window and show the warning windows again.
+- If supported by your system, the daily limit window includes a "Shut
+  down" button.
+- There now is a "Lock" button on the rest break, so that you can safely
+  lock your display while you are taking breaks. If the daily limit window
+  does not include the "Shut down" button, it includes the "Lock" button
+  instead.
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.4.1</sparkle:version>
+      <pubDate>Mon, 03 Nov 2003 09:32:00 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.4.1.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.4.0</title>
+      <description><![CDATA[
+Workrave 1.4.0 has been released.
+
+Changes since Workrave 1.2.2:
+
+- Added exercises.
+- Workrave has been translated to Polish, Danish and Spanish. Many thanks
+  to Mikolaj Machowski, Christian Vejlbo, and Pablo Rodriguez!
+- Multihead support for X11. Workrave now shows break windows on all
+  monitors.
+
+- Workrave can now cope with changes in system time and OS features like
+  suspend-to-ram.
+- Previously, the end time that showed up in the stats dialog equaled the
+  time at which the clock reset (typically equal to the start of the next
+  working day). This lead to weird from/to times, as in: "From 8:46 to
+  9:10". Fixed.
+- Added an icon to the skip/postpone buttons on break windows.
+- Many laptop pointer devices "drift" over time. This used to cause
+  Workrave to detect activity when there was in fact none. Fixed, thanks
+  to Chung-chieh Shan.
+- On Windows, Workrave now notices when Explorer crashes and will try to
+  reinsert the tray icon in the new Explorer taskbar that is created when
+  Explorer restarts.
+- Rewrote the user input blocking mechanism on Windows. You should no
+  longer experience visual quirks (like flashing windows or unexpectedly
+  focusing random windows) during breaks.
+- On Linux, Workrave now notices when the gnome-panel crashes and will
+  reinsert the applet in the new panel.
+- The content of the status window can now be configured.
+- Breaks can now be disabled.
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.4.0</sparkle:version>
+      <pubDate>Sun, 24 Aug 2003 09:37:06 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.4.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.2.2</title>
+      <description><![CDATA[
+Workrave 1.2.2 has been released.
+
+Changes since Workrave 1.2.1:
+
+- If you stopped working during a prelude just before it was about to
+  disappear, the prelude would still go away because Workrave assumed you
+  wanted to continue working. This behaviour has been changed now: if
+  there is no activity when the count-down has reached zero, Workrave
+  waits a couple of seconds to see if you are really idle. If that is the
+  case, a break window appears. If not, you can continue working.
+- Redesigned the preferences panel. It used to have nested tabs, these
+  have been replaced with an icon shortcut bar.
+- The break windows have been given a title.
+- The Window version now included GTK-Wimp. This makes the visual
+  appearance of Workrave blend much better into the Windows desktop
+  environment (https://gtk-wimp.sourceforge.net).
+- Beter support for Gnome session management. Workrave is now properly
+  restarted by the gnome session manager.
+- The applet can now be configured to show only the Workrave sheep.
+  Clicking on the sheep will toggle the visibility of the main window.
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.2.2</sparkle:version>
+      <pubDate>Tue, 25 Mar 2003 08:24:54 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.2.2.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.2.1</title>
+      <description><![CDATA[
+Workrave 1.2.1 has been released.
+
+Changes since Workrave 1.2.0:
+
+- Some errors in the build process have been fixed. Only a new source
+  tarball is released, as this does not effect binary releases.
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.2.1</sparkle:version>
+      <pubDate>Tue, 25 Mar 2003 08:24:54 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.2.1.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.2.0</title>
+      <description><![CDATA[
+Workrave 1.2.0 has been released.
+
+Changes since Workrave 1.0.0:
+
+- Johannes Rohr provided a german translation, thanks!
+- Added applet support. Workrave now supports both a native Gnome applet,
+  as well as a system tray applet that *should* also work on KDE.
+- Added statistics. Workrave shows break statistics and daily usage. More
+  statistics will be added later.
+- A leaflet promoting Workrave is now available. Please spread it as far
+  as possible. For example, distribute several copies at the office.
+  (https://workrave.sourceforge.net/leaflet/)
+- Last but absolutely not least: increased sheep size in the about window. :)
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.2.0</sparkle:version>
+      <pubDate>Sun, 09 Mar 2003 02:39:03 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.2.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.0.0</title>
+      <description><![CDATA[
+Workrave 1.0.0 has been released.
+
+Changes since Workrave 0.3.0:
+
+- Removed the monitoring preferences. Good defaults is all you want here,
+  and it was far too difficult to try and explain these settings to
+  ordinary users.
+- Added the daily limit break window.
+- Added internationalisation support. Currently, only a Dutch translation
+  is provided. We are still looking for volunteers to translate Workrave
+  into other languages.
+- The "Collective" has been renamed to "Network", which is far more
+  meaningful to non-geek users.
+- A network log window has been added. This window shows informational
+  messages about the communication between different Workrave instances.
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.0.0</sparkle:version>
+      <pubDate>Wed, 30 Oct 2002 08:37:59 +0100</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.0.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 0.3.0</title>
+      <description><![CDATA[
+Workrave 0.3.0 has been released.
+
+Changes since Workrave 0.2.0:
+
+- Added experimental(!) distribution support, dubbed "The Collective".
+  What this means is that you can now create a network of Workrave
+  instances running on several computers. All instances that are part of
+  "the collective" share the same timer information, meaning that if one
+  computer informs you to take a break, it is futile to flee to another
+  computer as it will also tell you to take a break.
+- Added sound support. You can configure the samples that are played
+  through the standard sound control panel provided by Gnome and Windows.
+  For office PCs that do not have a sound card, you can choose to play
+  sounds through the internal PC speaker.
+- The window prompting you to brake now moves earlier to the top of the
+  screen so that it does not interfere too much. Furthermore, the window
+  has a new and improved "evasive maneuvers" algorithm.
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>0.3.0</sparkle:version>
+      <pubDate>Fri, 11 Oct 2002 10:51:08 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-0.3.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 0.2.0</title>
+      <description><![CDATA[
+Workrave 0.2.0 has been released.
+
+Changes since Workrave 0.1.0:
+
+- Activity during a persisted break is no longer ignored. Instead, the
+  timer is stopped whenefer the user is active.
+- Microsoft Windows specific changes
+  - Added taskbar tray support. When the main window is closed, the
+    program remains active in the tray. In the user interface preferences,
+    you can select to hide the program when started.
+  - The main window is now opened at the position where it was during the
+    last program exit.
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>0.2.0</sparkle:version>
+      <pubDate>Thu, 26 Sep 2002 07:44:37 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-0.2.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 0.1.0</title>
+      <description><![CDATA[
+Workrave 0.1.0 has been released.
+
+
+- First public release.
+ ]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>0.1.0</sparkle:version>
+      <pubDate>Sun, 22 Sep 2002 10:49:02 +0200</pubDate>
+      <enclosure os="windows-x64" url="https://localhost:1337/workrave-0.1.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+  </channel>
+</rss>

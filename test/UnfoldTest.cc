@@ -22,8 +22,10 @@
 #  include "config.h"
 #endif
 
+#include "UpgradeControl.hh"
+
 #include <memory>
-#include <fstream>
+#include <string>
 
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -36,7 +38,9 @@
 #endif
 
 #include "AppCast.hh"
+#include "http/HttpServer.hh"
 #include "utils/Logging.hh"
+#include "TestPlatform.hh"
 
 #define BOOST_TEST_MODULE "unfold"
 #include <boost/test/unit_test.hpp>
@@ -225,6 +229,50 @@ BOOST_AUTO_TEST_CASE(appcast_load_invalid_from_file)
 
   auto appcast = reader->load_from_file("invalidappcast.xml");
   BOOST_CHECK_EQUAL(appcast.get(), nullptr);
+}
+
+BOOST_AUTO_TEST_CASE(upgrade_control_check)
+{
+  unfold::http::HttpServer server;
+  server.add_file("/appcast.xml", "appcast.xml");
+  server.add_file("/workrave-1.11.0-alpha.1.exe", "junk");
+  server.run();
+
+  UpgradeControl control(std::make_shared<TestPlatform>());
+
+  auto rc = control.set_appcast("https://localhost:1337/appcast.xml");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = control.set_certificate(cert);
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = control.set_current_version("1.10.45");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto r = co_await control.check();
+          BOOST_CHECK_EQUAL(r.has_error(), false);
+
+          r = co_await control.install();
+          BOOST_CHECK_EQUAL(r.has_error(), false);
+        }
+      catch (std::exception &e)
+        {
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+
+  server.stop();
 }
 
 BOOST_AUTO_TEST_SUITE_END()

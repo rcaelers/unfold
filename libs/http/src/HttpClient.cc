@@ -116,8 +116,7 @@ HttpClient::get(const std::string &url, std::ostream &file, ProgressCallback cb)
 {
   auto executor = co_await boost::asio::this_coro::executor;
   Connection conn(executor, std::ref(ctx));
-  auto r = co_await conn.get(url, file, cb);
-  co_return Response{}; // r;
+  co_return co_await conn.get(url, file, cb);
 }
 
 boost::asio::awaitable<outcome::std_result<Response>>
@@ -125,6 +124,5 @@ HttpClient::get(const std::string &url)
 {
   auto executor = co_await boost::asio::this_coro::executor;
   Connection conn(executor, std::ref(ctx));
-  auto r = co_await conn.get(url);
-  co_return r;
+  co_return co_await conn.get(url);
 }

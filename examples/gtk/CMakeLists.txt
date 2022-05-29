@@ -6,7 +6,7 @@ if(WIN32)
     GIT_SHALLOW    TRUE
     CMAKE_ARGS CMARK_TESTS=OFF
     )
-  set(CMARK_TESTS OFF)
+  set(CMARK_TESTS OFF CACHE INTERNAL "Disable tests")
   FetchContent_MakeAvailable(cmark)
 
   FetchContent_Declare(

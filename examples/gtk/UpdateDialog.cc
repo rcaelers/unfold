@@ -60,7 +60,16 @@ UpdateDialog::UpdateDialog(std::shared_ptr<unfold::UpdateInfo> info)
   auto *logobox = Gtk::manage(new Gtk::Box(Gtk::ORIENTATION_VERTICAL));
   logobox->set_border_width(6);
   logobox->set_spacing(6);
-  hbox->pack_start(*logobox, true, true, 0);
+  hbox->pack_start(*logobox, false, false, 0);
+
+  try
+    {
+      Gtk::Image *logo = Gtk::manage(new Gtk::Image("workrave.png"));
+      logobox->pack_start(*logo, false, false, 0);
+    }
+  catch (const Glib::Exception &)
+    {
+    }
 
   auto *vbox = Gtk::manage(new Gtk::Box(Gtk::ORIENTATION_VERTICAL));
   vbox->set_border_width(6);

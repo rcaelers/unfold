@@ -50,7 +50,7 @@ SignatureVerifier::verify(const std::string &filename, const std::string &signat
 {
   if (!algo)
     {
-      logger->error("no algorithm");
+      logger->error("no algorithm configured");
       return SignatureVerifierErrc::InvalidPublicKey;
     }
 

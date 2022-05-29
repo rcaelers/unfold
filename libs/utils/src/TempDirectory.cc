@@ -56,7 +56,7 @@ TempDirectory::TempDirectory()
 
 TempDirectory::~TempDirectory()
 {
-  std::filesystem::remove_all(path);
+  // TODO: std::filesystem::remove_all(path);
 }
 
 std::filesystem::path

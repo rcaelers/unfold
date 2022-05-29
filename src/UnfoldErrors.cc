@@ -49,6 +49,8 @@ namespace
         return "failed to download installer";
       case UnfoldErrc::InstallerVerificationFailed:
         return "failed to validate installer integrity";
+      case UnfoldErrc::InstallerExecutionFailed:
+        return "failed to execute installer";
       case UnfoldErrc::InternalError:
         return "internal error";
       }

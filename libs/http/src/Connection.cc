@@ -141,12 +141,12 @@ Connection::receive_reponse()
   boost::beast::http::response<boost::beast::http::dynamic_body> res;
 
   co_await boost::beast::http::async_read(stream, b, res, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
-
   if (ec)
     {
       logger->error("failed to read HTTP response from '{}' ({})", url.host(), ec.message());
       co_return HttpClientErrc::CommunicationError;
     }
+
   co_await shutdown();
   auto x = std::make_pair(res.result_int(), boost::beast::buffers_to_string(res.body().data()));
   co_return x;
@@ -236,18 +236,15 @@ Connection::shutdown()
 outcome::std_result<void>
 Connection::parse_url(const std::string &u)
 {
-  try
+  auto r = boost::urls::parse_uri(u);
+
+  if (r.has_value())
     {
-      url = boost::urls::parse_uri(u).value();
+      url = r.value();
     }
-  catch (std::exception &e)
+  else
     {
-      logger->error("malformed URL '{}' ({})", u, e.what());
-      return HttpClientErrc::MalformedURL;
-    }
-  catch (...)
-    {
-      logger->error("malformed URL '{}'", u);
+      logger->error("malformed URL '{}' ({})", u, r.error());
       return HttpClientErrc::MalformedURL;
     }
   return outcome::success();

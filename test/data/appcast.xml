@@ -10,11 +10,6 @@
     <item>
       <title>Workrave 1.11.0-alpha.1</title>
       <description><![CDATA[
-Workrave 1.11.0-alpha1 has been released.
-Workrave 1.11 has received limited testing and may not be as stable as Workrave 1.10.
-
-Changes since Workrave 1.10.49:
-
 - Major internal code cleanup and code modernization.
 - Initial (incomplete) port to macOS using Qt6
 - The default sound theme was changed to the "Subtle" theme (#362)
@@ -42,16 +37,12 @@ Changes since Workrave 1.10.49:
       <link>https://workrave.org</link>
       <sparkle:version>1.11.0-alpha.1</sparkle:version>
       <pubDate>Sun, 27 Feb 2022 11:02:33 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.11.0-alpha.1.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://localhost:1337/installer.sh" sparkle:edSignature="a/8Cb/Zpzr95wEPNpUoVxf60IZi98CFBEWlj0hPZbcHk4DFdo5UTgVkPxEW77Rp4dG+YwDCTkgv5R77vX4CoCg==" length="29" type="application/octet-stream" />
     </item>
 
     <item>
       <title>Workrave 1.10.49</title>
       <description><![CDATA[
-Workrave 1.10.49 has been released. This release adds support for GNOME Shell 41.
-
-Changes since Workrave 1.10.48:
-
 - Adds support for GNOME Shell 41 (#342, Timo Jyrinki)
 - Inno Setup improvement (#353, Kaleb Luedtke)
  ]]>      </description>
@@ -64,10 +55,6 @@ Changes since Workrave 1.10.48:
     <item>
       <title>Workrave 1.10.48</title>
       <description><![CDATA[
-Workrave 1.10.48 has been released. This release fixes the GNOME Shell applet on GNOME Shell 3.30 and older.
-
-Changes since Workrave 1.10.47:
-
 - Fixed GNOME Shell applet on Ubuntu 18.04 (#281)
  ]]>      </description>
       <link>https://workrave.org</link>
@@ -79,10 +66,6 @@ Changes since Workrave 1.10.47:
     <item>
       <title>Workrave 1.10.47</title>
       <description><![CDATA[
-Workrave 1.10.47 has been released. This release fixes an number of bugs and add support for GNOME Shell 40.
-
-Changes since Workrave 1.10.45:
-
 - Fixed a crash of the GNOME Shell applet (#281)
 - Adds support for GNOME Shell 40 (#288)
 - Fixed issue where the installer would fail when installing as system user (#291)
@@ -98,10 +81,6 @@ Changes since Workrave 1.10.45:
     <item>
       <title>Workrave 1.10.45</title>
       <description><![CDATA[
-Workrave 1.10.45 has been released. This release adds a new sound theme and several small improvements.
-
-Changes since Workrave 1.10.44:
-
 - Micro breaks without a postpone button could be postponed by starting a
   rest break while the break prompt window was visible and then clicking
   postpone in the rest break window. The postpone button is now disabled
@@ -134,10 +113,6 @@ Changes since Workrave 1.10.44:
     <item>
       <title>Workrave 1.10.44</title>
       <description><![CDATA[
-Workrave 1.10.44 has been released.
-
-Changes since Workrave 1.10.43:
-
 - Update Italian translation (Albano Battistella)
 - Support libayatana-indicator3 (Kentaro Hayashi/Rob Caelers)
 - Fixed issue on Gnome where Workrave would not detect that the user is

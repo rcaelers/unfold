@@ -24,9 +24,6 @@
 #include <exception>
 #include <utility>
 
-#include <boost/outcome/std_result.hpp>
-namespace outcome = boost::outcome_v2;
-
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
 
@@ -163,7 +160,7 @@ namespace unfold::coro
       }
 
       template<typename R>
-      auto await_transform(boost::asio::awaitable<outcome::std_result<R>> awaitable) noexcept
+      auto await_transform(boost::asio::awaitable<R> awaitable) noexcept
       {
         return detail::asio_awaiter{std::move(awaitable), asio_context_, scheduler_};
       }

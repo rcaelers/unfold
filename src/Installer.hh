@@ -39,19 +39,20 @@ public:
                      std::shared_ptr<unfold::http::HttpClient> http,
                      std::shared_ptr<unfold::crypto::SignatureVerifier> verifier);
 
-  void install(std::shared_ptr<AppcastEnclosure> enclosure);
+  boost::asio::awaitable<outcome::std_result<void>> install(std::shared_ptr<AppcastItem> item);
 
 private:
-  void download_installer();
-  void verify_installer();
-  void run_installer();
+  outcome::std_result<std::filesystem::path> get_installer_filename();
+  boost::asio::awaitable<outcome::std_result<void>> download_installer();
+  boost::asio::awaitable<outcome::std_result<void>> verify_installer();
+  boost::asio::awaitable<outcome::std_result<void>> run_installer();
 
 private:
   std::shared_ptr<Platform> platform;
   std::shared_ptr<unfold::http::HttpClient> http;
   std::shared_ptr<unfold::crypto::SignatureVerifier> verifier;
 
-  std::shared_ptr<AppcastEnclosure> enclosure;
+  std::shared_ptr<AppcastItem> item;
   std::filesystem::path installer_path;
   std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:installer")};
 };

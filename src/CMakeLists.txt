@@ -5,6 +5,7 @@ target_sources(unfold PRIVATE
   UpgradeControl.cc
   Installer.cc
   UnfoldErrors.cc
+  DummyPlatform.cc
   )
 
 target_code_coverage(unfold)
@@ -20,7 +21,7 @@ if(WIN32)
 endif()
 
 target_link_libraries(unfold PRIVATE unfold-utils unfold-crypto unfold-http)
-target_link_libraries(unfold PUBLIC Boost::coroutine semver::semver PRIVATE spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto)
+target_link_libraries(unfold PUBLIC Boost::coroutine semver::semver PRIVATE Boost::filesystem spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto)
 target_compile_definitions(unfold PRIVATE BOOST_URL_NO_LIB)
 
 target_include_directories(

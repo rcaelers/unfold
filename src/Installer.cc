@@ -22,10 +22,16 @@
 
 #include <exception>
 #include <memory>
+#include <system_error>
 #include <utility>
 #include <fstream>
 #include <spdlog/fmt/ostr.h>
 
+#include <boost/outcome/try.hpp>
+#include <boost/url/url.hpp>
+#include <boost/process.hpp>
+
+#include "UnfoldErrors.hh"
 #include "crypto/SignatureVerifier.hh"
 #include "utils/TempDirectory.hh"
 
@@ -40,82 +46,116 @@ Installer::Installer(std::shared_ptr<Platform> platform,
 {
 }
 
-void
-Installer::install(std::shared_ptr<AppcastEnclosure> enclosure)
+boost::asio::awaitable<outcome::std_result<void>>
+Installer::install(std::shared_ptr<AppcastItem> item)
 {
-  try
-    {
-      this->enclosure = enclosure;
+  this->item = item;
 
-      unfold::utils::TempDirectory temp_dir;
-      installer_path = temp_dir.get_path() / "install.exe"; // TODO:
+  unfold::utils::TempDirectory temp_dir;
 
-      download_installer();
-      verify_installer();
-      run_installer();
-    }
-  catch (std::exception &e)
-    {
-      logger->error("failed to install update ({})", e.what());
-    }
+  BOOST_OUTCOME_CO_TRY(auto filename, get_installer_filename());
+
+  installer_path = temp_dir.get_path() / filename;
+
+  BOOST_OUTCOME_CO_TRYV(co_await download_installer());
+  BOOST_OUTCOME_CO_TRYV(co_await verify_installer());
+  BOOST_OUTCOME_CO_TRYV(co_await run_installer());
+
+  co_return outcome::success();
 }
 
-void
+outcome::std_result<std::filesystem::path>
+Installer::get_installer_filename()
+{
+  auto r = boost::urls::parse_uri(item->enclosure->url);
+  if (r.has_value())
+    {
+      std::string path = r.value().encoded_path();
+      std::filesystem::path p{path};
+      return outcome::success(p.filename());
+    }
+
+  logger->info("failed to extract installer filename from URL ({})", r.error().message());
+  return outcome::failure(unfold::UnfoldErrc::InstallerDownloadFailed);
+}
+
+boost::asio::awaitable<outcome::std_result<void>>
 Installer::download_installer()
 {
   try
     {
-      logger->info("path {}", installer_path.string());
+      logger->info("downloading {} to {}", item->enclosure->url, installer_path.string());
       std::ofstream out_file(installer_path.string(), std::ofstream::binary);
 
-      auto rc = http->get_sync(enclosure->url, out_file, [&](double progress) {});
+      auto rc = co_await http->get(item->enclosure->url, out_file, [&](double progress) {});
+      if (!rc)
+        {
+          logger->error("failed to download installer {} ({})", item->enclosure->url, rc.error());
+          co_return outcome::failure(unfold::UnfoldErrc::InstallerDownloadFailed);
+        }
       auto [result, content] = rc.value();
+      if (result != 200)
+        {
+          logger->error("failed to download installer {} ({} {})", item->enclosure->url, result, content);
+          co_return outcome::failure(unfold::UnfoldErrc::InstallerDownloadFailed);
+        }
 
       out_file.close();
     }
   catch (std::exception &e)
     {
-      logger->error("failed to download ({})", e.what());
+      logger->error("failed to download installer {} ({})", item->enclosure->url, e.what());
+      co_return outcome::failure(unfold::UnfoldErrc::InstallerDownloadFailed);
     }
+  co_return outcome::success();
 }
 
-void
+boost::asio::awaitable<outcome::std_result<void>>
 Installer::verify_installer()
 {
-  try
+  std::error_code ec;
+  std::uintmax_t size = std::filesystem::file_size(installer_path, ec);
+  if (ec)
     {
-      std::error_code ec;
-      std::uintmax_t size = std::filesystem::file_size(installer_path, ec);
-      if (ec)
-        {
-          logger->error("could not get installer file size ({})", ec.message());
-        }
-
-      if (enclosure->length != size)
-        {
-          logger->error("incorrect installer file size ({} instead of {})", enclosure->length, size);
-        }
-
-      auto result = verifier->verify(installer_path.string(), enclosure->signature);
-      if (result.error() != unfold::crypto::SignatureVerifierErrc::Success)
-        {
-          logger->error("certificate incorrect ({})");
-        }
+      logger->error("could not get installer ({}) file size ({})", installer_path.string(), ec.message());
+      co_return outcome::failure(unfold::UnfoldErrc::InstallerVerificationFailed);
     }
-  catch (std::exception &e)
+
+  if (item->enclosure->length != size)
     {
-      logger->error("failed to verify ({})", e.what());
+      logger->error("incorrect installer file size ({} instead of {})", item->enclosure->length, size);
+      co_return outcome::failure(unfold::UnfoldErrc::InstallerVerificationFailed);
     }
+
+  auto rc = co_await boost::asio::async_compose<decltype(boost::asio::use_awaitable), void(outcome::std_result<void>)>(
+    [this](auto &&self) {
+      std::thread([this, self = std::move(self)]() mutable {
+        auto result = verifier->verify(installer_path.string(), item->enclosure->signature);
+        self.complete(result);
+      }).detach();
+    },
+    boost::asio::use_awaitable);
+
+  if (!rc)
+    {
+      logger->error("signature failure ({})", rc.error().message());
+    }
+
+  co_return rc;
 }
 
-void
+boost::asio::awaitable<outcome::std_result<void>>
 Installer::run_installer()
 {
-  try
+  std::error_code ec;
+  std::filesystem::permissions(installer_path.string(), std::filesystem::perms::owner_exec, std::filesystem::perm_options::add, ec);
+  if (ec)
     {
+      logger->error("failed to make installer {} executable ({})", installer_path.string(), ec.message());
+      co_return outcome::failure(unfold::UnfoldErrc::InstallerExecutionFailed);
     }
-  catch (std::exception &e)
-    {
-      logger->error("failed to execute installer ({})", e.what());
-    }
+
+  boost::process::spawn(installer_path.string());
+
+  co_return outcome::success();
 }

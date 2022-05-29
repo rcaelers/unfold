@@ -23,33 +23,28 @@
 
 #include <memory>
 #include <string>
+#include <chrono>
+#include <list>
 
 #include <boost/outcome/std_result.hpp>
 #include <boost/asio.hpp>
 
 namespace unfold
 {
-  struct Appcast
+  struct UpdateReleaseNotes
+  {
+    std::string version;
+    std::string date;
+    // TODO: std::chrono::system_clock::time_point date;
+    std::string markdown;
+  };
+
+  struct UpdateInfo
   {
     std::string title;
-    std::string link;
     std::string version;
-    std::string short_version;
-    std::string description;
-    std::string release_notes_link;
-    std::string publication_date;
-    std::string minimum_auto_update_version;
-    std::string ignore_skipped_upgrades_below_version;
-    bool critical_update{false};
-    std::string critical_update_version;
-    uint64_t phased_rollout_interval{0};
-
-    std::string url;
-    std::string signature;
-    uint64_t length = 0;
-    std::string mime_type;
-    std::string install_arguments;
-    std::string os;
+    std::string current_version;
+    std::list<UpdateReleaseNotes> release_notes;
   };
 
   namespace outcome = boost::outcome_v2;
@@ -69,9 +64,11 @@ namespace unfold
 
     // TODO: custom version comparator API
 
-    virtual boost::asio::awaitable<outcome::std_result<void>> check() = 0;
+    virtual boost::asio::awaitable<outcome::std_result<bool>> check() = 0;
     virtual boost::asio::awaitable<outcome::std_result<void>> install() = 0;
+
+    virtual std::shared_ptr<unfold::UpdateInfo> get_update_info() const = 0;
   };
 } // namespace unfold
-  
+
 #endif // UNFOLD_UNFOLD_HH

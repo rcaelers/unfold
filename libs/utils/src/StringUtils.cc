@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Rob Caelers <rob.caelers@gmail.com>
+// Copyright (C) 2021, 2022 Rob Caelers <rob.caelers@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,38 +18,32 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "TestPlatform.hh"
+#include "utils/StringUtils.hh"
 
-#include <boost/algorithm/string.hpp>
+#include <windows.h>
 
-#include "semver.hpp"
-
-bool
-TestPlatform::is_supported_os(const std::string &os)
+std::string
+unfold::utils::utf16_to_utf8(const std::wstring &s)
 {
-  if (boost::iequals(os, "windows"))
+  std::string ret;
+  int len = WideCharToMultiByte(CP_UTF8, 0, s.c_str(), s.length(), nullptr, 0, nullptr, nullptr);
+  if (len > 0)
     {
-      return true;
+      ret.resize(len);
+      WideCharToMultiByte(CP_UTF8, 0, s.c_str(), s.length(), ret.data(), len, nullptr, nullptr);
     }
-  if (boost::iequals(os, "windows-x64"))
-    {
-      return true;
-    }
-  return false;
+  return ret;
 }
 
-bool
-TestPlatform::is_supported_os_version(const std::string &minimum_version)
+std::wstring
+unfold::utils::utf8_to_utf16(const std::string &s)
 {
-  if (minimum_version.empty())
+  std::wstring ret;
+  int len = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), s.length(), nullptr, 0);
+  if (len > 0)
     {
-      return true;
+      ret.resize(len);
+      MultiByteToWideChar(CP_UTF8, 0, s.c_str(), s.length(), ret.data(), len);
     }
-  semver::version version;
-  bool version_ok = version.from_string_noexcept(minimum_version);
-  if (!version_ok)
-    {
-      return false;
-    }
-  return false;
+  return ret;
 }

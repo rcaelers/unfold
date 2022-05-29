@@ -47,12 +47,14 @@ public:
 
   outcome::std_result<void> set_certificate(const std::string &cert) override;
 
-  boost::asio::awaitable<outcome::std_result<void>> check() override;
+  boost::asio::awaitable<outcome::std_result<bool>> check() override;
   boost::asio::awaitable<outcome::std_result<void>> install() override;
+  std::shared_ptr<unfold::UpdateInfo> get_update_info() const override;
 
 private:
   boost::asio::awaitable<outcome::std_result<std::string>> download_appcast();
   outcome::std_result<std::shared_ptr<Appcast>> parse_appcast(const std::string &appcast_xml);
+  void build_update_info(std::shared_ptr<Appcast> appcast);
   bool is_applicable(std::shared_ptr<AppcastItem> item);
 
 private:
@@ -62,9 +64,10 @@ private:
   Installer installer;
 
   std::string appcast_url;
+  std::string current_version_str;
   semver::version current_version;
   std::shared_ptr<AppcastItem> selected_item;
-  std::shared_ptr<AppcastEnclosure> selected_enclosure;
+  std::shared_ptr<unfold::UpdateInfo> update_info;
 
   std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:control")};
 };

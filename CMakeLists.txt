@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.23)
 cmake_policy(VERSION 3.23)
 
-project(unfold VERSION 0.1 LANGUAGES CXX)
+project(unfold VERSION 0.1 LANGUAGES CXX C)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 
@@ -12,6 +12,7 @@ include(CheckCXXCompilerFlag)
 #----------------------------------------------------------------------------------------------------
 # Compiler
 
+set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -62,7 +63,7 @@ find_package(OpenSSL REQUIRED)
 # Boost
 
 set(Boost_NO_BOOST_CMAKE TRUE)
-set(BOOST_COMPONENTS coroutine)
+set(BOOST_COMPONENTS coroutine filesystem)
 set(Boost_DEBUG OFF)
 
 if (WIN32)
@@ -120,15 +121,9 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(semver)
 
 #----------------------------------------------------------------------------------------------------
-# Autoconf compatibility
-
-add_compile_definitions(HAVE_CONFIG_H=1)
-include_directories(${CMAKE_CURRENT_BINARY_DIR})
-configure_file(${CMAKE_SOURCE_DIR}/cmake/config.h.in ${CMAKE_CURRENT_BINARY_DIR}/config.h)
-
-#----------------------------------------------------------------------------------------------------
 #
 
 add_subdirectory(libs)
 add_subdirectory(src)
 add_subdirectory(test)
+add_subdirectory(examples)

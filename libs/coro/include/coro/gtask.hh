@@ -166,9 +166,9 @@ namespace unfold::coro
 
       ~scheduler() = default;
 
-      auto get_context() const
+      auto get_executor() const
       {
-        return context_;
+        return executer(context_);
       }
 
       void spawn(gtask<void> &&task)

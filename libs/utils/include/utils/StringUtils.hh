@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Rob Caelers <rob.caelers@gmail.com>
+// Copyright (C) 2021, 2022 Rob Caelers <rob.caelers@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,38 +18,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "TestPlatform.hh"
+#ifndef UTILS_STRINGUTILS_HH
+#define UTILS_STRINGUTILS_HH
 
-#include <boost/algorithm/string.hpp>
+#include <string>
 
-#include "semver.hpp"
-
-bool
-TestPlatform::is_supported_os(const std::string &os)
+namespace unfold::utils
 {
-  if (boost::iequals(os, "windows"))
-    {
-      return true;
-    }
-  if (boost::iequals(os, "windows-x64"))
-    {
-      return true;
-    }
-  return false;
-}
+  std::string utf16_to_utf8(const std::wstring &s);
+  std::wstring utf8_to_utf16(const std::string &s);
+} // namespace unfold::utils
 
-bool
-TestPlatform::is_supported_os_version(const std::string &minimum_version)
-{
-  if (minimum_version.empty())
-    {
-      return true;
-    }
-  semver::version version;
-  bool version_ok = version.from_string_noexcept(minimum_version);
-  if (!version_ok)
-    {
-      return false;
-    }
-  return false;
-}
+#endif // UTILS_STRINGUTILS_HH

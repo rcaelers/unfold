@@ -6,6 +6,12 @@ target_sources(unfold-utils PRIVATE
   src/TempDirectory.cc
 )
 
+if(WIN32)
+target_sources(unfold-utils PRIVATE
+  src/StringUtils.cc
+)
+endif()
+
 target_code_coverage(unfold-utils)
 
 target_link_libraries(unfold-utils PRIVATE spdlog::spdlog semver::semver)

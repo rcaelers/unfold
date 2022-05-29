@@ -25,9 +25,6 @@
 #include <utility>
 #include <optional>
 
-#include <boost/outcome/std_result.hpp>
-namespace outcome = boost::outcome_v2;
-
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
 
@@ -84,9 +81,9 @@ namespace unfold::coro::detail
   class asio_awaiter
   {
   public:
-    asio_awaiter(boost::asio::awaitable<outcome::std_result<ValueType>> awaitable, asio_context &context, SchedulerType *scheduler)
+    asio_awaiter(boost::asio::awaitable<ValueType> awaitable, asio_context &context, SchedulerType *scheduler)
       : awaitable_(std::move(awaitable))
-      , executer_{scheduler->get_context()}
+      , executer_{scheduler->get_executor()}
       , ioc_(context.get_io_context())
     {
     }
@@ -108,7 +105,7 @@ namespace unfold::coro::detail
       awaiting_coroutine_ = awaiting_coroutine;
       boost::asio::co_spawn(
         ioc_,
-        [&]() -> boost::asio::awaitable<std::optional<outcome::std_result<ValueType>>> { co_return co_await std::move(awaitable_); },
+        [&]() -> boost::asio::awaitable<std::optional<ValueType>> { co_return co_await std::move(awaitable_); },
         [this](std::exception_ptr e, auto r) {
           exception_ = e;
           result_ = r;
@@ -116,7 +113,7 @@ namespace unfold::coro::detail
         });
     }
 
-    auto await_resume() -> outcome::std_result<ValueType>
+    auto await_resume() -> ValueType
     {
       if (exception_)
         {
@@ -130,11 +127,11 @@ namespace unfold::coro::detail
     }
 
   private:
-    boost::asio::awaitable<outcome::std_result<ValueType>> awaitable_;
+    boost::asio::awaitable<ValueType> awaitable_;
     typename SchedulerType::executer executer_;
     boost::asio::io_context &ioc_;
     std::coroutine_handle<> awaiting_coroutine_;
-    std::optional<outcome::std_result<ValueType>> result_;
+    std::optional<ValueType> result_;
     std::exception_ptr exception_;
   };
 

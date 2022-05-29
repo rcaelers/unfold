@@ -18,38 +18,28 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "TestPlatform.hh"
+#ifndef CORO_SCHEDULER_HH
+#define CORO_SCHEDULER_HH
 
-#include <boost/algorithm/string.hpp>
+#include <exception>
+#include <utility>
 
-#include "semver.hpp"
+#include "coro.hh"
 
-bool
-TestPlatform::is_supported_os(const std::string &os)
+namespace unfold::coro
 {
-  if (boost::iequals(os, "windows"))
-    {
-      return true;
-    }
-  if (boost::iequals(os, "windows-x64"))
-    {
-      return true;
-    }
-  return false;
-}
+  template<typename ValueType>
+  class [[nodiscard]] task;
 
-bool
-TestPlatform::is_supported_os_version(const std::string &minimum_version)
-{
-  if (minimum_version.empty())
-    {
-      return true;
-    }
-  semver::version version;
-  bool version_ok = version.from_string_noexcept(minimum_version);
-  if (!version_ok)
-    {
-      return false;
-    }
-  return false;
-}
+  class scheduler
+  {
+  public:
+    virtual ~scheduler() = default;
+    virtual auto get_executor() const = 0;
+    virtual void spawn(task<void> &&task) = 0;
+    virtual auto sleep(int duration) = 0;
+  };
+
+} // namespace unfold::coro
+
+#endif // CORO_SCHEDULER_HH

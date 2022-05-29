@@ -18,10 +18,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifdef HAVE_CONFIG_H
-#  include "config.h"
-#endif
-
 #include "UpgradeControl.hh"
 
 #include <memory>
@@ -122,7 +118,7 @@ BOOST_FIXTURE_TEST_SUITE(unfold_test, Fixture)
 
 BOOST_AUTO_TEST_CASE(appcast_load_from_string)
 {
-  auto reader = std::make_shared<AppcastReader>();
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
 
   std::string appcast_str =
     "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
@@ -171,7 +167,7 @@ BOOST_AUTO_TEST_CASE(appcast_load_from_string)
 
 BOOST_AUTO_TEST_CASE(appcast_load_from_file)
 {
-  auto reader = std::make_shared<AppcastReader>();
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
 
   auto appcast = reader->load_from_file("okappcast.xml");
 
@@ -215,7 +211,7 @@ BOOST_AUTO_TEST_CASE(appcast_load_from_file)
 
 BOOST_AUTO_TEST_CASE(appcast_load_invalid_from_string)
 {
-  auto reader = std::make_shared<AppcastReader>();
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
 
   std::string appcast_str = "Foo\n";
 
@@ -225,7 +221,7 @@ BOOST_AUTO_TEST_CASE(appcast_load_invalid_from_string)
 
 BOOST_AUTO_TEST_CASE(appcast_load_invalid_from_file)
 {
-  auto reader = std::make_shared<AppcastReader>();
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
 
   auto appcast = reader->load_from_file("invalidappcast.xml");
   BOOST_CHECK_EQUAL(appcast.get(), nullptr);
@@ -236,6 +232,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check)
   unfold::http::HttpServer server;
   server.add_file("/appcast.xml", "appcast.xml");
   server.add_file("/workrave-1.11.0-alpha.1.exe", "junk");
+  server.add_file("/installer.sh", "installer.sh");
   server.run();
 
   UpgradeControl control(std::make_shared<TestPlatform>());
@@ -258,14 +255,15 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          auto r = co_await control.check();
-          BOOST_CHECK_EQUAL(r.has_error(), false);
+          auto rc = co_await control.check();
+          BOOST_CHECK_EQUAL(rc.has_error(), false);
 
-          r = co_await control.install();
-          BOOST_CHECK_EQUAL(r.has_error(), false);
+          auto ri = co_await control.install();
+          BOOST_CHECK_EQUAL(ri.has_error(), false);
         }
       catch (std::exception &e)
         {
+          spdlog::info("Exception {}", e.what());
           BOOST_CHECK(false);
         }
     },

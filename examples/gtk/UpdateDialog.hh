@@ -18,38 +18,31 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "TestPlatform.hh"
+#ifndef UPDATE_DIALOG_HH
+#define UPDATE_DIALOG_HH
 
-#include <boost/algorithm/string.hpp>
+#include <string>
 
-#include "semver.hpp"
+#include <gtkmm.h>
 
-bool
-TestPlatform::is_supported_os(const std::string &os)
+#include "unfold/Unfold.hh"
+#include "Edge.hh"
+
+class UpdateDialog : public Gtk::Dialog
 {
-  if (boost::iequals(os, "windows"))
-    {
-      return true;
-    }
-  if (boost::iequals(os, "windows-x64"))
-    {
-      return true;
-    }
-  return false;
-}
+public:
+  explicit UpdateDialog(std::shared_ptr<unfold::UpdateInfo> info);
+  ~UpdateDialog() override = default;
 
-bool
-TestPlatform::is_supported_os_version(const std::string &minimum_version)
-{
-  if (minimum_version.empty())
-    {
-      return true;
-    }
-  semver::version version;
-  bool version_ok = version.from_string_noexcept(minimum_version);
-  if (!version_ok)
-    {
-      return false;
-    }
-  return false;
-}
+private:
+  void on_auto_toggled();
+
+private:
+  Gtk::TextView *text_view{nullptr};
+  Gtk::ScrolledWindow scrolled_window;
+  Glib::RefPtr<Gtk::TextBuffer> text_buffer;
+  Gtk::CheckButton *auto_cb{nullptr};
+  Edge *web{nullptr};
+};
+
+#endif // UPDATE_DIALOG_HH

@@ -71,8 +71,3 @@ WindowsPlatform::is_supported_os_version(const std::string &minimum_version)
                                                  VER_SERVICEPACKMAJOR,
                                                  VER_GREATER_EQUAL));
 }
-
-void
-WindowsPlatform::execute(const std::string &exe, std::vector<std::string> args)
-{
-}

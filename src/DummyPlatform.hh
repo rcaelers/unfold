@@ -18,38 +18,26 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "TestPlatform.hh"
+#ifndef DUMMY_PLATFORM_HH
+#define DUMMY_PLATFORM_HH
 
-#include <boost/algorithm/string.hpp>
+#include <memory>
+#include <string>
 
-#include "semver.hpp"
+#include "Platform.hh"
 
-bool
-TestPlatform::is_supported_os(const std::string &os)
+#include "utils/Logging.hh"
+
+class DummyPlatform : public Platform
 {
-  if (boost::iequals(os, "windows"))
-    {
-      return true;
-    }
-  if (boost::iequals(os, "windows-x64"))
-    {
-      return true;
-    }
-  return false;
-}
+public:
+  DummyPlatform() = default;
 
-bool
-TestPlatform::is_supported_os_version(const std::string &minimum_version)
-{
-  if (minimum_version.empty())
-    {
-      return true;
-    }
-  semver::version version;
-  bool version_ok = version.from_string_noexcept(minimum_version);
-  if (!version_ok)
-    {
-      return false;
-    }
-  return false;
-}
+  bool is_supported_os(const std::string &os) override;
+  bool is_supported_os_version(const std::string &minimum_version) override;
+
+private:
+  std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:platform")};
+};
+
+#endif // DUMMY_PLATFORM_HH

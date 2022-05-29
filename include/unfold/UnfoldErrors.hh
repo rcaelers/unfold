@@ -33,6 +33,7 @@ namespace unfold
     AppcastDownloadFailed,
     InstallerDownloadFailed,
     InstallerVerificationFailed,
+    InstallerExecutionFailed,
     InternalError,
   };
 

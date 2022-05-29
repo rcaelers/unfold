@@ -18,38 +18,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "TestPlatform.hh"
-
-#include <boost/algorithm/string.hpp>
-
-#include "semver.hpp"
+#include "DummyPlatform.hh"
 
 bool
-TestPlatform::is_supported_os(const std::string &os)
+DummyPlatform::is_supported_os(const std::string &os)
 {
-  if (boost::iequals(os, "windows"))
-    {
-      return true;
-    }
-  if (boost::iequals(os, "windows-x64"))
-    {
-      return true;
-    }
-  return false;
+  return true;
 }
 
 bool
-TestPlatform::is_supported_os_version(const std::string &minimum_version)
+DummyPlatform::is_supported_os_version(const std::string &minimum_version)
 {
-  if (minimum_version.empty())
-    {
-      return true;
-    }
-  semver::version version;
-  bool version_ok = version.from_string_noexcept(minimum_version);
-  if (!version_ok)
-    {
-      return false;
-    }
-  return false;
+  return true;
 }

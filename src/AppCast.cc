@@ -25,6 +25,11 @@
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/iostreams/stream.hpp>
 
+AppcastReader::AppcastReader(AppcastReader::filter_func_t filter)
+  : filter(filter)
+{
+}
+
 std::shared_ptr<Appcast>
 AppcastReader::load_from_file(const std::string &filename)
 {
@@ -78,7 +83,10 @@ AppcastReader::parse_channel(boost::property_tree::ptree pt)
       if (name == "item")
         {
           auto item = parse_item(item_pt);
-          appcast->items.push_back(item);
+          if (item->enclosure)
+            {
+              appcast->items.push_back(item);
+            }
         }
     }
   return appcast;
@@ -114,8 +122,15 @@ AppcastReader::parse_item(boost::property_tree::ptree item_pt)
       auto [name, enclosure_pt] = i;
       if (name == "enclosure")
         {
-          auto enclosure = parse_enclosure(enclosure_pt);
-          item->enclosures.push_back(enclosure);
+          item->enclosure = parse_enclosure(enclosure_pt);
+          if (filter(item))
+            {
+              break;
+            }
+          else
+            {
+              item->enclosure.reset();
+            }
         }
     }
 

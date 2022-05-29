@@ -43,7 +43,7 @@ ECDSASignatureAlgorithm::set_key(const std::string &key)
       logger->error("failed load public key ({})", ERR_error_string(ERR_get_error(), nullptr));
       return SignatureVerifierErrc::InvalidPublicKey;
     }
-  return SignatureVerifierErrc::Success;
+  return outcome::success();
 }
 
 outcome::std_result<void>
@@ -78,16 +78,16 @@ ECDSASignatureAlgorithm::verify(std::string_view data, const std::string &signat
                          reinterpret_cast<const unsigned char *>(data.data()),
                          data.size());
 
-  auto rc = SignatureVerifierErrc::Success;
+  outcome::std_result<void> rc = outcome::success();
 
   if (ret == 0)
     {
-      rc = SignatureVerifierErrc::Mismatch;
+      rc = outcome::failure(SignatureVerifierErrc::Mismatch);
     }
   else if (ret != 1)
     {
       logger->error("failed to check signature: {}", ERR_error_string(ERR_get_error(), nullptr));
-      rc = SignatureVerifierErrc::InternalFailure;
+      rc = outcome::failure(SignatureVerifierErrc::InternalFailure);
     }
 
   EVP_MD_CTX_free(md_ctx);

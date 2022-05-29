@@ -108,7 +108,7 @@ BOOST_AUTO_TEST_CASE(signature_verify_file_ok_pem)
   SignatureVerifier verifier;
   auto result = verifier.set_key(SignatureAlgorithmType::ECDSA, pub_key);
   result = verifier.verify("junk", signature);
-  BOOST_CHECK_EQUAL(result.error(), SignatureVerifierErrc::Success);
+  BOOST_CHECK_EQUAL(result.has_error(), false);
 }
 
 BOOST_AUTO_TEST_CASE(signature_verify_file_ok_der)
@@ -124,9 +124,9 @@ BOOST_AUTO_TEST_CASE(signature_verify_file_ok_der)
 
   SignatureVerifier verifier;
   auto result = verifier.set_key(SignatureAlgorithmType::ECDSA, pub_key);
-  BOOST_CHECK_EQUAL(result.error(), SignatureVerifierErrc::Success);
+  BOOST_CHECK_EQUAL(result.has_error(), false);
   result = verifier.verify("junk", signature);
-  BOOST_CHECK_EQUAL(result.error(), SignatureVerifierErrc::Success);
+  BOOST_CHECK_EQUAL(result.has_error(), false);
 }
 
 BOOST_AUTO_TEST_CASE(signature_verify_invalid_pubkey)
@@ -146,7 +146,7 @@ BOOST_AUTO_TEST_CASE(signature_verify_invalid_signature)
 
   SignatureVerifier verifier;
   auto result = verifier.set_key(SignatureAlgorithmType::ECDSA, pub_key);
-  BOOST_CHECK_EQUAL(result.error(), SignatureVerifierErrc::Success);
+  BOOST_CHECK_EQUAL(result.has_error(), false);
   result = verifier.verify("junk", signature);
   BOOST_CHECK_EQUAL(result.error(), SignatureVerifierErrc::InvalidSignature);
 }
@@ -161,7 +161,7 @@ BOOST_AUTO_TEST_CASE(signature_verify_file_nok)
 
   SignatureVerifier verifier;
   auto result = verifier.set_key(SignatureAlgorithmType::ECDSA, pub_key);
-  BOOST_CHECK_EQUAL(result.error(), SignatureVerifierErrc::Success);
+  BOOST_CHECK_EQUAL(result.has_error(), false);
   result = verifier.verify("morejunk", signature);
   BOOST_CHECK_EQUAL(result.error(), SignatureVerifierErrc::Mismatch);
 }
@@ -176,7 +176,7 @@ BOOST_AUTO_TEST_CASE(signature_verify_file_not_found)
 
   SignatureVerifier verifier;
   auto result = verifier.set_key(SignatureAlgorithmType::ECDSA, pub_key);
-  BOOST_CHECK_EQUAL(result.error(), SignatureVerifierErrc::Success);
+  BOOST_CHECK_EQUAL(result.has_error(), false);
   result = verifier.verify("notfound", signature);
   BOOST_CHECK_EQUAL(result.error(), SignatureVerifierErrc::NotFound);
 }

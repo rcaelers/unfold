@@ -124,6 +124,16 @@ FetchContent_MakeAvailable(semver)
 #----------------------------------------------------------------------------------------------------
 #
 
+if (WIN32)
+    file(TO_NATIVE_PATH "${CMAKE_BINARY_DIR}/src" SRC_PATH)
+    file(TO_NATIVE_PATH "${CMAKE_INSTALL_PREFIX}/bin" BIN_PATH)
+    set(TEST_PATH_ENV "${SRC_PATH};${BIN_PATH};$ENV{PATH}")
+    string(REPLACE ";" "\\;" TEST_PATH_ENV "${TEST_PATH_ENV}")
+endif()
+
+#----------------------------------------------------------------------------------------------------
+#
+
 add_subdirectory(libs)
 add_subdirectory(src)
 add_subdirectory(test)

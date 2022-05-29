@@ -15,7 +15,7 @@ if (HAVE_TESTS)
   add_test(NAME unfold-test-coro COMMAND unfold-test-coro)
 
   if(WIN32)
-    set_tests_properties(unfold-test-coro PROPERTIES ENVIRONMENT "PATH=${CMAKE_BINARY_DIR}/src\\;${CMAKE_INSTALL_PREFIX}/bin\\;$ENV{PATH}")
+    set_tests_properties(unfold-test-coro PROPERTIES ENVIRONMENT "PATH=${TEST_PATH_ENV}")
   endif()
 
 endif()

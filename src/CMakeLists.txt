@@ -39,5 +39,3 @@ target_compile_definitions(unfold
   BOOST_BEAST_USE_STD_STRING_VIEW)
 
 install(TARGETS unfold DESTINATION ${LIBDIR})
-
-

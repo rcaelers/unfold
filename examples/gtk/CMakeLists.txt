@@ -4,8 +4,10 @@ if(WIN32)
     GIT_REPOSITORY https://github.com/commonmark/cmark.git
     GIT_TAG        0.30.2
     GIT_SHALLOW    TRUE
-    CMAKE_ARGS     "CMARK_STATIC=ON CMARK_SHARED=OFF CMARK_TESTS=OFF CMARK_TESTS=OFF"
     )
+  set(CMARK_STATIC ON)
+  set(CMARK_SHARED OFF)
+  set(CMARK_TESTS OFF)
   FetchContent_MakeAvailable(cmark)
 
   FetchContent_Declare(
@@ -44,7 +46,7 @@ target_link_libraries(gtk_example PRIVATE spdlog::spdlog OpenSSL::SSL OpenSSL::C
 
 if (WIN32)
   target_sources(gtk_example PRIVATE Edge.cc)
-  target_link_libraries(gtk_example PRIVATE cmark::cmark webview2 ws2_32 mswsock)
+  target_link_libraries(gtk_example PRIVATE cmark::cmark_static webview2 ws2_32 mswsock)
 endif()
 
 pkg_check_modules(

@@ -15,6 +15,6 @@ if (HAVE_TESTS)
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/data/morejunk" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
   if(WIN32)
-    set_tests_properties(unfold-test-crypto PROPERTIES ENVIRONMENT "PATH=${CMAKE_BINARY_DIR}/src\\;${CMAKE_BINARY_DIR}/bin\\;$ENV{PATH}")
+    set_tests_properties(unfold-test-crypto PROPERTIES ENVIRONMENT "PATH=${CMAKE_BINARY_DIR}/src\\;${CMAKE_INSTALL_PREFIX}/bin\\;$ENV{PATH}")
   endif()
 endif()

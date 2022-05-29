@@ -12,7 +12,7 @@ if (HAVE_TESTS)
   add_test(NAME unfold-test-http COMMAND unfold-test-http)
 
   if(WIN32)
-    set_tests_properties(unfold-test-http PROPERTIES ENVIRONMENT "PATH=${CMAKE_BINARY_DIR}/src\\;${CMAKE_BINARY_DIR}/bin\\;$ENV{PATH}")
+    set_tests_properties(unfold-test-http PROPERTIES ENVIRONMENT "PATH=${CMAKE_BINARY_DIR}/src\\;${CMAKE_INSTALL_PREFIX}/bin\\;$ENV{PATH}")
   endif()
 
   add_executable(unfold-test-http-server TestServer.cc)

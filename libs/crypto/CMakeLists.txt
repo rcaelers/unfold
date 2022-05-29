@@ -6,7 +6,6 @@ target_sources(unfold-crypto PRIVATE
   src/SignatureAlgorithm.cc
   src/SignatureVerifier.cc
   src/SignatureVerifierErrors.cc
-
 )
 
 target_code_coverage(unfold-crypto)

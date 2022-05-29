@@ -97,6 +97,7 @@ if(NOT ${spdlog_FOUND})
     )
   set(SPDLOG_BUILD_SHARED ON)
   FetchContent_MakeAvailable(spdlog)
+  install(TARGETS spdlog)
 endif()
 
 #----------------------------------------------------------------------------------------------------

@@ -83,15 +83,7 @@ void
 Edge::on_size_allocate(Gtk::Allocation &allocation)
 {
   Gtk::DrawingArea::on_size_allocate(allocation);
-  if (get_realized())
-    {
-      RECT bounds;
-      bounds.top = allocation.get_y();
-      bounds.left = allocation.get_x();
-      bounds.bottom = bounds.top + allocation.get_height() - 1;
-      bounds.right = bounds.left + allocation.get_width() - 1;
-      controller_->put_Bounds(bounds);
-    }
+  update_bounds();
 }
 
 void

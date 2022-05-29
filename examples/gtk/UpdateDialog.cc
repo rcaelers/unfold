@@ -26,9 +26,10 @@
 #include <gtkmm.h>
 
 #include "nls.h"
-#include "cmark.h"
 
-#include "Edge.hh"
+#if defined(_WIN32)
+#  include "cmark.h"
+#  include "Edge.hh"
 
 static constexpr const char *doc =
   R"(<!DOCTYPE html>
@@ -42,6 +43,7 @@ static constexpr const char *doc =
   </div>
 </body>
 </html>)";
+#endif
 
 UpdateDialog::UpdateDialog(std::shared_ptr<unfold::UpdateInfo> info)
   : Gtk::Dialog(_("Software Update"), true)
@@ -93,6 +95,7 @@ UpdateDialog::UpdateDialog(std::shared_ptr<unfold::UpdateInfo> info)
   notes_frame->set_shadow_type(Gtk::SHADOW_IN);
   vbox->pack_start(*notes_frame, true, true, 0);
 
+#if defined(_WIN32)
   if (Edge::is_supported())
     {
       web = Gtk::manage(new Edge);
@@ -113,6 +116,7 @@ UpdateDialog::UpdateDialog(std::shared_ptr<unfold::UpdateInfo> info)
       notes_frame->add(*web);
     }
   else
+#endif
     {
       text_buffer = Gtk::TextBuffer::create();
       text_view = Gtk::manage(new Gtk::TextView(text_buffer));

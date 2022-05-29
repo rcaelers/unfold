@@ -29,29 +29,35 @@ if(WIN32)
     message(FATAL_ERROR "Unsupported processor: ${CMAKE_SYSTEM_PROCESSOR}")
   endif()
 
-  target_link_libraries(webview2 INTERFACE WebView2Loader) ##Static)
+  target_link_libraries(webview2 INTERFACE WebView2Loader)
+endif()
 
-  add_executable(gtk_example)
+add_executable(gtk_example)
 
-  target_sources(gtk_example PRIVATE
-    main.cc
-    UpdateDialog.cc
-    Edge.cc
-    )
+target_sources(gtk_example PRIVATE
+  main.cc
+  UpdateDialog.cc
+  )
 
-  target_link_libraries(gtk_example PRIVATE unfold unfold-utils unfold-http unfold-coro)
-  target_link_libraries(gtk_example PRIVATE spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto cmark::cmark webview2 ws2_32 mswsock)
+target_link_libraries(gtk_example PRIVATE unfold unfold-utils unfold-http unfold-coro)
+target_link_libraries(gtk_example PRIVATE spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto)
 
-  pkg_check_modules(
-    GTK REQUIRED
-    gtkmm-3.0>=3.22.0
-    gtk+-3.0>=3.22.0)
+if (WIN32)
+  target_sources(gtk_example PRIVATE Edge.cc)
+  target_link_libraries(gtk_example PRIVATE cmark::cmark webview2 ws2_32 mswsock)
+endif()
 
-  target_include_directories(gtk_example PRIVATE ${GTK_INCLUDE_DIRS})
-  target_link_directories(gtk_example PRIVATE ${GTK_LIBRARY_DIRS})
-  target_link_libraries(gtk_example PRIVATE ${GTK_LIBRARIES})
-  target_compile_definitions(gtk_example PRIVATE CMARK_NO_SHORT_NAMES)
+pkg_check_modules(
+  GTK REQUIRED
+  gtkmm-3.0>=3.22.0
+  gtk+-3.0>=3.22.0)
 
+target_include_directories(gtk_example PRIVATE ${GTK_INCLUDE_DIRS})
+target_link_directories(gtk_example PRIVATE ${GTK_LIBRARY_DIRS})
+target_link_libraries(gtk_example PRIVATE ${GTK_LIBRARIES})
+target_compile_definitions(gtk_example PRIVATE CMARK_NO_SHORT_NAMES)
+
+if (WIN32)
   if (MSVC)
     target_link_options(gtk_example PRIVATE "/SUBSYSTEM:WINDOWS")
   elseif (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")

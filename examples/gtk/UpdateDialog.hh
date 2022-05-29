@@ -26,7 +26,10 @@
 #include <gtkmm.h>
 
 #include "unfold/Unfold.hh"
-#include "Edge.hh"
+
+#if defined(_WIN32)
+#  include "Edge.hh"
+#endif
 
 class UpdateDialog : public Gtk::Dialog
 {
@@ -42,7 +45,9 @@ private:
   Gtk::ScrolledWindow scrolled_window;
   Glib::RefPtr<Gtk::TextBuffer> text_buffer;
   Gtk::CheckButton *auto_cb{nullptr};
+#if defined(_WIN32)
   Edge *web{nullptr};
+#endif
 };
 
 #endif // UPDATE_DIALOG_HH

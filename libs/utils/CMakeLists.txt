@@ -24,3 +24,9 @@ target_include_directories(
   ${boosturl_SOURCE_DIR}/include
   PUBLIC
   ${CMAKE_SOURCE_DIR}/libs/utils/include)
+
+  target_compile_definitions(
+  unfold-utils
+  PUBLIC
+	BOOST_ASIO_HAS_CO_AWAIT
+  )

@@ -34,57 +34,14 @@
 
 namespace unfold::coro::detail
 {
-  class asio_context
-  {
-  public:
-    explicit asio_context(int num_threads)
-      : ioc_(num_threads)
-      , guard_(boost::asio::make_work_guard(ioc_))
-    {
-      workers_.reserve(num_threads);
-      for (auto i = 0; i < num_threads; i++)
-        {
-          workers_.emplace_back([this] { ioc_.run(); });
-        }
-    }
-
-    ~asio_context()
-    {
-      if (!workers_.empty())
-        {
-          ioc_.stop();
-          for (auto &w: workers_)
-            {
-              w.join();
-            }
-          workers_.clear();
-        }
-    }
-
-    auto &get_io_context()
-    {
-      return ioc_;
-    }
-
-    asio_context(const asio_context &) = delete;
-    asio_context &operator=(const asio_context &) = delete;
-    asio_context(asio_context &&) = delete;
-    asio_context &operator=(asio_context &&) = delete;
-
-  private:
-    boost::asio::io_context ioc_;
-    boost::asio::executor_work_guard<boost::asio::io_context::executor_type> guard_;
-    std::vector<std::thread> workers_;
-  };
-
   template<typename ValueType, typename SchedulerType>
   class asio_awaiter
   {
   public:
-    asio_awaiter(boost::asio::awaitable<ValueType> awaitable, asio_context &context, SchedulerType *scheduler)
+    asio_awaiter(boost::asio::awaitable<ValueType> awaitable, boost::asio::io_context *ioc, SchedulerType *scheduler)
       : awaitable_(std::move(awaitable))
       , executer_{scheduler->get_executor()}
-      , ioc_(context.get_io_context())
+      , ioc_(ioc)
     {
     }
 
@@ -104,7 +61,7 @@ namespace unfold::coro::detail
     {
       awaiting_coroutine_ = awaiting_coroutine;
       boost::asio::co_spawn(
-        ioc_,
+        *ioc_,
         [&]() -> boost::asio::awaitable<std::optional<ValueType>> { co_return co_await std::move(awaitable_); },
         [this](std::exception_ptr e, auto r) {
           exception_ = e;
@@ -129,7 +86,7 @@ namespace unfold::coro::detail
   private:
     boost::asio::awaitable<ValueType> awaitable_;
     typename SchedulerType::executer executer_;
-    boost::asio::io_context &ioc_;
+    boost::asio::io_context *ioc_;
     std::coroutine_handle<> awaiting_coroutine_;
     std::optional<ValueType> result_;
     std::exception_ptr exception_;

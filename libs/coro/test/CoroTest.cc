@@ -8,13 +8,13 @@
 #include <boost/outcome/std_result.hpp>
 
 #include "coro/task.hh"
+#include "coro/gtask.hh"
 #include "http/HttpClient.hh"
 #include "http/HttpClientErrors.hh"
+#include "utils/IOContext.hh"
 
 #include <glib.h>
 #include <glib-object.h>
-
-#include "coro/gtask.hh"
 
 namespace outcome = boost::outcome_v2;
 
@@ -133,8 +133,10 @@ main(int argc, char **argv)
   context = g_main_context_new();
   loop = g_main_loop_new(context, TRUE);
 
+  unfold::utils::IOContext io_context{1};
+
   unfold::coro::gtask<void> task = main_task();
-  unfold::coro::glib::scheduler s{context};
+  unfold::coro::glib::scheduler s{context, io_context.get_io_context()};
 
   s.spawn(std::move(task));
 

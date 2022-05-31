@@ -18,46 +18,41 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef CORO_SCHEDULER_HH
-#define CORO_SCHEDULER_HH
+#ifndef UTILS_PERIODIC_TIMER_HH
+#define UTILS_PERIODIC_TIMER_HH
 
 #include <chrono>
-#include <exception>
-#include <utility>
+#include <boost/asio.hpp>
 
-#include "coro.hh"
-
-namespace unfold::coro
+namespace unfold::utils
 {
-  template<typename ValueType>
-  class [[nodiscard]] task;
-
-  struct sleep_awaiter : std::suspend_always
-  {
-    explicit sleep_awaiter(std::chrono::milliseconds duration)
-      : duration_(duration)
-    {
-    }
-
-    void await_suspend(std::coroutine_handle<> h)
-    {
-      handle_ = h;
-    }
-
-  private:
-    std::coroutine_handle<> handle_;
-    std::chrono::milliseconds duration_{};
-  };
-
-  class scheduler
+  class PeriodicTimer
   {
   public:
-    virtual ~scheduler() = default;
-    virtual auto get_executor() const = 0;
-    virtual void spawn(task<void> &&task) = 0;
-    virtual sleep_awaiter sleep(int duration) = 0;
+    using timer_callback_t = std::function<boost::asio::awaitable<void>()>;
+
+    explicit PeriodicTimer(boost::asio::io_context *ioc);
+    ~PeriodicTimer();
+
+    void set_callback(timer_callback_t callback);
+    void set_enabled(bool enabled);
+    void set_interval(std::chrono::seconds interval);
+
+    PeriodicTimer(const PeriodicTimer &) = delete;
+    PeriodicTimer &operator=(const PeriodicTimer &) = delete;
+    PeriodicTimer(PeriodicTimer &&) = delete;
+    PeriodicTimer &operator=(PeriodicTimer &&) = delete;
+
+  private:
+    void update();
+
+  private:
+    boost::asio::io_context *ioc_;
+    bool enabled_{false};
+    std::chrono::seconds interval_{12};
+    boost::asio::steady_timer timer_;
+    timer_callback_t callback_;
   };
+} // namespace unfold::utils
 
-} // namespace unfold::coro
-
-#endif // CORO_SCHEDULER_HH
+#endif // UTILS_PERIODIC_TIMER_HH

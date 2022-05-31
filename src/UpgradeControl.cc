@@ -20,6 +20,7 @@
 
 #include "UpgradeControl.hh"
 
+#include <chrono>
 #include <exception>
 #include <memory>
 #include <utility>
@@ -30,6 +31,8 @@
 
 #include <spdlog/fmt/ostr.h>
 
+#include "Checker.hh"
+#include "utils/PeriodicTimer.hh"
 #include "Unfold.hh"
 #include "crypto/SignatureVerifier.hh"
 #include "http/HttpClient.hh"
@@ -47,7 +50,7 @@
 #endif
 
 std::shared_ptr<unfold::Unfold>
-unfold::Unfold::create()
+unfold::Unfold::create(unfold::utils::IOContext &io_context)
 {
 #if defined(WIN32)
   auto platform = std::make_shared<WindowsPlatform>();
@@ -55,38 +58,36 @@ unfold::Unfold::create()
   auto platform = std::make_shared<DummyPlatform>();
 #endif
 
-  return std::make_shared<UpgradeControl>(platform);
+  return std::make_shared<UpgradeControl>(platform, io_context);
 }
 
-UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform)
+UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform, unfold::utils::IOContext &io_context)
   : platform(platform)
   , http(std::make_shared<unfold::http::HttpClient>())
   , verifier(std::make_shared<unfold::crypto::SignatureVerifier>())
-  , installer(platform, http, verifier)
+  , installer(std::make_shared<Installer>(platform, http, verifier))
+  , checker(std::make_shared<Checker>(platform, http))
+  , checker_timer(io_context.get_io_context())
 {
+  checker_timer.set_callback([this]() -> boost::asio::awaitable<void> {
+    auto rc = co_await check_for_updates_and_notify();
+    if (!rc)
+      {
+        logger->error("failed to check for updates: {}", rc.error().message());
+      }
+  });
 }
 
 outcome::std_result<void>
 UpgradeControl::set_appcast(const std::string &url)
 {
-  appcast_url = url;
-  return outcome::success();
+  return checker->set_appcast(url);
 }
 
 outcome::std_result<void>
 UpgradeControl::set_current_version(const std::string &version)
 {
-  try
-    {
-      current_version_str = version;
-      current_version.from_string(version);
-    }
-  catch (std::exception &e)
-    {
-      logger->error("invalid current version '{}' ({})", version, e.what());
-      return outcome::failure(unfold::UnfoldErrc::InvalidArgument);
-    }
-  return outcome::success();
+  return checker->set_current_version(version);
 }
 
 outcome::std_result<void>
@@ -108,154 +109,75 @@ UpgradeControl::set_certificate(const std::string &cert)
   return outcome::success();
 }
 
-boost::asio::awaitable<outcome::std_result<std::string>>
-UpgradeControl::download_appcast()
+void
+UpgradeControl::set_periodic_update_check_enabled(bool enabled)
 {
-  auto rc = co_await http->get(appcast_url);
-
-  if (!rc)
-    {
-      logger->info("failed to download appcast ({})", rc.error());
-      co_return unfold::UnfoldErrc::AppcastDownloadFailed;
-    }
-
-  auto [result, content] = rc.value();
-  if (result != 200)
-    {
-      logger->info("failed to download appcast ({} {})", result, content);
-      co_return unfold::UnfoldErrc::AppcastDownloadFailed;
-    }
-
-  if (content.empty())
-    {
-      logger->info("failed to download appcast (empty)");
-      co_return unfold::UnfoldErrc::AppcastDownloadFailed;
-    }
-
-  co_return content;
-}
-
-outcome::std_result<std::shared_ptr<Appcast>>
-UpgradeControl::parse_appcast(const std::string &appcast_xml)
-{
-  AppcastReader reader([this](auto item) { return is_applicable(item); });
-
-  auto appcast = reader.load_from_string(appcast_xml);
-  if (!appcast)
-    {
-      return unfold::UnfoldErrc::InvalidAppcast;
-    }
-
-  auto items = appcast->items;
-  try
-    {
-      std::sort(items.begin(), items.end(), [&](auto a, auto b) -> bool {
-        semver::version versiona;
-        versiona.from_string(a->version);
-        semver::version versionb;
-        versionb.from_string(b->version);
-        return a < b;
-      });
-    }
-  catch (std::exception &e)
-    {
-      logger->info("version comparison failed ({})", e.what());
-      return unfold::UnfoldErrc::InvalidAppcast;
-    }
-  return appcast;
+  checker_timer.set_enabled(enabled);
 }
 
 void
-UpgradeControl::build_update_info(std::shared_ptr<Appcast> appcast)
+UpgradeControl::set_periodic_update_check_interval(std::chrono::seconds interval)
 {
-  update_info = std::make_shared<unfold::UpdateInfo>();
+  checker_timer.set_interval(interval);
+}
 
-  auto items = appcast->items;
+void
+UpgradeControl::set_automatic_install_enabled(bool enabled)
+{
+  automatic_install_enabled = enabled;
+}
 
-  if (!items.empty())
-    {
-      selected_item = items.front();
+void
+UpgradeControl::set_configuration_prefix(const std::string &prefix)
+{
+  configuration_prefix = prefix;
+}
 
-      update_info->title = appcast->title;
-      update_info->version = selected_item->version;
-      update_info->current_version = current_version_str;
+void
+UpgradeControl::set_update_available_callback(update_available_callback_t callback)
+{
+  update_available_callback = callback;
+}
 
-      for (auto x: items)
-        {
-          spdlog::info("applicable {}", x->version);
-          auto r = unfold::UpdateReleaseNotes{x->version, x->publication_date, x->description};
-          update_info->release_notes.push_back(r);
-        }
-    }
+std::chrono::system_clock::time_point
+UpgradeControl::get_last_update_check_time()
+{
+  return last_update_check_time;
 }
 
 boost::asio::awaitable<outcome::std_result<bool>>
-UpgradeControl::check()
+UpgradeControl::check_for_updates()
 {
-  selected_item.reset();
-  update_info.reset();
-
-  auto content = co_await download_appcast();
-  if (!content)
-    {
-      co_return content.as_failure();
-    }
-
-  auto appcast = parse_appcast(content.value());
-  if (!appcast)
-    {
-      co_return appcast.as_failure();
-    }
-
-  auto items = appcast.value()->items;
-
-  if (!items.empty())
-    {
-      build_update_info(appcast.value());
-      co_return true;
-    }
-
-  co_return false;
+  last_update_check_time = std::chrono::system_clock::now();
+  co_return co_await checker->check_for_updates();
 }
 
 boost::asio::awaitable<outcome::std_result<void>>
-UpgradeControl::install()
+UpgradeControl::check_for_updates_and_notify()
 {
-  co_return co_await installer.install(selected_item);
+  auto rc = co_await check_for_updates();
+  if (!rc)
+    {
+      co_return rc.as_failure();
+    }
+
+  if (rc.value() && update_available_callback)
+    {
+      co_await update_available_callback();
+    }
+
+  co_return outcome::success();
+}
+
+boost::asio::awaitable<outcome::std_result<void>>
+UpgradeControl::install_update()
+{
+  auto selected_update = checker->get_selected_update();
+  co_return co_await installer->install(selected_update);
 }
 
 std::shared_ptr<unfold::UpdateInfo>
 UpgradeControl::get_update_info() const
 {
-  return update_info;
-}
-
-bool
-UpgradeControl::is_applicable(std::shared_ptr<AppcastItem> item)
-{
-  if (!platform->is_supported_os(item->enclosure->os))
-    {
-      return false;
-    }
-
-  if (!item->minimum_system_version.empty() && platform->is_supported_os_version(item->minimum_system_version))
-    {
-      return false;
-    }
-
-  // TODO: custom version comparator
-  semver::version version;
-  bool version_ok = version.from_string_noexcept(item->version);
-  if (!version_ok)
-    {
-      // TODO: fail on error
-      return false;
-    }
-
-  if (version <= current_version)
-    {
-      return false;
-    }
-
-  return true;
+  return checker->get_update_info();
 }

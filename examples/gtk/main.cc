@@ -33,6 +33,7 @@
 #include "http/HttpServer.hh"
 #include "unfold/Unfold.hh"
 #include "coro/gtask.hh"
+#include "utils/IOContext.hh"
 
 #if defined(WIN32)
 int APIENTRY
@@ -68,7 +69,7 @@ namespace
 unfold::coro::gtask<void>
 coro_check(Glib::RefPtr<Gtk::Application> app, std::shared_ptr<unfold::Unfold> updater)
 {
-  auto update_available = co_await updater->check();
+  auto update_available = co_await updater->check_for_updates();
   if (!update_available)
     {
       co_return;
@@ -107,7 +108,8 @@ main(int argc, char *argv[])
   server.add_file("/installer.sh", "../../test/installer.sh");
   server.run();
 
-  auto updater = unfold::Unfold::create();
+  unfold::utils::IOContext io_context{1};
+  auto updater = unfold::Unfold::create(io_context);
 
   auto rc = updater->set_appcast("https://localhost:1337/appcast.xml");
   if (!rc)
@@ -142,7 +144,7 @@ main(int argc, char *argv[])
   app->register_application();
   app->hold();
 
-  unfold::coro::glib::scheduler scheduler(g_main_context_default());
+  unfold::coro::glib::scheduler scheduler(g_main_context_default(), io_context.get_io_context());
 
   Glib::signal_timeout().connect(
     []() {

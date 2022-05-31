@@ -54,6 +54,7 @@ namespace unfold::coro
       {
         handle_.promise().set_continuation(awaiting_coroutine);
         handle_.promise().set_scheduler(awaiting_coroutine.promise().scheduler());
+        handle_.promise().set_io_context(awaiting_coroutine.promise().io_context());
         return handle_;
       }
 
@@ -128,6 +129,11 @@ namespace unfold::coro
     auto set_scheduler(SchedulerType *scheduler)
     {
       return handle_.promise().set_scheduler(scheduler);
+    }
+
+    auto set_io_context(boost::asio::io_context *ioc)
+    {
+      return handle_.promise().set_io_context(ioc);
     }
 
     auto scheduler() -> SchedulerType *

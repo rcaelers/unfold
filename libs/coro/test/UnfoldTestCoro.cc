@@ -35,6 +35,7 @@
 #include "http/HttpClient.hh"
 #include "http/HttpClientErrors.hh"
 #include "utils/Logging.hh"
+#include "utils/IOContext.hh"
 
 #include "coro/gtask.hh"
 
@@ -104,7 +105,7 @@ struct Fixture
   Fixture()
     : context(g_main_context_new())
     , loop(g_main_loop_new(context, TRUE))
-    , scheduler(context)
+    , scheduler(context, io_context.get_io_context())
   {
   }
 
@@ -121,6 +122,7 @@ struct Fixture
 
   GMainContext *context = nullptr;
   GMainLoop *loop = nullptr;
+  unfold::utils::IOContext io_context{1};
   unfold::coro::glib::scheduler scheduler;
   std::shared_ptr<spdlog::logger> logger{Logging::create("test")};
 };

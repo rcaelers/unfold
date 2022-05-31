@@ -18,8 +18,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "UpgradeControl.hh"
-
 #include <memory>
 #include <string>
 
@@ -33,10 +31,13 @@
 #  include <spdlog/cfg/env.h>
 #endif
 
-#include "AppCast.hh"
 #include "http/HttpServer.hh"
 #include "utils/Logging.hh"
+#include "utils/IOContext.hh"
+
+#include "AppCast.hh"
 #include "TestPlatform.hh"
+#include "UpgradeControl.hh"
 
 #define BOOST_TEST_MODULE "unfold"
 #include <boost/test/unit_test.hpp>
@@ -235,7 +236,8 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check)
   server.add_file("/installer.sh", "installer.sh");
   server.run();
 
-  UpgradeControl control(std::make_shared<TestPlatform>());
+  unfold::utils::IOContext io_context{1};
+  UpgradeControl control(std::make_shared<TestPlatform>(), io_context);
 
   auto rc = control.set_appcast("https://localhost:1337/appcast.xml");
   BOOST_CHECK_EQUAL(rc.has_error(), false);
@@ -255,7 +257,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          auto rc = co_await control.check();
+          auto rc = co_await control.check_for_updates();
           BOOST_CHECK_EQUAL(rc.has_error(), false);
 
           // TODO: fails on Wndows
@@ -271,6 +273,42 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check)
     boost::asio::detached);
   ioc.run();
 
+  server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check)
+{
+  unfold::http::HttpServer server;
+  server.add_file("/appcast.xml", "appcast.xml");
+  server.add_file("/workrave-1.11.0-alpha.1.exe", "junk");
+  server.add_file("/installer.sh", "installer.sh");
+  server.run();
+
+  unfold::utils::IOContext io_context{1};
+  UpgradeControl control(std::make_shared<TestPlatform>(), io_context);
+
+  auto rc = control.set_appcast("https://localhost:1337/appcast.xml");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = control.set_certificate(cert);
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = control.set_current_version("1.10.45");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  control.set_periodic_update_check_interval(std::chrono::seconds{2});
+  control.set_update_available_callback([&]() -> boost::asio::awaitable<void> {
+    spdlog::info("Update available");
+    io_context.stop();
+    co_return;
+  });
+
+  control.set_periodic_update_check_enabled(true);
+
+  io_context.wait();
   server.stop();
 }
 

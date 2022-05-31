@@ -159,8 +159,9 @@ namespace unfold::coro
       using gtask = unfold::coro::task<ValueType, glib::scheduler>;
       using executer = executer;
 
-      explicit scheduler(GMainContext *context)
+      scheduler(GMainContext *context, boost::asio::io_context *ioc)
         : context_(context)
+        , ioc_(ioc)
       {
       }
 
@@ -174,6 +175,7 @@ namespace unfold::coro
       void spawn(gtask<void> &&task)
       {
         task.set_scheduler(this);
+        task.set_io_context(ioc_);
         auto exec{std::make_shared<unfold::coro::glib::executer>(context_)};
         exec->execute([exec, task = std::move(task)]() mutable { task.resume(); });
       }
@@ -185,6 +187,7 @@ namespace unfold::coro
 
     private:
       GMainContext *context_{nullptr};
+      boost::asio::io_context *ioc_{nullptr};
     };
 
   } // namespace glib

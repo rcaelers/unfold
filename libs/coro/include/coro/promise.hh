@@ -162,7 +162,7 @@ namespace unfold::coro
       template<typename R>
       auto await_transform(boost::asio::awaitable<R> awaitable) noexcept
       {
-        return detail::asio_awaiter{std::move(awaitable), asio_context_, scheduler_};
+        return detail::asio_awaiter{std::move(awaitable), ioc_, scheduler_};
       }
 
       auto set_scheduler(SchedulerType *scheduler)
@@ -175,10 +175,20 @@ namespace unfold::coro
         return scheduler_;
       }
 
+      auto set_io_context(boost::asio::io_context *ioc)
+      {
+        ioc_ = ioc;
+      }
+
+      auto io_context()
+      {
+        return ioc_;
+      }
+
     private:
       std::coroutine_handle<> continuation_{nullptr};
       SchedulerType *scheduler_;
-      detail::asio_context asio_context_{4};
+      boost::asio::io_context *ioc_;
     };
   } // namespace detail
 } // namespace unfold::coro

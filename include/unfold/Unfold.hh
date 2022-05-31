@@ -29,6 +29,8 @@
 #include <boost/outcome/std_result.hpp>
 #include <boost/asio.hpp>
 
+#include "utils/IOContext.hh"
+
 namespace unfold
 {
   struct UpdateReleaseNotes
@@ -55,17 +57,25 @@ namespace unfold
     Unfold() = default;
     virtual ~Unfold() = default;
 
-    static std::shared_ptr<Unfold> create();
+    using update_available_callback_t = std::function<boost::asio::awaitable<void>()>;
+
+    static std::shared_ptr<Unfold> create(unfold::utils::IOContext &io_context);
 
     virtual outcome::std_result<void> set_appcast(const std::string &url) = 0;
     virtual outcome::std_result<void> set_current_version(const std::string &version) = 0;
     virtual outcome::std_result<void> set_signature_verification_key(const std::string &key) = 0;
     virtual outcome::std_result<void> set_certificate(const std::string &cert) = 0;
+    virtual void set_periodic_update_check_enabled(bool enabled) = 0;
+    virtual void set_periodic_update_check_interval(std::chrono::seconds interval) = 0;
+    virtual void set_automatic_install_enabled(bool enabled) = 0;
+    virtual void set_configuration_prefix(const std::string &prefix) = 0;
+    virtual void set_update_available_callback(update_available_callback_t callback) = 0;
+    virtual std::chrono::system_clock::time_point get_last_update_check_time() = 0;
 
     // TODO: custom version comparator API
 
-    virtual boost::asio::awaitable<outcome::std_result<bool>> check() = 0;
-    virtual boost::asio::awaitable<outcome::std_result<void>> install() = 0;
+    virtual boost::asio::awaitable<outcome::std_result<bool>> check_for_updates() = 0;
+    virtual boost::asio::awaitable<outcome::std_result<void>> install_update() = 0;
 
     virtual std::shared_ptr<unfold::UpdateInfo> get_update_info() const = 0;
   };

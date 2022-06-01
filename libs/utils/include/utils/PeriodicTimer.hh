@@ -22,6 +22,7 @@
 #define UTILS_PERIODIC_TIMER_HH
 
 #include <chrono>
+#include <mutex>
 #include <boost/asio.hpp>
 
 namespace unfold::utils
@@ -45,13 +46,15 @@ namespace unfold::utils
 
   private:
     void update();
+    void call_callback();
 
   private:
     boost::asio::io_context *ioc_;
+    std::mutex mutex;
     bool enabled_{false};
     std::chrono::seconds interval_{12};
-    boost::asio::steady_timer timer_;
     timer_callback_t callback_;
+    boost::asio::steady_timer timer_;
   };
 } // namespace unfold::utils
 

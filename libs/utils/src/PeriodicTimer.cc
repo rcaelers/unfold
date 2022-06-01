@@ -42,12 +42,14 @@ PeriodicTimer::~PeriodicTimer()
 void
 PeriodicTimer::set_callback(timer_callback_t callback)
 {
+  std::scoped_lock lock(mutex);
   callback_ = std::move(callback);
 }
 
 void
 PeriodicTimer::set_enabled(bool enabled)
 {
+  std::scoped_lock lock(mutex);
   assert(callback_);
   enabled_ = enabled;
   update();
@@ -56,6 +58,7 @@ PeriodicTimer::set_enabled(bool enabled)
 void
 PeriodicTimer::set_interval(std::chrono::seconds interval)
 {
+  std::scoped_lock lock(mutex);
   interval_ = interval;
   update();
 }
@@ -69,19 +72,9 @@ PeriodicTimer::update()
       timer_.async_wait([this](const boost::system::error_code &ec) {
         if (!ec)
           {
-            boost::asio::co_spawn(
-              *ioc_,
-              [&]() -> boost::asio::awaitable<void> {
-                try
-                  {
-                    co_await callback_();
-                  }
-                catch (std::exception &e)
-                  {
-                  }
-              },
-              boost::asio::detached);
+            call_callback();
 
+            std::scoped_lock lock(mutex);
             update();
           }
       });
@@ -90,4 +83,21 @@ PeriodicTimer::update()
     {
       timer_.cancel();
     }
+}
+
+void
+PeriodicTimer::call_callback()
+{
+  boost::asio::co_spawn(
+    *ioc_,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          co_await callback_();
+        }
+      catch (std::exception &e)
+        {
+        }
+    },
+    boost::asio::detached);
 }

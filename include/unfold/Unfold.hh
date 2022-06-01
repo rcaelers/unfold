@@ -49,6 +49,13 @@ namespace unfold
     std::list<UpdateReleaseNotes> release_notes;
   };
 
+  enum class UpdateResponse
+  {
+    Install,
+    Later,
+    Skip,
+  };
+
   namespace outcome = boost::outcome_v2;
 
   class Unfold
@@ -57,7 +64,7 @@ namespace unfold
     Unfold() = default;
     virtual ~Unfold() = default;
 
-    using update_available_callback_t = std::function<boost::asio::awaitable<void>()>;
+    using update_available_callback_t = std::function<boost::asio::awaitable<UpdateResponse>()>;
 
     static std::shared_ptr<Unfold> create(unfold::utils::IOContext &io_context);
 

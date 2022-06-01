@@ -18,6 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include "unfold/Unfold.hh"
 #include <memory>
 #include <string>
 
@@ -300,10 +301,10 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check)
   BOOST_CHECK_EQUAL(rc.has_error(), false);
 
   control.set_periodic_update_check_interval(std::chrono::seconds{2});
-  control.set_update_available_callback([&]() -> boost::asio::awaitable<void> {
+  control.set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
     spdlog::info("Update available");
     io_context.stop();
-    co_return;
+    co_return unfold::UpdateResponse::Later;
   });
 
   control.set_periodic_update_check_enabled(true);

@@ -102,7 +102,8 @@ Connection::send_request()
     }
 
   boost::beast::get_lowest_layer(stream).expires_after(TIMEOUT);
-  co_await boost::beast::get_lowest_layer(stream).async_connect(results, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+  co_await boost::beast::get_lowest_layer(stream).async_connect(results,
+                                                                boost::asio::redirect_error(boost::asio::use_awaitable, ec));
   if (ec)
     {
       logger->error("failed to connect to '{}' ({})", url.host(), ec.message());
@@ -110,7 +111,8 @@ Connection::send_request()
     }
 
   boost::beast::get_lowest_layer(stream).expires_after(TIMEOUT);
-  co_await stream.async_handshake(boost::asio::ssl::stream_base::client, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+  co_await stream.async_handshake(boost::asio::ssl::stream_base::client,
+                                  boost::asio::redirect_error(boost::asio::use_awaitable, ec));
   if (ec)
     {
       logger->error("failed to perform TLS handshake with '{}' ({})", url.host(), ec.message());
@@ -118,7 +120,9 @@ Connection::send_request()
     }
 
   constexpr auto http_version = 11;
-  boost::beast::http::request<boost::beast::http::string_body> req{boost::beast::http::verb::get, url.encoded_path(), http_version};
+  boost::beast::http::request<boost::beast::http::string_body> req{boost::beast::http::verb::get,
+                                                                   url.encoded_path(),
+                                                                   http_version};
   req.set(boost::beast::http::field::host, url.host());
   req.set(boost::beast::http::field::user_agent, BOOST_BEAST_VERSION_STRING);
 
@@ -160,7 +164,10 @@ Connection::receive_reponse(std::ostream &file, ProgressCallback cb)
   boost::beast::flat_buffer buffer;
   boost::beast::http::response_parser<boost::beast::http::buffer_body> parser;
 
-  co_await boost::beast::http::async_read_header(stream, buffer, parser, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+  co_await boost::beast::http::async_read_header(stream,
+                                                 buffer,
+                                                 parser,
+                                                 boost::asio::redirect_error(boost::asio::use_awaitable, ec));
   if (ec)
     {
       logger->error("failed to read HTTP header from {} ({})", url.host(), ec.message());
@@ -193,7 +200,10 @@ Connection::receive_reponse(std::ostream &file, ProgressCallback cb)
       std::array<char, buffer_size> buf{};
       parser.get().body().data = buf.data();
       parser.get().body().size = buf.size();
-      co_await boost::beast::http::async_read(stream, buffer, parser, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+      co_await boost::beast::http::async_read(stream,
+                                              buffer,
+                                              parser,
+                                              boost::asio::redirect_error(boost::asio::use_awaitable, ec));
       if (ec == boost::beast::http::error::need_buffer)
         {
           ec = {};

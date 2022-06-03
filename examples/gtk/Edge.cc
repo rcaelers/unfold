@@ -92,7 +92,7 @@ Edge::on_realize()
   Gtk::DrawingArea::on_realize();
 
   GdkWindow *window = gtk_widget_get_window(GTK_WIDGET(gobj()));
-  hwnd_ = (HWND)GDK_WINDOW_HWND(window);
+  hwnd_ = static_cast<HWND>(GDK_WINDOW_HWND(window));
 
   init();
 }
@@ -160,11 +160,11 @@ Edge::on_environment_created(HRESULT result, ICoreWebView2Environment *environme
       return result;
     }
 
-  HRESULT hr =
-    environment->CreateCoreWebView2Controller(hwnd_,
-                                              Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>([this](auto r, auto *v) {
-                                                return on_controller_created(r, v);
-                                              }).Get());
+  HRESULT hr = environment->CreateCoreWebView2Controller(
+    hwnd_,
+    Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>([this](auto r, auto *v) {
+      return on_controller_created(r, v);
+    }).Get());
   if (FAILED(result))
     {
       spdlog::error("failed to create webview2 controller ({0:x})", static_cast<unsigned int>(result));

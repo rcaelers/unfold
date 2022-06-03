@@ -60,7 +60,9 @@ namespace unfold::http
 
     private:
       template<bool isRequest, class Body, class Fields>
-      bool send(boost::beast::http::message<isRequest, Body, Fields> &&msg, boost::beast::error_code &ec, boost::asio::yield_context yield)
+      bool send(boost::beast::http::message<isRequest, Body, Fields> &&msg,
+                boost::beast::error_code &ec,
+                boost::asio::yield_context yield)
       {
         auto eof = msg.need_eof();
         boost::beast::http::serializer<isRequest, Body, Fields> sr{msg};

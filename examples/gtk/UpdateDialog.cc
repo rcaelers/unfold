@@ -79,19 +79,20 @@ UpdateDialog::UpdateDialog(std::shared_ptr<unfold::UpdateInfo> info)
   std::string bold = "<span weight=\"bold\">";
   std::string end = "</span>";
 
-  auto *title_label =
-    Gtk::manage(new Gtk::Label(bold + fmt::format(_("A new version of {} is available"), info->title) + end, Gtk::ALIGN_START));
+  auto *title_label = Gtk::manage(
+    new Gtk::Label(bold + fmt::format(_("A new version of {} is available"), info->title) + end, Gtk::ALIGN_START));
   title_label->set_use_markup();
   vbox->pack_start(*title_label, false, false, 0);
 
   auto *info_hbox = Gtk::manage(new Gtk::HBox());
   vbox->pack_start(*info_hbox, false, false, 0);
 
-  auto *info_label = Gtk::manage(new Gtk::Label(fmt::format(_("{} {} is now available -- you have {}. Would you like to download it now?"),
-                                                            info->title,
-                                                            info->version,
-                                                            info->current_version),
-                                                Gtk::ALIGN_START));
+  auto *info_label = Gtk::manage(
+    new Gtk::Label(fmt::format(_("{} {} is now available -- you have {}. Would you like to download it now?"),
+                               info->title,
+                               info->version,
+                               info->current_version),
+                   Gtk::ALIGN_START));
   info_label->set_line_wrap();
   info_label->set_xalign(0);
   info_hbox->pack_start(*info_label, false, false, 0);

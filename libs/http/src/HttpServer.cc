@@ -167,7 +167,8 @@ Session::handle_request(boost::beast::error_code &ec, boost::asio::yield_context
 
       boost::beast::http::response<boost::beast::http::string_body> res{std::piecewise_construct,
                                                                         std::make_tuple(std::move(txt)),
-                                                                        std::make_tuple(boost::beast::http::status::ok, req.version())};
+                                                                        std::make_tuple(boost::beast::http::status::ok,
+                                                                                        req.version())};
       res.set(boost::beast::http::field::server, BOOST_BEAST_VERSION_STRING);
       res.set(boost::beast::http::field::content_type, mime_type(req.target()));
       res.content_length(length);

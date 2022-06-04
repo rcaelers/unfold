@@ -32,6 +32,7 @@
 #include <spdlog/fmt/ostr.h>
 
 #include "Checker.hh"
+#include "SettingsStorage.hh"
 #include "utils/PeriodicTimer.hh"
 #include "Unfold.hh"
 #include "crypto/SignatureVerifier.hh"
@@ -65,17 +66,32 @@ UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform, unfold::utils
   : platform(platform)
   , http(std::make_shared<unfold::http::HttpClient>())
   , verifier(std::make_shared<unfold::crypto::SignatureVerifier>())
+  , storage(SettingsStorage::create())
+  , state(std::make_shared<Settings>(storage))
   , installer(std::make_shared<Installer>(platform, http, verifier))
   , checker(std::make_shared<Checker>(platform, http))
   , checker_timer(io_context.get_io_context())
 {
-  checker_timer.set_callback([this]() -> boost::asio::awaitable<void> {
-    auto rc = co_await check_for_updates_and_notify();
-    if (!rc)
-      {
-        logger->error("failed to check for updates: {}", rc.error().message());
-      }
-  });
+  init_periodic_update_check();
+}
+
+UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform,
+                               std::shared_ptr<unfold::http::HttpClient> http,
+                               std::shared_ptr<unfold::crypto::SignatureVerifier> verifier,
+                               std::shared_ptr<SettingsStorage> storage,
+                               std::shared_ptr<Installer> installer,
+                               std::shared_ptr<Checker> checker,
+                               unfold::utils::IOContext &io_context)
+  : platform(platform)
+  , http(http)
+  , verifier(verifier)
+  , storage(storage)
+  , state(std::make_shared<Settings>(storage))
+  , installer(installer)
+  , checker(checker)
+  , checker_timer(io_context.get_io_context())
+{
+  init_periodic_update_check();
 }
 
 outcome::std_result<void>
@@ -124,7 +140,7 @@ UpgradeControl::set_periodic_update_check_interval(std::chrono::seconds interval
 void
 UpgradeControl::set_configuration_prefix(const std::string &prefix)
 {
-  configuration_prefix = prefix;
+  storage->set_prefix(prefix);
 }
 
 void
@@ -133,16 +149,22 @@ UpgradeControl::set_update_available_callback(update_available_callback_t callba
   update_available_callback = callback;
 }
 
-std::chrono::system_clock::time_point
+std::optional<std::chrono::system_clock::time_point>
 UpgradeControl::get_last_update_check_time()
 {
-  return last_update_check_time;
+  return state->get_last_update_check_time();
+}
+
+void
+UpgradeControl::update_last_update_check_time()
+{
+  state->set_last_update_check_time(std::chrono::system_clock::now());
 }
 
 boost::asio::awaitable<outcome::std_result<bool>>
 UpgradeControl::check_for_updates()
 {
-  last_update_check_time = std::chrono::system_clock::now();
+  update_last_update_check_time();
   co_return co_await checker->check_for_updates();
 }
 
@@ -152,12 +174,45 @@ UpgradeControl::check_for_updates_and_notify()
   auto rc = co_await check_for_updates();
   if (!rc)
     {
+      logger->error("failed to check for updates: {}", rc.error().message());
       co_return rc.as_failure();
     }
 
-  if (rc.value() && update_available_callback)
+  if (!rc.value())
     {
-      co_await update_available_callback();
+      logger->info("no update available");
+      co_return outcome::success();
+    }
+
+  auto info = checker->get_update_info();
+  if (!info)
+    {
+      co_return outcome::failure(unfold::UnfoldErrc::InternalError);
+    }
+
+  if (state->get_skip_version() == info->version)
+    {
+      logger->info("skipping update to version {}", info->version);
+      co_return outcome::success();
+    }
+
+  if (!update_available_callback)
+    {
+      logger->info("update to version {} available, but nothing to notify", info->version);
+      co_return outcome::success();
+    }
+
+  auto resp = co_await update_available_callback();
+  switch (resp)
+    {
+    case unfold::UpdateResponse::Install:
+      co_return co_await install_update();
+      break;
+    case unfold::UpdateResponse::Later:
+      break;
+    case unfold::UpdateResponse::Skip:
+      state->set_skip_version(info->version);
+      break;
     }
 
   co_return outcome::success();
@@ -174,4 +229,16 @@ std::shared_ptr<unfold::UpdateInfo>
 UpgradeControl::get_update_info() const
 {
   return checker->get_update_info();
+}
+
+void
+UpgradeControl::init_periodic_update_check()
+{
+  checker_timer.set_callback([this]() -> boost::asio::awaitable<void> {
+    auto rc = co_await check_for_updates_and_notify();
+    if (!rc)
+      {
+        logger->error("failed to check for updates: {}", rc.error().message());
+      }
+  });
 }

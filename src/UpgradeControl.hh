@@ -27,6 +27,7 @@
 #include <chrono>
 
 #include "AppCast.hh"
+#include "SettingsStorage.hh"
 #include "unfold/Unfold.hh"
 
 #include "http/HttpClient.hh"
@@ -36,6 +37,7 @@
 #include "Platform.hh"
 #include "Installer.hh"
 #include "Checker.hh"
+#include "Settings.hh"
 #include "utils/PeriodicTimer.hh"
 
 #include "semver.hpp"
@@ -43,7 +45,15 @@
 class UpgradeControl : public unfold::Unfold
 {
 public:
-  explicit UpgradeControl(std::shared_ptr<Platform> platform, unfold::utils::IOContext &io_context);
+  UpgradeControl(std::shared_ptr<Platform> platform, unfold::utils::IOContext &io_context);
+
+  UpgradeControl(std::shared_ptr<Platform> platform,
+                 std::shared_ptr<unfold::http::HttpClient> http,
+                 std::shared_ptr<unfold::crypto::SignatureVerifier> verifier,
+                 std::shared_ptr<SettingsStorage> storage,
+                 std::shared_ptr<Installer> installer,
+                 std::shared_ptr<Checker> checker,
+                 unfold::utils::IOContext &io_context);
 
   outcome::std_result<void> set_appcast(const std::string &url) override;
   outcome::std_result<void> set_current_version(const std::string &version) override;
@@ -53,27 +63,28 @@ public:
   void set_periodic_update_check_interval(std::chrono::seconds interval) override;
   void set_configuration_prefix(const std::string &prefix) override;
   void set_update_available_callback(update_available_callback_t callback) override;
-  std::chrono::system_clock::time_point get_last_update_check_time() override;
+  std::optional<std::chrono::system_clock::time_point> get_last_update_check_time() override;
 
   boost::asio::awaitable<outcome::std_result<bool>> check_for_updates() override;
   boost::asio::awaitable<outcome::std_result<void>> install_update() override;
   std::shared_ptr<unfold::UpdateInfo> get_update_info() const override;
 
 private:
+  void init_periodic_update_check();
   boost::asio::awaitable<outcome::std_result<void>> check_for_updates_and_notify();
+  void update_last_update_check_time();
 
 private:
   std::shared_ptr<Platform> platform;
   std::shared_ptr<unfold::http::HttpClient> http;
   std::shared_ptr<unfold::crypto::SignatureVerifier> verifier;
+  std::shared_ptr<SettingsStorage> storage;
+  std::shared_ptr<Settings> state;
   std::shared_ptr<Installer> installer;
   std::shared_ptr<Checker> checker;
   unfold::utils::PeriodicTimer checker_timer;
 
-  bool automatic_install_enabled{false};
-  std::string configuration_prefix;
   update_available_callback_t update_available_callback;
-  std::chrono::system_clock::time_point last_update_check_time;
 
   std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:control")};
 };

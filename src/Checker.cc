@@ -129,7 +129,7 @@ Checker::download_appcast()
   if (content.empty())
     {
       logger->info("failed to download appcast (empty)");
-      co_return unfold::UnfoldErrc::AppcastDownloadFailed;
+      co_return unfold::UnfoldErrc::InvalidAppcast;
     }
 
   co_return content;

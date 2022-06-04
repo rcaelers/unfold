@@ -19,6 +19,7 @@
 // THE SOFTWARE.
 
 #include "unfold/Unfold.hh"
+#include "unfold/UnfoldErrors.hh"
 #include <memory>
 #include <string>
 
@@ -228,6 +229,234 @@ BOOST_AUTO_TEST_CASE(appcast_load_invalid_from_file)
   auto appcast = reader->load_from_file("invalidappcast.xml");
   BOOST_CHECK_EQUAL(appcast.get(), nullptr);
 }
+
+BOOST_AUTO_TEST_CASE(checker_appcast_not_found)
+{
+  unfold::http::HttpServer server;
+  server.add_file("/appcast.xml", "appcast.xml");
+  server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  http->add_ca_cert(cert);
+
+  Checker checker(std::make_shared<TestPlatform>(), http);
+
+  auto rc = checker.set_appcast("https://localhost:1337/appcastxxx.xml");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = checker.set_current_version("1.12.0");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto check_result = co_await checker.check_for_updates();
+          BOOST_CHECK_EQUAL(check_result.has_error(), true);
+          BOOST_CHECK_EQUAL(check_result.error(), unfold::UnfoldErrc::AppcastDownloadFailed);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+
+  server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(checker_invalid_version)
+{
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  http->add_ca_cert(cert);
+
+  Checker checker(std::make_shared<TestPlatform>(), http);
+
+  auto rc = checker.set_current_version("1.12.0.1.2");
+  BOOST_CHECK_EQUAL(rc.has_error(), true);
+}
+
+BOOST_AUTO_TEST_CASE(checker_invalid_appcast)
+{
+  unfold::http::HttpServer server;
+  server.add_file("/appcast.xml", "invalidappcast.xml");
+  server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  http->add_ca_cert(cert);
+
+  Checker checker(std::make_shared<TestPlatform>(), http);
+
+  auto rc = checker.set_appcast("https://localhost:1337/appcast.xml");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = checker.set_current_version("1.10.48");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto check_result = co_await checker.check_for_updates();
+          BOOST_CHECK_EQUAL(check_result.has_error(), true);
+          BOOST_CHECK_EQUAL(check_result.error(), unfold::UnfoldErrc::InvalidAppcast);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+
+  server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(checker_empty_appcast)
+{
+  unfold::http::HttpServer server;
+  server.add("/appcast.xml", "");
+  server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  http->add_ca_cert(cert);
+
+  Checker checker(std::make_shared<TestPlatform>(), http);
+
+  auto rc = checker.set_appcast("https://localhost:1337/appcast.xml");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = checker.set_current_version("1.10.48");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto check_result = co_await checker.check_for_updates();
+          BOOST_CHECK_EQUAL(check_result.has_error(), true);
+          BOOST_CHECK_EQUAL(check_result.error(), unfold::UnfoldErrc::InvalidAppcast);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+
+  server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(checker_no_upgrade)
+{
+  unfold::http::HttpServer server;
+  server.add_file("/appcast.xml", "appcast.xml");
+  server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  http->add_ca_cert(cert);
+
+  Checker checker(std::make_shared<TestPlatform>(), http);
+
+  auto rc = checker.set_appcast("https://localhost:1337/appcast.xml");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = checker.set_current_version("1.12.0");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto check_result = co_await checker.check_for_updates();
+          BOOST_CHECK_EQUAL(check_result.has_error(), false);
+          BOOST_CHECK_EQUAL(check_result.value(), false);
+
+          auto appcast = checker.get_selected_update();
+          BOOST_CHECK_EQUAL(appcast.get(), nullptr);
+          auto info = checker.get_update_info();
+          BOOST_CHECK_EQUAL(info.get(), nullptr);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+
+  server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(checker_has_upgrade)
+{
+  unfold::http::HttpServer server;
+  server.add_file("/appcast.xml", "appcast.xml");
+  server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  http->add_ca_cert(cert);
+
+  Checker checker(std::make_shared<TestPlatform>(), http);
+
+  auto rc = checker.set_appcast("https://localhost:1337/appcast.xml");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = checker.set_current_version("1.10.48");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto check_result = co_await checker.check_for_updates();
+          BOOST_CHECK_EQUAL(check_result.has_error(), false);
+          BOOST_CHECK_EQUAL(check_result.value(), true);
+
+          auto appcast = checker.get_selected_update();
+          BOOST_CHECK_EQUAL(appcast->version, "1.11.0-alpha.1");
+          BOOST_CHECK_EQUAL(appcast->publication_date, "Sun, 27 Feb 2022 11:02:33 +0100");
+          BOOST_CHECK_EQUAL(appcast->title, "Workrave 1.11.0-alpha.1");
+          auto info = checker.get_update_info();
+          BOOST_CHECK_EQUAL(info->title, "Workrave");
+          BOOST_CHECK_EQUAL(info->current_version, "1.10.48");
+          BOOST_CHECK_EQUAL(info->version, "1.11.0-alpha.1");
+          BOOST_CHECK_EQUAL(info->release_notes.size(), 2);
+          BOOST_CHECK_EQUAL(info->release_notes.front().version, "1.11.0-alpha.1");
+          BOOST_CHECK_EQUAL(info->release_notes.front().date, "Sun, 27 Feb 2022 11:02:33 +0100");
+          BOOST_CHECK_EQUAL(info->release_notes.back().version, "1.10.49");
+          BOOST_CHECK_EQUAL(info->release_notes.back().date, "Wed, 05 Jan 2022 03:05:19 +0100");
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+
+  server.stop();
+}
+
+// TODO: checker with unsupported OS.
+// TODO: checker with unsupported OS version.
 
 BOOST_AUTO_TEST_CASE(upgrade_control_check)
 {

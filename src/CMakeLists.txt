@@ -7,6 +7,8 @@ target_sources(unfold PRIVATE
   Installer.cc
   UnfoldErrors.cc
   DummyPlatform.cc
+  DummySettingsStorage.cc
+  Settings.cc
   )
 
 target_code_coverage(unfold)
@@ -17,7 +19,7 @@ if(APPLE)
 endif()
 
 if(WIN32)
-  target_sources(unfold PRIVATE windows/WindowsPlatform.cc)
+  target_sources(unfold PRIVATE windows/WindowsPlatform.cc windows/WindowsSettingsStorage.cc)
   target_link_libraries(unfold PUBLIC ws2_32 mswsock)
 endif()
 

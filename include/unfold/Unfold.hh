@@ -74,7 +74,6 @@ namespace unfold
     virtual outcome::std_result<void> set_certificate(const std::string &cert) = 0;
     virtual void set_periodic_update_check_enabled(bool enabled) = 0;
     virtual void set_periodic_update_check_interval(std::chrono::seconds interval) = 0;
-    virtual void set_automatic_install_enabled(bool enabled) = 0;
     virtual void set_configuration_prefix(const std::string &prefix) = 0;
     virtual void set_update_available_callback(update_available_callback_t callback) = 0;
     virtual std::chrono::system_clock::time_point get_last_update_check_time() = 0;

@@ -44,7 +44,6 @@ private:
   Gtk::TextView *text_view{nullptr};
   Gtk::ScrolledWindow scrolled_window;
   Glib::RefPtr<Gtk::TextBuffer> text_buffer;
-  Gtk::CheckButton *auto_cb{nullptr};
 #if defined(_WIN32)
   Edge *web{nullptr};
 #endif

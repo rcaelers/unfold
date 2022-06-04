@@ -122,12 +122,6 @@ UpgradeControl::set_periodic_update_check_interval(std::chrono::seconds interval
 }
 
 void
-UpgradeControl::set_automatic_install_enabled(bool enabled)
-{
-  automatic_install_enabled = enabled;
-}
-
-void
 UpgradeControl::set_configuration_prefix(const std::string &prefix)
 {
   configuration_prefix = prefix;

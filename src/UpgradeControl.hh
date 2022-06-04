@@ -51,7 +51,6 @@ public:
   outcome::std_result<void> set_certificate(const std::string &cert) override;
   void set_periodic_update_check_enabled(bool enabled) override;
   void set_periodic_update_check_interval(std::chrono::seconds interval) override;
-  void set_automatic_install_enabled(bool enabled) override;
   void set_configuration_prefix(const std::string &prefix) override;
   void set_update_available_callback(update_available_callback_t callback) override;
   std::chrono::system_clock::time_point get_last_update_check_time() override;

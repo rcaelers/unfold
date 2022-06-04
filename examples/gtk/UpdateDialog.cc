@@ -151,18 +151,7 @@ UpdateDialog::UpdateDialog(std::shared_ptr<unfold::UpdateInfo> info)
         }
     }
 
-  auto_cb = Gtk::manage(new Gtk::CheckButton(_("Automatically download and install updates in the future")));
-  auto_cb->signal_toggled().connect(sigc::mem_fun(*this, &UpdateDialog::on_auto_toggled));
-  vbox->pack_start(*auto_cb, false, false, 0);
-
   add_button(Gtk::Stock::CLOSE, Gtk::RESPONSE_CLOSE);
 
-  auto_cb->set_active(false);
-
   show_all();
-}
-
-void
-UpdateDialog::on_auto_toggled()
-{
 }

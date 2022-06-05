@@ -72,7 +72,7 @@ TempDirectory::generate_random_string(std::size_t len)
     "0123456789"
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     "abcdefghijklmnopqrstuvwxyz");
-  const size_t max_index = (sizeof(charset) - 1);
+  const size_t max_index = (sizeof(charset) - 2);
 
   std::random_device rnd;
   std::mt19937 generator(rnd());

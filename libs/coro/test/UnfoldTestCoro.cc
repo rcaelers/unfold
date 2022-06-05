@@ -137,7 +137,7 @@ download_appcast()
   auto http = std::make_shared<unfold::http::HttpClient>();
   http->add_ca_cert(cert);
 
-  auto rc = co_await http->get("https://localhost:1337/foo");
+  auto rc = co_await http->get("https://127.0.0.1:1337/foo");
 
   BOOST_CHECK_EQUAL(rc.has_error(), false);
 

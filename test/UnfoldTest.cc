@@ -241,7 +241,7 @@ BOOST_AUTO_TEST_CASE(checker_appcast_not_found)
 
   Checker checker(std::make_shared<TestPlatform>(), http);
 
-  auto rc = checker.set_appcast("https://localhost:1337/appcastxxx.xml");
+  auto rc = checker.set_appcast("https://127.0.0.1:1337/appcastxxx.xml");
   BOOST_CHECK_EQUAL(rc.has_error(), false);
 
   rc = checker.set_current_version("1.12.0");
@@ -291,7 +291,7 @@ BOOST_AUTO_TEST_CASE(checker_invalid_appcast)
 
   Checker checker(std::make_shared<TestPlatform>(), http);
 
-  auto rc = checker.set_appcast("https://localhost:1337/appcast.xml");
+  auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
   BOOST_CHECK_EQUAL(rc.has_error(), false);
 
   rc = checker.set_current_version("1.10.48");
@@ -330,7 +330,7 @@ BOOST_AUTO_TEST_CASE(checker_empty_appcast)
 
   Checker checker(std::make_shared<TestPlatform>(), http);
 
-  auto rc = checker.set_appcast("https://localhost:1337/appcast.xml");
+  auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
   BOOST_CHECK_EQUAL(rc.has_error(), false);
 
   rc = checker.set_current_version("1.10.48");
@@ -369,7 +369,7 @@ BOOST_AUTO_TEST_CASE(checker_no_upgrade)
 
   Checker checker(std::make_shared<TestPlatform>(), http);
 
-  auto rc = checker.set_appcast("https://localhost:1337/appcast.xml");
+  auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
   BOOST_CHECK_EQUAL(rc.has_error(), false);
 
   rc = checker.set_current_version("1.12.0");
@@ -413,7 +413,7 @@ BOOST_AUTO_TEST_CASE(checker_has_upgrade)
 
   Checker checker(std::make_shared<TestPlatform>(), http);
 
-  auto rc = checker.set_appcast("https://localhost:1337/appcast.xml");
+  auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
   BOOST_CHECK_EQUAL(rc.has_error(), false);
 
   rc = checker.set_current_version("1.10.48");
@@ -469,7 +469,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check)
   unfold::utils::IOContext io_context{1};
   UpgradeControl control(std::make_shared<TestPlatform>(), io_context);
 
-  auto rc = control.set_appcast("https://localhost:1337/appcast.xml");
+  auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
   BOOST_CHECK_EQUAL(rc.has_error(), false);
 
   rc = control.set_certificate(cert);
@@ -517,7 +517,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check)
   unfold::utils::IOContext io_context{1};
   UpgradeControl control(std::make_shared<TestPlatform>(), io_context);
 
-  auto rc = control.set_appcast("https://localhost:1337/appcast.xml");
+  auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
   BOOST_CHECK_EQUAL(rc.has_error(), false);
 
   rc = control.set_certificate(cert);
@@ -529,7 +529,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check)
   rc = control.set_current_version("1.10.45");
   BOOST_CHECK_EQUAL(rc.has_error(), false);
 
-  control.set_periodic_update_check_interval(std::chrono::seconds{2});
+  control.set_periodic_update_check_interval(std::chrono::seconds{1});
   control.set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
     spdlog::info("Update available");
     io_context.stop();

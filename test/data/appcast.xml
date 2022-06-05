@@ -37,7 +37,7 @@
       <link>https://workrave.org</link>
       <sparkle:version>1.11.0-alpha.1</sparkle:version>
       <pubDate>Sun, 27 Feb 2022 11:02:33 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/installer.sh" sparkle:edSignature="a/8Cb/Zpzr95wEPNpUoVxf60IZi98CFBEWlj0hPZbcHk4DFdo5UTgVkPxEW77Rp4dG+YwDCTkgv5R77vX4CoCg==" length="29" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/installer.sh" sparkle:edSignature="a/8Cb/Zpzr95wEPNpUoVxf60IZi98CFBEWlj0hPZbcHk4DFdo5UTgVkPxEW77Rp4dG+YwDCTkgv5R77vX4CoCg==" length="29" type="application/octet-stream" />
     </item>
 
     <item>
@@ -49,7 +49,7 @@
       <link>https://workrave.org</link>
       <sparkle:version>1.10.49</sparkle:version>
       <pubDate>Wed, 05 Jan 2022 03:05:19 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.49.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.49.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -60,7 +60,7 @@
       <link>https://workrave.org</link>
       <sparkle:version>1.10.48</sparkle:version>
       <pubDate>Tue, 03 Aug 2021 05:26:00 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.48.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.48.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -75,7 +75,7 @@
       <link>https://workrave.org</link>
       <sparkle:version>1.10.47</sparkle:version>
       <pubDate>Mon, 26 Jul 2021 02:20:30 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.47.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.47.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -107,7 +107,7 @@
       <link>https://workrave.org</link>
       <sparkle:version>1.10.45</sparkle:version>
       <pubDate>Sat, 27 Mar 2021 02:19:02 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.45.exe" sparkle:`="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.45.exe" sparkle:`="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -121,7 +121,7 @@
       <link>https://workrave.org</link>
       <sparkle:version>1.10.44</sparkle:version>
       <pubDate>Sat, 09 May 2020 12:52:50 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.44.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.44.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -138,7 +138,7 @@ Changes since Workrave 1.10.42:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.43</sparkle:version>
       <pubDate>Mon, 13 Apr 2020 02:43:20 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.43.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.43.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -153,7 +153,7 @@ Changes since Workrave 1.10.41:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.42</sparkle:version>
       <pubDate>Fri, 10 Apr 2020 03:14:17 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.42.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.42.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -169,7 +169,7 @@ Changes since Workrave 1.10.40:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.41</sparkle:version>
       <pubDate>Sun, 05 Apr 2020 06:09:55 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.41.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.41.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -183,7 +183,7 @@ Changes since Workrave 1.10.37
       <link>https://workrave.org</link>
       <sparkle:version>1.10.40</sparkle:version>
       <pubDate>Sat, 04 Apr 2020 05:45:06 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.40.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.40.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -208,7 +208,7 @@ Changes since Workrave 1.10.38:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.39</sparkle:version>
       <pubDate>Sat, 04 Apr 2020 04:28:37 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.39.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.39.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -224,7 +224,7 @@ Changes since Workrave 1.10.37:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.38</sparkle:version>
       <pubDate>Fri, 20 Mar 2020 03:34:00 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.38.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.38.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -238,7 +238,7 @@ Changes since Workrave 1.10.34
       <link>https://workrave.org</link>
       <sparkle:version>1.10.37</sparkle:version>
       <pubDate>Tue, 17 Mar 2020 06:30:15 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.37.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.37.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -256,7 +256,7 @@ Changes since Workrave 1.10.34:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.36</sparkle:version>
       <pubDate>Mon, 16 Mar 2020 08:44:08 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.36.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.36.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -271,7 +271,7 @@ Changes since Workrave 1.10.33:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.34</sparkle:version>
       <pubDate>Tue, 04 Jun 2019 08:29:00 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.34.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.34.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -286,7 +286,7 @@ Changes since Workrave 1.10.32:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.33</sparkle:version>
       <pubDate>Sun, 02 Jun 2019 04:27:57 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.33.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.33.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -306,7 +306,7 @@ Changes since Workrave 1.10.31:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.32</sparkle:version>
       <pubDate>Sun, 02 Jun 2019 02:53:40 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.32.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.32.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -320,7 +320,7 @@ Changes since Workrave 1.10.23
       <link>https://workrave.org</link>
       <sparkle:version>1.10.31</sparkle:version>
       <pubDate>Tue, 26 Mar 2019 09:13:04 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.31.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.31.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -337,7 +337,7 @@ Changes since Workrave 1.10.29:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.30</sparkle:version>
       <pubDate>Sun, 24 Mar 2019 07:48:28 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.30.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.30.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -352,7 +352,7 @@ Changes since Workrave 1.10.28:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.29</sparkle:version>
       <pubDate>Thu, 21 Mar 2019 10:47:10 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.29.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.29.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -367,7 +367,7 @@ Changes since Workrave 1.10.27:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.28</sparkle:version>
       <pubDate>Thu, 21 Mar 2019 09:36:38 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.28.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.28.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -383,7 +383,7 @@ Changes since Workrave 1.10.26:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.27</sparkle:version>
       <pubDate>Thu, 21 Mar 2019 07:52:21 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.27.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.27.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -399,7 +399,7 @@ Changes since Workrave 1.10.25:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.26</sparkle:version>
       <pubDate>Wed, 20 Mar 2019 09:42:31 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.26.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.26.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -414,7 +414,7 @@ Changes since Workrave 1.10.24:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.25</sparkle:version>
       <pubDate>Tue, 19 Mar 2019 05:27:56 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.25.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.25.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -430,7 +430,7 @@ Changes since Workrave 1.10.23:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.24</sparkle:version>
       <pubDate>Mon, 18 Mar 2019 08:44:13 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.24.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.24.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -445,7 +445,7 @@ Changes since Workrave 1.10.22:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.23</sparkle:version>
       <pubDate>Sun, 30 Sep 2018 10:33:43 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.23.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.23.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -460,7 +460,7 @@ Changes since Workrave 1.10.21:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.22</sparkle:version>
       <pubDate>Sun, 30 Sep 2018 06:04:46 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.22.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.22.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -476,7 +476,7 @@ Changes since Workrave 1.10.20:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.21</sparkle:version>
       <pubDate>Sun, 09 Sep 2018 12:59:19 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.21.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.21.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -491,7 +491,7 @@ Changes since Workrave 1.10.19:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.20</sparkle:version>
       <pubDate>Mon, 06 Nov 2017 04:22:18 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.20.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.20.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -507,7 +507,7 @@ Changes since Workrave 1.10.18:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.19</sparkle:version>
       <pubDate>Fri, 27 Oct 2017 04:00:37 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.19.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.19.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -523,7 +523,7 @@ Changes since Workrave 1.10.17:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.18</sparkle:version>
       <pubDate>Mon, 23 Oct 2017 08:10:42 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.18.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.18.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -538,7 +538,7 @@ Changes since Workrave 1.10.16:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.17</sparkle:version>
       <pubDate>Sun, 03 Sep 2017 04:52:32 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.17.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.17.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -555,7 +555,7 @@ Changes since Workrave 1.10.15:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.16</sparkle:version>
       <pubDate>Thu, 15 Sep 2016 04:51:21 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.16.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.16.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -571,7 +571,7 @@ Changes since Workrave 1.10.14:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.15</sparkle:version>
       <pubDate>Wed, 11 May 2016 06:14:20 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.15.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.15.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -587,7 +587,7 @@ Changes since Workrave 1.10.13:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.14</sparkle:version>
       <pubDate>Sun, 01 May 2016 12:54:25 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.14.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.14.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -605,7 +605,7 @@ Changes since Workrave 1.10.12:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.13</sparkle:version>
       <pubDate>Wed, 27 Apr 2016 01:01:08 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.13.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.13.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -621,7 +621,7 @@ Changes since Workrave 1.10.11:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.12</sparkle:version>
       <pubDate>Sun, 27 Mar 2016 01:38:09 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.12.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.12.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -639,7 +639,7 @@ Changes since Workrave 1.10.9:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.11</sparkle:version>
       <pubDate>Thu, 07 Jan 2016 07:35:00 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.11.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.11.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -654,7 +654,7 @@ Changes since Workrave 1.10.8:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.9</sparkle:version>
       <pubDate>Sat, 12 Dec 2015 02:10:11 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.9.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.9.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -673,7 +673,7 @@ Changes since Workrave 1.10.7:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.8</sparkle:version>
       <pubDate>Sat, 24 Oct 2015 11:53:10 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.8.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.8.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -689,7 +689,7 @@ Changes since Workrave 1.10.6:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.7</sparkle:version>
       <pubDate>Thu, 26 Mar 2015 06:58:00 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.7.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.7.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -711,7 +711,7 @@ Changes since Workrave 1.10.5:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.6</sparkle:version>
       <pubDate>Wed, 24 Dec 2014 06:29:26 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.6.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.6.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -728,7 +728,7 @@ Changes since Workrave 1.10.4:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.5</sparkle:version>
       <pubDate>Fri, 15 Aug 2014 07:31:40 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.5.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.5.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -743,7 +743,7 @@ Changes since Workrave 1.10.3:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.4</sparkle:version>
       <pubDate>Sun, 27 Apr 2014 02:36:12 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.4.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.4.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -771,7 +771,7 @@ Changes since Workrave 1.10.1:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.3</sparkle:version>
       <pubDate>Tue, 11 Feb 2014 08:39:55 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.3.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.3.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -786,7 +786,7 @@ Changes since Workrave 1.10.0:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.1</sparkle:version>
       <pubDate>Wed, 12 Jun 2013 06:41:04 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.1.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.1.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -831,7 +831,7 @@ Changes since Workrave 1.9.4:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.0</sparkle:version>
       <pubDate>Sun, 13 Jan 2013 11:25:29 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.10.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -859,7 +859,7 @@ Changes since Workrave 1.9.3:
       <link>https://workrave.org</link>
       <sparkle:version>1.9.4</sparkle:version>
       <pubDate>Thu, 24 Mar 2011 05:42:45 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.9.4.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.9.4.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -889,7 +889,7 @@ Changes since Workrave 1.9.2:
       <link>https://workrave.org</link>
       <sparkle:version>1.9.3</sparkle:version>
       <pubDate>Sat, 11 Dec 2010 06:10:11 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.9.3.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.9.3.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -917,7 +917,7 @@ Changes since Workrave 1.9.1:
       <link>https://workrave.org</link>
       <sparkle:version>1.9.2</sparkle:version>
       <pubDate>Sun, 29 Aug 2010 10:08:38 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.9.2.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.9.2.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -948,7 +948,7 @@ Changes since Workrave 1.9.0:
       <link>https://workrave.org</link>
       <sparkle:version>1.9.1</sparkle:version>
       <pubDate>Sat, 24 Oct 2009 10:16:12 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.9.1.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.9.1.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -981,7 +981,7 @@ Changes since Workrave 1.8.5:
       <link>https://workrave.org</link>
       <sparkle:version>1.9.0</sparkle:version>
       <pubDate>Mon, 21 Jul 2008 01:01:33 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.9.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.9.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -1009,7 +1009,7 @@ Changes since Workrave 1.8.4:
       <link>https://workrave.org</link>
       <sparkle:version>1.8.5</sparkle:version>
       <pubDate>Sun, 16 Sep 2007 11:59:37 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.8.5.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.8.5.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -1054,7 +1054,7 @@ Changes since Workrave 1.8.3:
       <link>https://workrave.org</link>
       <sparkle:version>1.8.4</sparkle:version>
       <pubDate>Sun, 04 Mar 2007 08:18:53 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.8.4.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.8.4.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -1090,7 +1090,7 @@ Changes since Workrave 1.8.2:
       <link>https://workrave.org</link>
       <sparkle:version>1.8.3</sparkle:version>
       <pubDate>Sat, 13 May 2006 12:04:47 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.8.3.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.8.3.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -1110,7 +1110,7 @@ Changes since Workrave 1.8.1:
       <link>https://workrave.org</link>
       <sparkle:version>1.8.2</sparkle:version>
       <pubDate>Sat, 28 Jan 2006 03:42:00 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.8.2.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.8.2.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -1125,7 +1125,7 @@ Changes since Workrave 1.8.0:
       <link>https://workrave.org</link>
       <sparkle:version>1.8.1</sparkle:version>
       <pubDate>Sat, 28 Jan 2006 03:42:00 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.8.1.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.8.1.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -1153,7 +1153,7 @@ Changes since Workrave 1.6.2:
       <link>https://workrave.org</link>
       <sparkle:version>1.8.0</sparkle:version>
       <pubDate>Wed, 29 Jun 2005 03:59:00 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.8.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.8.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -1173,7 +1173,7 @@ Changes since Workrave 1.6.1:
       <link>https://workrave.org</link>
       <sparkle:version>1.6.2</sparkle:version>
       <pubDate>Tue, 13 Jul 2004 10:52:28 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.6.2.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.6.2.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -1190,7 +1190,7 @@ Changes since Workrave 1.6.0:
       <link>https://workrave.org</link>
       <sparkle:version>1.6.1</sparkle:version>
       <pubDate>Thu, 13 May 2004 08:43:07 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.6.1.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.6.1.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -1227,7 +1227,7 @@ Changes since Workrave 1.4.1:
       <link>https://workrave.org</link>
       <sparkle:version>1.6.0</sparkle:version>
       <pubDate>Fri, 30 Apr 2004 11:21:35 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.6.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.6.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -1267,7 +1267,7 @@ Changes since Workrave 1.4.0:
       <link>https://workrave.org</link>
       <sparkle:version>1.4.1</sparkle:version>
       <pubDate>Mon, 03 Nov 2003 09:32:00 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.4.1.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.4.1.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -1307,7 +1307,7 @@ Changes since Workrave 1.2.2:
       <link>https://workrave.org</link>
       <sparkle:version>1.4.0</sparkle:version>
       <pubDate>Sun, 24 Aug 2003 09:37:06 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.4.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.4.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -1337,7 +1337,7 @@ Changes since Workrave 1.2.1:
       <link>https://workrave.org</link>
       <sparkle:version>1.2.2</sparkle:version>
       <pubDate>Tue, 25 Mar 2003 08:24:54 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.2.2.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.2.2.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -1353,7 +1353,7 @@ Changes since Workrave 1.2.0:
       <link>https://workrave.org</link>
       <sparkle:version>1.2.1</sparkle:version>
       <pubDate>Tue, 25 Mar 2003 08:24:54 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.2.1.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.2.1.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -1376,7 +1376,7 @@ Changes since Workrave 1.0.0:
       <link>https://workrave.org</link>
       <sparkle:version>1.2.0</sparkle:version>
       <pubDate>Sun, 09 Mar 2003 02:39:03 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.2.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.2.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -1401,7 +1401,7 @@ Changes since Workrave 0.3.0:
       <link>https://workrave.org</link>
       <sparkle:version>1.0.0</sparkle:version>
       <pubDate>Wed, 30 Oct 2002 08:37:59 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-1.0.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.0.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -1428,7 +1428,7 @@ Changes since Workrave 0.2.0:
       <link>https://workrave.org</link>
       <sparkle:version>0.3.0</sparkle:version>
       <pubDate>Fri, 11 Oct 2002 10:51:08 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-0.3.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-0.3.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -1450,7 +1450,7 @@ Changes since Workrave 0.1.0:
       <link>https://workrave.org</link>
       <sparkle:version>0.2.0</sparkle:version>
       <pubDate>Thu, 26 Sep 2002 07:44:37 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-0.2.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-0.2.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>
@@ -1464,7 +1464,7 @@ Workrave 0.1.0 has been released.
       <link>https://workrave.org</link>
       <sparkle:version>0.1.0</sparkle:version>
       <pubDate>Sun, 22 Sep 2002 10:49:02 +0200</pubDate>
-      <enclosure os="windows-x64" url="https://localhost:1337/workrave-0.1.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-0.1.0.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
   </channel>

@@ -124,7 +124,7 @@ BOOST_AUTO_TEST_CASE(http_client_get)
 
   HttpClient d;
   d.add_ca_cert(cert);
-  auto rc = d.get_sync("https://localhost:1337/foo");
+  auto rc = d.get_sync("https://127.0.0.1:1337/foo");
 
   auto [result, content] = rc.value();
 
@@ -143,7 +143,7 @@ BOOST_AUTO_TEST_CASE(http_client_get_not_found)
 
   HttpClient d;
   d.add_ca_cert(cert);
-  auto rc = d.get_sync("https://localhost:1337/bar");
+  auto rc = d.get_sync("https://127.0.0.1:1337/bar");
   auto [result, content] = rc.value();
 
   BOOST_CHECK_EQUAL(result, 404);
@@ -162,7 +162,7 @@ BOOST_AUTO_TEST_CASE(http_client_get_not_found)
 
 //   HttpClient d;
 //   d.add_ca_cert(cert);
-//   auto [result, body] = d.get_sync("https://localhost:1337/bar");
+//   auto [result, body] = d.get_sync("https://127.0.0.1:1337/bar");
 
 //   BOOST_CHECK_EQUAL(result, 404);
 //   BOOST_CHECK_EQUAL(body, "The resource '/bar' was not found.");
@@ -202,7 +202,7 @@ BOOST_AUTO_TEST_CASE(http_client_get_file)
   std::ofstream out_file("foo.txt", std::ofstream::binary);
 
   double previous_progress = 0.0;
-  auto rc = d.get_sync("https://localhost:1337/foo", out_file, [&](double progress) {
+  auto rc = d.get_sync("https://127.0.0.1:1337/foo", out_file, [&](double progress) {
     BOOST_CHECK_GE(progress, previous_progress);
     previous_progress = progress;
   });
@@ -231,7 +231,7 @@ BOOST_AUTO_TEST_CASE(http_client_get_file_not_found)
   std::ofstream out_file("foo.txt", std::ofstream::binary);
 
   double previous_progress = 0.0;
-  auto rc = d.get_sync("https://localhost:1337/bar", out_file, [&](double progress) {
+  auto rc = d.get_sync("https://127.0.0.1:1337/bar", out_file, [&](double progress) {
     BOOST_CHECK_GE(progress, previous_progress);
     previous_progress = progress;
   });

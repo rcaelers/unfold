@@ -111,7 +111,7 @@ main(int argc, char *argv[])
   unfold::utils::IOContext io_context{1};
   auto updater = unfold::Unfold::create(io_context);
 
-  auto rc = updater->set_appcast("https://localhost:1337/appcast.xml");
+  auto rc = updater->set_appcast("https://127.0.0.1:1337/appcast.xml");
   if (!rc)
     {
       spdlog::info("Invalid appcast URL");

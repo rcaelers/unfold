@@ -34,6 +34,7 @@ if(WIN32)
 endif()
 
 add_executable(gtk_example)
+target_code_coverage(gtk_example AUTO)
 
 target_sources(gtk_example PRIVATE
   main.cc

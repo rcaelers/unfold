@@ -139,6 +139,7 @@ Installer::verify_installer()
   if (!rc)
     {
       logger->error("signature failure ({})", rc.error().message());
+      co_return outcome::failure(unfold::UnfoldErrc::InstallerVerificationFailed);
     }
 
   co_return rc;

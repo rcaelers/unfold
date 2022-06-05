@@ -1,4 +1,5 @@
 add_library(unfold SHARED)
+target_code_coverage(unfold)
 
 target_sources(unfold PRIVATE
   AppCast.cc
@@ -11,7 +12,6 @@ target_sources(unfold PRIVATE
   Settings.cc
   )
 
-target_code_coverage(unfold)
 
 if(APPLE)
   find_library(LIBRARY_COREFOUNDATION CoreFoundation)

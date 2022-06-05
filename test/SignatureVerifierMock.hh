@@ -18,39 +18,36 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef SIGNATURE_VERIFIER_HH
-#define SIGNATURE_VERIFIER_HH
+#ifndef SIGNATURE_VERIFIER_MOCK_HH
+#define SIGNATURE_VERIFIER_MOCK_HH
 
 #include <string>
 #include <string_view>
 #include <memory>
 
+#include "gmock/gmock.h"
+
 #include <boost/outcome/std_result.hpp>
 
-#include "SignatureAlgorithmType.hh"
+#include "crypto/SignatureAlgorithmType.hh"
+#include "crypto/SignatureVerifier.hh"
+#include "crypto/SignatureVerifierErrors.hh"
 #include "utils/Logging.hh"
-#include "SignatureVerifierErrors.hh"
 
 namespace outcome = boost::outcome_v2;
 
 class SignatureAlgorithm;
 
-namespace unfold::crypto
+class SignatureVerifierMock : public unfold::crypto::SignatureVerifier
 {
-  class SignatureVerifier
-  {
-  public:
-    SignatureVerifier() = default;
-    virtual ~SignatureVerifier() = default;
+public:
+  SignatureVerifierMock() = default;
 
-    virtual outcome::std_result<void> set_key(SignatureAlgorithmType type, const std::string &public_key);
-    virtual outcome::std_result<void> verify(const std::string &filename, const std::string &signature);
+  MOCK_METHOD(outcome::std_result<void>,
+              set_key,
+              (unfold::crypto::SignatureAlgorithmType type, const std::string &public_key),
+              (override));
+  MOCK_METHOD(outcome::std_result<void>, verify, (const std::string &filename, const std::string &signature), (override));
+};
 
-  private:
-    std::shared_ptr<SignatureAlgorithm> algo;
-    std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:signatures")};
-  };
-
-} // namespace unfold::crypto
-
-#endif // SIGNATURE_VERIFIER_HH
+#endif // SIGNATURE_VERIFIER_MOCK_HH

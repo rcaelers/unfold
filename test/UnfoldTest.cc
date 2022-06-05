@@ -20,6 +20,7 @@
 
 #include "unfold/Unfold.hh"
 #include "unfold/UnfoldErrors.hh"
+#include <boost/outcome/success_failure.hpp>
 #include <memory>
 #include <string>
 
@@ -41,11 +42,15 @@
 #include "TestPlatform.hh"
 #include "UpgradeControl.hh"
 
+#include "SignatureVerifierMock.hh"
+
 #define BOOST_TEST_MODULE "unfold"
 #include <boost/test/unit_test.hpp>
 
 using namespace unfold::utils;
-
+using ::testing::_;
+using ::testing::AtLeast;
+using ::testing::Return;
 namespace
 {
   // openssl req -newkey rsa:2048 -nodes -keyout key.pem -x509 -days 10000 -out cert.pem -subj "/CN=localhost"
@@ -457,6 +462,257 @@ BOOST_AUTO_TEST_CASE(checker_has_upgrade)
 
 // TODO: checker with unsupported OS.
 // TODO: checker with unsupported OS version.
+
+BOOST_AUTO_TEST_CASE(installer_missing_url)
+{
+  std::string appcast_str =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\"\n"
+    "    xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Workrave Test Appcast</title>\n"
+    "        <description>Most recent updates to Workrave Test</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://workrave.org/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <link>https://workrave.org</link>\n"
+    "            <sparkle:version>1.0</sparkle:version>\n"
+    "            <sparkle:releaseNotesLink>https://workrave.org/v1.html</sparkle:releaseNotesLink>\n"
+    "            <pubDate>Sun Apr 17 19:30:14 CEST 2022</pubDate>\n"
+    "            <enclosure sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"8192\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+  auto appcast = reader->load_from_string(appcast_str);
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  http->add_ca_cert(cert);
+
+  auto verifier = std::make_shared<SignatureVerifierMock>();
+
+  Installer installer(std::make_shared<TestPlatform>(), http, verifier);
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await installer.install(appcast->items.front());
+          BOOST_CHECK_EQUAL(rc.has_error(), true);
+          BOOST_CHECK_EQUAL(rc.error(), unfold::UnfoldErrc::InstallerDownloadFailed);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+}
+
+BOOST_AUTO_TEST_CASE(installer_missing_length)
+{
+  unfold::http::HttpServer server;
+  server.add_file("/workrave-1.11.0-alpha.1.exe", "junk");
+  server.add_file("/installer.sh", "installer.sh");
+  server.run();
+
+  std::string appcast_str =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\"\n"
+    "    xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Workrave Test Appcast</title>\n"
+    "        <description>Most recent updates to Workrave Test</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://workrave.org/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <link>https://workrave.org</link>\n"
+    "            <sparkle:version>1.0</sparkle:version>\n"
+    "            <sparkle:releaseNotesLink>https://workrave.org/v1.html</sparkle:releaseNotesLink>\n"
+    "            <pubDate>Sun Apr 17 19:30:14 CEST 2022</pubDate>\n"
+    "            <enclosure url=\"https://127.0.0.1:1337/workrave-1.11.0-alpha.1.exe\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+  auto appcast = reader->load_from_string(appcast_str);
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  http->add_ca_cert(cert);
+
+  auto verifier = std::make_shared<SignatureVerifierMock>();
+
+  Installer installer(std::make_shared<TestPlatform>(), http, verifier);
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await installer.install(appcast->items.front());
+          BOOST_CHECK_EQUAL(rc.has_error(), true);
+          BOOST_CHECK_EQUAL(rc.error(), unfold::UnfoldErrc::InstallerVerificationFailed);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+
+  server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(installer_incorrect_length)
+{
+  unfold::http::HttpServer server;
+  server.add_file("/workrave-1.11.0-alpha.1.exe", "junk");
+  server.add_file("/installer.sh", "installer.sh");
+  server.run();
+
+  std::string appcast_str =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\"\n"
+    "    xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Workrave Test Appcast</title>\n"
+    "        <description>Most recent updates to Workrave Test</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://workrave.org/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <link>https://workrave.org</link>\n"
+    "            <sparkle:version>1.0</sparkle:version>\n"
+    "            <sparkle:releaseNotesLink>https://workrave.org/v1.html</sparkle:releaseNotesLink>\n"
+    "            <pubDate>Sun Apr 17 19:30:14 CEST 2022</pubDate>\n"
+    "            <enclosure url=\"https://127.0.0.1:1337/workrave-1.11.0-alpha.1.exe\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"8191\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+  auto appcast = reader->load_from_string(appcast_str);
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  http->add_ca_cert(cert);
+
+  auto verifier = std::make_shared<SignatureVerifierMock>();
+
+  Installer installer(std::make_shared<TestPlatform>(), http, verifier);
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await installer.install(appcast->items.front());
+          BOOST_CHECK_EQUAL(rc.has_error(), true);
+          BOOST_CHECK_EQUAL(rc.error(), unfold::UnfoldErrc::InstallerVerificationFailed);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+
+  server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(installer_not_found)
+{
+  unfold::http::HttpServer server;
+  server.run();
+
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+  auto appcast = reader->load_from_file("appcast.xml");
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  http->add_ca_cert(cert);
+
+  auto verifier = std::make_shared<SignatureVerifierMock>();
+
+  Installer installer(std::make_shared<TestPlatform>(), http, verifier);
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await installer.install(appcast->items.front());
+          BOOST_CHECK_EQUAL(rc.has_error(), true);
+          BOOST_CHECK_EQUAL(rc.error(), unfold::UnfoldErrc::InstallerDownloadFailed);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+
+  server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(installer_invalid_signature)
+{
+  unfold::http::HttpServer server;
+  server.add_file("/installer.sh", "installer.sh");
+  server.run();
+
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+  auto appcast = reader->load_from_file("appcast.xml");
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  http->add_ca_cert(cert);
+
+  auto verifier = std::make_shared<SignatureVerifierMock>();
+
+  EXPECT_CALL(*verifier, set_key(_, _)).Times(0);
+
+  EXPECT_CALL(*verifier, verify(_, _))
+    .Times(AtLeast(1))
+    .WillRepeatedly(Return(outcome::failure(unfold::crypto::SignatureVerifierErrc::Mismatch)));
+
+  Installer installer(std::make_shared<TestPlatform>(), http, verifier);
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await installer.install(appcast->items.front());
+          BOOST_CHECK_EQUAL(rc.has_error(), true);
+          BOOST_CHECK_EQUAL(rc.error(), unfold::UnfoldErrc::InstallerVerificationFailed);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+
+  server.stop();
+}
 
 BOOST_AUTO_TEST_CASE(upgrade_control_check)
 {

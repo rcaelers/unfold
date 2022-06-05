@@ -1,4 +1,5 @@
 add_library(unfold-crypto OBJECT)
+target_code_coverage(unfold-crypto AUTO)
 
 target_sources(unfold-crypto PRIVATE
   src/ECDSASignatureAlgorithm.cc
@@ -7,8 +8,6 @@ target_sources(unfold-crypto PRIVATE
   src/SignatureVerifier.cc
   src/SignatureVerifierErrors.cc
 )
-
-target_code_coverage(unfold-crypto)
 
 target_link_libraries(unfold-crypto PRIVATE unfold-utils spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto)
 

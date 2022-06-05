@@ -16,6 +16,7 @@ if (HAVE_TESTS)
   endif()
 
   add_executable(unfold-test-http-server TestServer.cc)
+  target_code_coverage(unfold-test-http-server AUTO)
 
   target_link_libraries(unfold-test-http-server PRIVATE unfold-http unfold-utils)
   target_link_libraries(unfold-test-http-server PRIVATE Boost::test_exec_monitor)

@@ -40,6 +40,7 @@ jobs:
           python-version: 3.9
 
       - shell: msys2 {0}
+        msystem: clang64
         run: |
           mkdir _build _deploy
           export MINGW_ROOT=/c/msys64

@@ -274,6 +274,45 @@ BOOST_AUTO_TEST_CASE(checker_appcast_not_found)
   server.stop();
 }
 
+BOOST_AUTO_TEST_CASE(checker_invalid_host)
+{
+  unfold::http::HttpServer server;
+  server.add_file("/appcast.xml", "appcast.xml");
+  server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  http->add_ca_cert(cert);
+
+  Checker checker(std::make_shared<TestPlatform>(), http);
+
+  auto rc = checker.set_appcast("https://300.0.0.1.2:1337/appcastxxx.xml");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = checker.set_current_version("1.12.0");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto check_result = co_await checker.check_for_updates();
+          BOOST_CHECK_EQUAL(check_result.has_error(), true);
+          BOOST_CHECK_EQUAL(check_result.error(), unfold::UnfoldErrc::AppcastDownloadFailed);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+
+  server.stop();
+}
+
 BOOST_AUTO_TEST_CASE(checker_invalid_version)
 {
   auto http = std::make_shared<unfold::http::HttpClient>();
@@ -350,6 +389,108 @@ BOOST_AUTO_TEST_CASE(checker_empty_appcast)
           auto check_result = co_await checker.check_for_updates();
           BOOST_CHECK_EQUAL(check_result.has_error(), true);
           BOOST_CHECK_EQUAL(check_result.error(), unfold::UnfoldErrc::InvalidAppcast);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+
+  server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(checker_invalid_items_in_appcast)
+{
+  std::string appcast_str =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\"\n"
+    "    xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Workrave Test Appcast</title>\n"
+    "        <description>Most recent updates to Workrave Test</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://workrave.org/</link>\n"
+    "        <item>\n"
+    "            <title>Version 2.0</title>\n"
+    "            <link>https://workrave.org</link>\n"
+    "            <sparkle:version>2.0</sparkle:version>\n"
+    "            <sparkle:releaseNotesLink>https://workrave.org/v2.html</sparkle:releaseNotesLink>\n"
+    "            <pubDate>Sun Apr 17 19:30:14 CEST 2022</pubDate>\n"
+    "            <enclosure os=\"windows\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"8192\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <link>https://workrave.org</link>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <sparkle:releaseNotesLink>https://workrave.org/v1.html</sparkle:releaseNotesLink>\n"
+    "            <pubDate>Sun Apr 17 19:30:14 CEST 2022</pubDate>\n"
+    "            <enclosure os=\"windows\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"8192\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "        <item>\n"
+    "            <title>Version 3.0</title>\n"
+    "            <link>https://workrave.org</link>\n"
+    "            <sparkle:version>3.0.0</sparkle:version>\n"
+    "            <sparkle:releaseNotesLink>https://workrave.org/v2.html</sparkle:releaseNotesLink>\n"
+    "            <pubDate>Sun Apr 17 19:30:14 CEST 2022</pubDate>\n"
+    "            <enclosure os=\"macos\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"8192\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "        <item>\n"
+    "            <title>Version 5.0</title>\n"
+    "            <link>https://workrave.org</link>\n"
+    "            <sparkle:version>5.0.0</sparkle:version>\n"
+    "            <sparkle:releaseNotesLink>https://workrave.org/v2.html</sparkle:releaseNotesLink>\n"
+    "            <pubDate>Sun Apr 17 19:30:14 CEST 2022</pubDate>\n"
+    "            <sparkle:minimumSystemVersion>11.0.0</sparkle:minimumSystemVersion>\n"
+    "            <enclosure os=\"windows\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"8192\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "        <item>\n"
+    "            <title>Version 4.0</title>\n"
+    "            <link>https://workrave.org</link>\n"
+    "            <sparkle:version>4.0.0</sparkle:version>\n"
+    "            <sparkle:releaseNotesLink>https://workrave.org/v2.html</sparkle:releaseNotesLink>\n"
+    "            <pubDate>Sun Apr 17 19:30:14 CEST 2022</pubDate>\n"
+    "            <sparkle:minimumSystemVersion>6.0.0</sparkle:minimumSystemVersion>\n"
+    "            <enclosure os=\"windows\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"8192\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  unfold::http::HttpServer server;
+  server.add("/appcast.xml", appcast_str);
+  server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  http->add_ca_cert(cert);
+
+  Checker checker(std::make_shared<TestPlatform>(), http);
+
+  auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = checker.set_current_version("1.0.0");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto check_result = co_await checker.check_for_updates();
+          BOOST_CHECK_EQUAL(check_result.has_error(), false);
+          BOOST_CHECK_EQUAL(check_result.value(), true);
+
+          auto appcast = checker.get_selected_update();
+          BOOST_CHECK_EQUAL(appcast->version, "4.0.0");
+          auto info = checker.get_update_info();
+          BOOST_CHECK_EQUAL(info->title, "Workrave Test Appcast");
+          BOOST_CHECK_EQUAL(info->current_version, "1.0.0");
+          BOOST_CHECK_EQUAL(info->version, "4.0.0");
+          BOOST_CHECK_EQUAL(info->release_notes.size(), 1);
+          BOOST_CHECK_EQUAL(info->release_notes.front().version, "4.0.0");
         }
       catch (std::exception &e)
         {
@@ -534,7 +675,7 @@ BOOST_AUTO_TEST_CASE(installer_missing_length)
     "        <item>\n"
     "            <title>Version 1.0</title>\n"
     "            <link>https://workrave.org</link>\n"
-    "            <sparkle:version>1.0</sparkle:version>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
     "            <sparkle:releaseNotesLink>https://workrave.org/v1.html</sparkle:releaseNotesLink>\n"
     "            <pubDate>Sun Apr 17 19:30:14 CEST 2022</pubDate>\n"
     "            <enclosure url=\"https://127.0.0.1:1337/workrave-1.11.0-alpha.1.exe\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" type=\"application/octet-stream\" />\n"
@@ -593,7 +734,7 @@ BOOST_AUTO_TEST_CASE(installer_incorrect_length)
     "        <item>\n"
     "            <title>Version 1.0</title>\n"
     "            <link>https://workrave.org</link>\n"
-    "            <sparkle:version>1.0</sparkle:version>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
     "            <sparkle:releaseNotesLink>https://workrave.org/v1.html</sparkle:releaseNotesLink>\n"
     "            <pubDate>Sun Apr 17 19:30:14 CEST 2022</pubDate>\n"
     "            <enclosure url=\"https://127.0.0.1:1337/workrave-1.11.0-alpha.1.exe\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"8191\" type=\"application/octet-stream\" />\n"

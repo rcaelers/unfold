@@ -147,21 +147,14 @@ Checker::parse_appcast(const std::string &appcast_xml)
     }
 
   auto items = appcast->items;
-  try
-    {
-      std::sort(items.begin(), items.end(), [&](auto a, auto b) -> bool {
-        semver::version versiona;
-        versiona.from_string(a->version);
-        semver::version versionb;
-        versionb.from_string(b->version);
-        return a < b;
-      });
-    }
-  catch (std::exception &e)
-    {
-      logger->info("version comparison failed ({})", e.what());
-      return unfold::UnfoldErrc::InvalidAppcast;
-    }
+  std::sort(items.begin(), items.end(), [&](auto a, auto b) -> bool {
+    semver::version versiona;
+    auto rca = versiona.from_string_noexcept(a->version);
+    semver::version versionb;
+    auto rcb = versionb.from_string_noexcept(b->version);
+    return rca && rcb && a < b;
+  });
+
   return appcast;
 }
 
@@ -183,7 +176,6 @@ Checker::is_applicable(std::shared_ptr<AppcastItem> item)
   bool version_ok = version.from_string_noexcept(item->version);
   if (!version_ok)
     {
-      // TODO: fail on error
       return false;
     }
 

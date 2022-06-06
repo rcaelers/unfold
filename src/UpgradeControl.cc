@@ -31,18 +31,19 @@
 
 #include <spdlog/fmt/ostr.h>
 
-#include "Checker.hh"
-#include "SettingsStorage.hh"
-#include "utils/PeriodicTimer.hh"
-#include "Unfold.hh"
-#include "crypto/SignatureVerifier.hh"
-#include "http/HttpClient.hh"
-#include "utils/TempDirectory.hh"
-#include "unfold/UnfoldErrors.hh"
-
 #include "AppCast.hh"
+#include "Checker.hh"
 #include "Installer.hh"
 #include "Platform.hh"
+#include "SettingsStorage.hh"
+
+#include "unfold/Unfold.hh"
+#include "unfold/UnfoldErrors.hh"
+
+#include "crypto/SignatureVerifier.hh"
+#include "http/HttpClient.hh"
+#include "utils/PeriodicTimer.hh"
+#include "utils/TempDirectory.hh"
 
 #if defined(WIN32)
 #  include "windows/WindowsPlatform.hh"

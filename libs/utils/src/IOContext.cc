@@ -18,41 +18,54 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef UTILS_IO_CONTEXT_HH
-#define UTILS_IO_CONTEXT_HH
-
-#include <boost/asio/io_context.hpp>
-#include <thread>
-#include <latch>
+#include "utils/IOContext.hh"
 
 #include <spdlog/spdlog.h>
-#include <spdlog/fmt/ostr.h>
 
-#include <boost/asio.hpp>
+using namespace unfold::utils;
 
-namespace unfold::utils
+IOContext::IOContext(int num_threads)
+  : ioc_(num_threads)
+  , sync_(num_threads)
+  , guard_(boost::asio::make_work_guard(ioc_))
 {
-  class IOContext
-  {
-  public:
-    explicit IOContext(int num_threads);
-    ~IOContext();
+  workers_.reserve(num_threads);
+  for (auto i = 0; i < num_threads; i++)
+    {
+      workers_.emplace_back([this] {
+        ioc_.run();
+        sync_.count_down();
+      });
+    }
+}
 
-    boost::asio::io_context *get_io_context();
-    void stop();
-    void wait();
+IOContext::~IOContext()
+{
+  if (!workers_.empty())
+    {
+      ioc_.stop();
+      for (auto &w: workers_)
+        {
+          w.join();
+        }
+      workers_.clear();
+    }
+}
 
-    IOContext(const IOContext &) = delete;
-    IOContext &operator=(const IOContext &) = delete;
-    IOContext(IOContext &&) = delete;
-    IOContext &operator=(IOContext &&) = delete;
+boost::asio::io_context *
+IOContext::get_io_context()
+{
+  return &ioc_;
+}
 
-  private:
-    boost::asio::io_context ioc_;
-    std::latch sync_;
-    boost::asio::executor_work_guard<boost::asio::io_context::executor_type> guard_;
-    std::vector<std::thread> workers_;
-  };
-} // namespace unfold::utils
+void
+IOContext::stop()
+{
+  ioc_.stop();
+}
 
-#endif // UTILS_IO_CONTEXT_HH
+void
+IOContext::wait()
+{
+  sync_.wait();
+}

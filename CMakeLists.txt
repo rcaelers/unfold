@@ -45,13 +45,14 @@ endif()
 # Testing
 
 option(WITH_TESTS "Enable unit tests" OFF)
+include(code-coverage)
 
 if (WITH_TESTS)
   set(HAVE_TESTS ON)
   enable_testing()
+  add_code_coverage_all_targets()
 endif()
 
-include(code-coverage)
 
 #----------------------------------------------------------------------------------------------------
 # Dependencies
@@ -82,7 +83,7 @@ find_package(Boost 1.78.0 REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
 include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIR})
-add_compile_definitions(BOOST_LOG_DYN_LINK BOOST_BEAST_USE_STD_STRING_VIEW)
+add_compile_definitions(BOOST_LOG_DYN_LINK BOOST_ASIO_HAS_CO_AWAIT BOOST_BEAST_USE_STD_STRING_VIEW)
 
 #----------------------------------------------------------------------------------------------------
 # Logging
@@ -141,10 +142,18 @@ endif()
 #
 
 if (WIN32)
-    file(TO_NATIVE_PATH "${CMAKE_BINARY_DIR}/src" SRC_PATH)
-    file(TO_NATIVE_PATH "${CMAKE_INSTALL_PREFIX}/bin" BIN_PATH)
-    set(TEST_PATH_ENV "${SRC_PATH};${BIN_PATH};$ENV{PATH}")
-    string(REPLACE ";" "\\;" TEST_PATH_ENV "${TEST_PATH_ENV}")
+  if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-pdb=")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-pdb=")
+    add_compile_options(-gdwarf -gcodeview)
+  else()
+    message(STATUS "Crashpad requires Clang")
+  endif()
+
+  file(TO_NATIVE_PATH "${CMAKE_BINARY_DIR}/src" SRC_PATH)
+  file(TO_NATIVE_PATH "${CMAKE_INSTALL_PREFIX}/bin" BIN_PATH)
+  set(TEST_PATH_ENV "${SRC_PATH};${BIN_PATH};$ENV{PATH}")
+  string(REPLACE ";" "\\;" TEST_PATH_ENV "${TEST_PATH_ENV}")
 endif()
 
 #----------------------------------------------------------------------------------------------------
@@ -154,3 +163,4 @@ add_subdirectory(libs)
 add_subdirectory(src)
 add_subdirectory(test)
 add_subdirectory(examples)
+

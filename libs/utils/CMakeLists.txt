@@ -6,6 +6,7 @@ target_sources(unfold-utils PRIVATE
   src/Logging.cc
   src/TempDirectory.cc
   src/PeriodicTimer.cc
+  src/IOContext.cc
 )
 
 if(WIN32)
@@ -14,7 +15,7 @@ target_sources(unfold-utils PRIVATE
 )
 endif()
 
-target_link_libraries(unfold-utils PRIVATE spdlog::spdlog semver::semver)
+target_link_libraries(unfold-utils PRIVATE spdlog::spdlog)
 
 target_include_directories(
   unfold-utils
@@ -24,8 +25,3 @@ target_include_directories(
   PUBLIC
   ${CMAKE_SOURCE_DIR}/libs/utils/include)
 
-  target_compile_definitions(
-  unfold-utils
-  PUBLIC
-	BOOST_ASIO_HAS_CO_AWAIT
-  )

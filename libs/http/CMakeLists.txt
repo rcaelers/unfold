@@ -7,11 +7,13 @@ target_sources(unfold-http PRIVATE
   src/Connection.cc
 )
 
+target_code_coverage(unfold-http AUTO)
+
 if(WIN32)
   target_link_libraries(unfold-http PUBLIC ws2_32 mswsock)
 endif()
 
-target_link_libraries(unfold-http PUBLIC Boost::coroutine PRIVATE unfold-utils spdlog::spdlog semver::semver OpenSSL::SSL OpenSSL::Crypto)
+target_link_libraries(unfold-http PUBLIC Boost::coroutine PRIVATE unfold-utils spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto)
 target_compile_definitions(unfold-http PRIVATE BOOST_URL_NO_LIB)
 
 target_include_directories(
@@ -21,11 +23,5 @@ target_include_directories(
   ${boosturl_SOURCE_DIR}/include
   PUBLIC
   ${CMAKE_SOURCE_DIR}/libs/http/include)
-
-target_compile_definitions(
-  unfold-http
-  PUBLIC
-	BOOST_ASIO_HAS_CO_AWAIT
-  BOOST_BEAST_USE_STD_STRING_VIEW)
 
 add_subdirectory(test)

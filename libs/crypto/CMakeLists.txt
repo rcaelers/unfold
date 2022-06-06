@@ -1,5 +1,4 @@
 add_library(unfold-crypto OBJECT)
-target_code_coverage(unfold-crypto AUTO)
 
 target_sources(unfold-crypto PRIVATE
   src/ECDSASignatureAlgorithm.cc
@@ -18,5 +17,7 @@ target_include_directories(
   ${boosturl_SOURCE_DIR}/include
   PUBLIC
   ${CMAKE_SOURCE_DIR}/libs/crypto/include)
+
+target_code_coverage(unfold-crypto AUTO ALL)
 
 add_subdirectory(test)

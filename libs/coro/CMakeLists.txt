@@ -10,10 +10,4 @@ target_include_directories(
   INTERFACE
   ${CMAKE_SOURCE_DIR}/libs/coro/include)
 
-target_compile_definitions(
-  unfold-coro
-  INTERFACE
-  BOOST_ASIO_HAS_CO_AWAIT
-  BOOST_BEAST_USE_STD_STRING_VIEW)
-
 add_subdirectory(test)

@@ -17,6 +17,7 @@ jobs:
       - uses: msys2/setup-msys2@v2
         with:
           update: true
+          msystem: clang64
           install: >-
             git
             mingw-w64-x86_64-boost

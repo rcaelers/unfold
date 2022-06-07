@@ -6,8 +6,6 @@ target_sources(unfold PRIVATE
   Checker.cc
   Installer.cc
   UnfoldErrors.cc
-  DummyPlatform.cc
-  DummySettingsStorage.cc
   Settings.cc
   )
 

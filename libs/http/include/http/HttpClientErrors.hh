@@ -33,6 +33,7 @@ namespace unfold::http
     ConnectionRefused,
     InternalError,
     CommunicationError,
+    InvalidCertificate,
   };
 
   std::error_code make_error_code(HttpClientErrc ec);

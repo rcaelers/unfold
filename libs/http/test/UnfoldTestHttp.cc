@@ -18,6 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <boost/test/tools/old/interface.hpp>
 #include <memory>
 #include <fstream>
 
@@ -108,6 +109,33 @@ struct Fixture
   Fixture(Fixture &&) = delete;
   Fixture &operator=(Fixture &&) = delete;
 
+  outcome::std_result<Response> get_sync(HttpClient &http, const std::string &url, std::ostream &file, ProgressCallback cb)
+  {
+    boost::asio::io_context ioc;
+    outcome::std_result<Response> ret = outcome::failure(HttpClientErrc::InternalError);
+    boost::asio::co_spawn(
+      ioc,
+      [&]() -> boost::asio::awaitable<void> { ret = co_await http.get(url, file, cb); },
+      boost::asio::detached);
+    ioc.run();
+    ioc.restart();
+    return ret;
+  }
+
+  outcome::std_result<Response> get_sync(HttpClient &http, const std::string &url)
+  {
+    boost::asio::io_context ioc;
+    outcome::std_result<Response> ret = outcome::failure(HttpClientErrc::InternalError);
+
+    boost::asio::co_spawn(
+      ioc,
+      [&]() -> boost::asio::awaitable<void> { ret = co_await http.get(url); },
+      boost::asio::detached);
+    ioc.run();
+    ioc.restart();
+    return ret;
+  }
+
 private:
   std::shared_ptr<spdlog::logger> logger{Logging::create("test")};
 };
@@ -123,8 +151,10 @@ BOOST_AUTO_TEST_CASE(http_client_get)
   server.run();
 
   HttpClient d;
-  d.add_ca_cert(cert);
-  auto rc = d.get_sync("https://127.0.0.1:1337/foo");
+  auto carc = d.add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
+
+  auto rc = get_sync(d, "https://127.0.0.1:1337/foo");
 
   auto [result, content] = rc.value();
 
@@ -135,15 +165,17 @@ BOOST_AUTO_TEST_CASE(http_client_get)
   server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(http_client_get_not_found)
+BOOST_AUTO_TEST_CASE(http_client_not_found)
 {
   HttpServer server;
   server.add("/foo", "foo\n");
   server.run();
 
   HttpClient d;
-  d.add_ca_cert(cert);
-  auto rc = d.get_sync("https://127.0.0.1:1337/bar");
+  auto carc = d.add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
+
+  auto rc = get_sync(d, "https://127.0.0.1:1337/bar");
   auto [result, content] = rc.value();
 
   BOOST_CHECK_EQUAL(result, 404);
@@ -152,40 +184,69 @@ BOOST_AUTO_TEST_CASE(http_client_get_not_found)
   server.stop();
 }
 
-// TODO: properly report HttpClient errors
-// BOOST_AUTO_TEST_CASE(http_client_not_reachable)
-// {
-//   HttpServer server;
-//   server.add("/foo", "foo\n");
-//   server.run();
-//   server.stop();
-
-//   HttpClient d;
-//   d.add_ca_cert(cert);
-//   auto [result, body] = d.get_sync("https://127.0.0.1:1337/bar");
-
-//   BOOST_CHECK_EQUAL(result, 404);
-//   BOOST_CHECK_EQUAL(body, "The resource '/bar' was not found.");
-// }
-
 BOOST_AUTO_TEST_CASE(http_client_host_not_found)
 {
   HttpClient d;
-  d.add_ca_cert(cert);
-  auto rc = d.get_sync("https://does-not-exist:1337/bar");
+  auto carc = d.add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
 
+  auto rc = get_sync(d, "https://does-not-exist:1337/bar");
   BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::NameResolutionFailed);
 }
 
-// BOOST_AUTO_TEST_CASE(http_client_invalid_url)
-// {
-//   HttpClient d;
-//   d.add_ca_cert(cert);
-//   auto [result, body] = d.get_sync("https://does-not-exist:1337:/bar");
+BOOST_AUTO_TEST_CASE(http_client_connection_refused)
+{
+  HttpClient d;
+  auto carc = d.add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
 
-//   BOOST_CHECK_EQUAL(result, 404);
-//   BOOST_CHECK_EQUAL(body, "The resource '/bar' was not found.");
-// }
+  auto rc = get_sync(d, "https://127.0.0.1:1338/bar");
+  BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::ConnectionRefused);
+}
+
+BOOST_AUTO_TEST_CASE(http_client_get_file_connection_refused)
+{
+  HttpClient d;
+  auto carc = d.add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
+
+  std::ofstream out_file("foo.txt", std::ofstream::binary);
+
+  auto rc = get_sync(d, "https://127.0.0.1:1338/foo", out_file, [&](double progress) { BOOST_CHECK(false); });
+  BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::ConnectionRefused);
+}
+
+BOOST_AUTO_TEST_CASE(http_client_invalid_ip_in_url)
+{
+  HttpClient d;
+  auto carc = d.add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
+
+  auto rc = get_sync(d, "https://300.1.1.1:1337/bar");
+  BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::NameResolutionFailed);
+}
+
+BOOST_AUTO_TEST_CASE(http_client_invalid_url)
+{
+  HttpClient d;
+  auto carc = d.add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
+
+  auto rc = get_sync(d, "https://300.1.1.1:1337:foo:/bar");
+  BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::MalformedURL);
+}
+
+BOOST_AUTO_TEST_CASE(http_client_get_file_invalid_url)
+{
+  HttpClient d;
+  auto carc = d.add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
+
+  std::ofstream out_file("foo.txt", std::ofstream::binary);
+
+  auto rc = get_sync(d, "https://127.0.0.1:1337:1337/foo", out_file, [&](double progress) { BOOST_CHECK(false); });
+  BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::MalformedURL);
+}
 
 BOOST_AUTO_TEST_CASE(http_client_get_file)
 {
@@ -197,12 +258,13 @@ BOOST_AUTO_TEST_CASE(http_client_get_file)
   server.run();
 
   HttpClient d;
-  d.add_ca_cert(cert);
+  auto carc = d.add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
 
   std::ofstream out_file("foo.txt", std::ofstream::binary);
 
   double previous_progress = 0.0;
-  auto rc = d.get_sync("https://127.0.0.1:1337/foo", out_file, [&](double progress) {
+  auto rc = get_sync(d, "https://127.0.0.1:1337/foo", out_file, [&](double progress) {
     BOOST_CHECK_GE(progress, previous_progress);
     previous_progress = progress;
   });
@@ -226,12 +288,13 @@ BOOST_AUTO_TEST_CASE(http_client_get_file_not_found)
   server.run();
 
   HttpClient d;
-  d.add_ca_cert(cert);
+  auto carc = d.add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
 
   std::ofstream out_file("foo.txt", std::ofstream::binary);
 
   double previous_progress = 0.0;
-  auto rc = d.get_sync("https://127.0.0.1:1337/bar", out_file, [&](double progress) {
+  auto rc = get_sync(d, "https://127.0.0.1:1337/bar", out_file, [&](double progress) {
     BOOST_CHECK_GE(progress, previous_progress);
     previous_progress = progress;
   });

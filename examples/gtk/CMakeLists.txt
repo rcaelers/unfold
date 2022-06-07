@@ -34,7 +34,6 @@ if(WIN32)
 endif()
 
 add_executable(gtk_example)
-target_code_coverage(gtk_example AUTO)
 
 target_sources(gtk_example PRIVATE
   main.cc
@@ -58,6 +57,12 @@ target_include_directories(gtk_example PRIVATE ${GTK_INCLUDE_DIRS})
 target_link_directories(gtk_example PRIVATE ${GTK_LIBRARY_DIRS})
 target_link_libraries(gtk_example PRIVATE ${GTK_LIBRARIES})
 target_compile_definitions(gtk_example PRIVATE CMARK_NO_SHORT_NAMES)
+
+# TODO: remove hack
+if(CODE_COVERAGE)
+  target_compile_options(gtk_example PRIVATE -fprofile-instr-generate -fcoverage-mapping)
+  target_link_options(gtk_example PRIVATE -fprofile-instr-generate -fcoverage-mapping)
+endif()
 
 if (WIN32)
   if (MSVC)

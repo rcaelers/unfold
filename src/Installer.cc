@@ -148,18 +148,27 @@ Installer::verify_installer()
 boost::asio::awaitable<outcome::std_result<void>>
 Installer::run_installer()
 {
-  std::error_code ec;
-  std::filesystem::permissions(installer_path.string(),
-                               std::filesystem::perms::owner_exec,
-                               std::filesystem::perm_options::add,
-                               ec);
-  if (ec)
+  try
     {
-      logger->error("failed to make installer {} executable ({})", installer_path.string(), ec.message());
+
+      std::error_code ec;
+      std::filesystem::permissions(installer_path.string(),
+                                   std::filesystem::perms::owner_exec,
+                                   std::filesystem::perm_options::add,
+                                   ec);
+      if (ec)
+        {
+          logger->error("failed to make installer {} executable ({})", installer_path.string(), ec.message());
+          co_return outcome::failure(unfold::UnfoldErrc::InstallerExecutionFailed);
+        }
+
+      boost::process::spawn(installer_path.string());
+    }
+  catch (std::exception &e)
+    {
+      logger->error("failed to run installer {}  ({})", installer_path.string(), e.what());
       co_return outcome::failure(unfold::UnfoldErrc::InstallerExecutionFailed);
     }
-
-  boost::process::spawn(installer_path.string());
 
   co_return outcome::success();
 }

@@ -49,6 +49,8 @@ namespace
         return "connection refused";
       case HttpClientErrc::CommunicationError:
         return "connection error";
+      case HttpClientErrc::InvalidCertificate:
+        return "invalid certificate";
       }
     return "(unknown)";
   }

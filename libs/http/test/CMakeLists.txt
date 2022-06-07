@@ -16,7 +16,12 @@ if (HAVE_TESTS)
   endif()
 
   add_executable(unfold-test-http-server TestServer.cc)
-  target_code_coverage(unfold-test-http-server AUTO)
+
+# TODO: remove hack
+if(CODE_COVERAGE)
+  target_compile_options(unfold-test-http-server PRIVATE -fprofile-instr-generate -fcoverage-mapping)
+  target_link_options(unfold-test-http-server PRIVATE -fprofile-instr-generate -fcoverage-mapping)
+endif()
 
   target_link_libraries(unfold-test-http-server PRIVATE unfold-http unfold-utils)
   target_link_libraries(unfold-test-http-server PRIVATE Boost::test_exec_monitor)

@@ -135,7 +135,8 @@ boost::asio::awaitable<outcome::std_result<std::string>>
 download_appcast()
 {
   auto http = std::make_shared<unfold::http::HttpClient>();
-  http->add_ca_cert(cert);
+  auto carc = http->add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
 
   auto rc = co_await http->get("https://127.0.0.1:1337/foo");
 

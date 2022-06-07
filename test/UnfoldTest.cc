@@ -242,7 +242,8 @@ BOOST_AUTO_TEST_CASE(checker_appcast_not_found)
   server.run();
 
   auto http = std::make_shared<unfold::http::HttpClient>();
-  http->add_ca_cert(cert);
+  auto carc = http->add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
 
   Checker checker(std::make_shared<TestPlatform>(), http);
 
@@ -281,7 +282,8 @@ BOOST_AUTO_TEST_CASE(checker_invalid_host)
   server.run();
 
   auto http = std::make_shared<unfold::http::HttpClient>();
-  http->add_ca_cert(cert);
+  auto carc = http->add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
 
   Checker checker(std::make_shared<TestPlatform>(), http);
 
@@ -316,7 +318,8 @@ BOOST_AUTO_TEST_CASE(checker_invalid_host)
 BOOST_AUTO_TEST_CASE(checker_invalid_version)
 {
   auto http = std::make_shared<unfold::http::HttpClient>();
-  http->add_ca_cert(cert);
+  auto carc = http->add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
 
   Checker checker(std::make_shared<TestPlatform>(), http);
 
@@ -331,7 +334,8 @@ BOOST_AUTO_TEST_CASE(checker_invalid_appcast)
   server.run();
 
   auto http = std::make_shared<unfold::http::HttpClient>();
-  http->add_ca_cert(cert);
+  auto carc = http->add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
 
   Checker checker(std::make_shared<TestPlatform>(), http);
 
@@ -370,7 +374,8 @@ BOOST_AUTO_TEST_CASE(checker_empty_appcast)
   server.run();
 
   auto http = std::make_shared<unfold::http::HttpClient>();
-  http->add_ca_cert(cert);
+  auto carc = http->add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
 
   Checker checker(std::make_shared<TestPlatform>(), http);
 
@@ -463,7 +468,8 @@ BOOST_AUTO_TEST_CASE(checker_invalid_items_in_appcast)
   server.run();
 
   auto http = std::make_shared<unfold::http::HttpClient>();
-  http->add_ca_cert(cert);
+  auto carc = http->add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
 
   Checker checker(std::make_shared<TestPlatform>(), http);
 
@@ -511,7 +517,8 @@ BOOST_AUTO_TEST_CASE(checker_no_upgrade)
   server.run();
 
   auto http = std::make_shared<unfold::http::HttpClient>();
-  http->add_ca_cert(cert);
+  auto carc = http->add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
 
   Checker checker(std::make_shared<TestPlatform>(), http);
 
@@ -555,7 +562,8 @@ BOOST_AUTO_TEST_CASE(checker_has_upgrade)
   server.run();
 
   auto http = std::make_shared<unfold::http::HttpClient>();
-  http->add_ca_cert(cert);
+  auto carc = http->add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
 
   Checker checker(std::make_shared<TestPlatform>(), http);
 
@@ -601,9 +609,6 @@ BOOST_AUTO_TEST_CASE(checker_has_upgrade)
   server.stop();
 }
 
-// TODO: checker with unsupported OS.
-// TODO: checker with unsupported OS version.
-
 BOOST_AUTO_TEST_CASE(installer_missing_url)
 {
   std::string appcast_str =
@@ -630,7 +635,8 @@ BOOST_AUTO_TEST_CASE(installer_missing_url)
   auto appcast = reader->load_from_string(appcast_str);
 
   auto http = std::make_shared<unfold::http::HttpClient>();
-  http->add_ca_cert(cert);
+  auto carc = http->add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
 
   auto verifier = std::make_shared<SignatureVerifierMock>();
 
@@ -687,7 +693,8 @@ BOOST_AUTO_TEST_CASE(installer_missing_length)
   auto appcast = reader->load_from_string(appcast_str);
 
   auto http = std::make_shared<unfold::http::HttpClient>();
-  http->add_ca_cert(cert);
+  auto carc = http->add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
 
   auto verifier = std::make_shared<SignatureVerifierMock>();
 
@@ -746,7 +753,8 @@ BOOST_AUTO_TEST_CASE(installer_incorrect_length)
   auto appcast = reader->load_from_string(appcast_str);
 
   auto http = std::make_shared<unfold::http::HttpClient>();
-  http->add_ca_cert(cert);
+  auto carc = http->add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
 
   auto verifier = std::make_shared<SignatureVerifierMock>();
 
@@ -783,7 +791,8 @@ BOOST_AUTO_TEST_CASE(installer_not_found)
   auto appcast = reader->load_from_file("appcast.xml");
 
   auto http = std::make_shared<unfold::http::HttpClient>();
-  http->add_ca_cert(cert);
+  auto carc = http->add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
 
   auto verifier = std::make_shared<SignatureVerifierMock>();
 
@@ -840,7 +849,8 @@ BOOST_AUTO_TEST_CASE(installer_invalid_host)
   auto appcast = reader->load_from_string(appcast_str);
 
   auto http = std::make_shared<unfold::http::HttpClient>();
-  http->add_ca_cert(cert);
+  auto carc = http->add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
 
   auto verifier = std::make_shared<SignatureVerifierMock>();
 
@@ -878,7 +888,8 @@ BOOST_AUTO_TEST_CASE(installer_invalid_signature)
   auto appcast = reader->load_from_file("appcast.xml");
 
   auto http = std::make_shared<unfold::http::HttpClient>();
-  http->add_ca_cert(cert);
+  auto carc = http->add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
 
   auto verifier = std::make_shared<SignatureVerifierMock>();
 
@@ -910,6 +921,74 @@ BOOST_AUTO_TEST_CASE(installer_invalid_signature)
   ioc.run();
 
   server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(installer_failed_to_install)
+{
+  unfold::http::HttpServer server;
+  server.add_file("/installer.sh", "installer.sh");
+  server.run();
+
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+  auto appcast = reader->load_from_file("appcast.xml");
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto carc = http->add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
+
+  auto verifier = std::make_shared<unfold::crypto::SignatureVerifier>();
+  auto rc = verifier->set_key(unfold::crypto::SignatureAlgorithmType::ECDSA,
+                              "MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  // EXPECT_CALL(*verifier, set_key(_, _)).Times(0);
+
+  // EXPECT_CALL(*verifier, verify(_, _))
+  //   .Times(AtLeast(1))
+  //   .WillRepeatedly(Return(outcome::failure(unfold::crypto::SignatureVerifierErrc::Mismatch)));
+
+  Installer installer(std::make_shared<TestPlatform>(), http, verifier);
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await installer.install(appcast->items.front());
+          BOOST_CHECK_EQUAL(rc.has_error(), true);
+          BOOST_CHECK_EQUAL(rc.error(), unfold::UnfoldErrc::InstallerExecutionFailed);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+
+  server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(upgrade_invalid_key)
+{
+  unfold::utils::IOContext io_context{1};
+  UpgradeControl control(std::make_shared<TestPlatform>(), io_context);
+
+  auto rc = control.set_signature_verification_key("xxxxMCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=xxx");
+  BOOST_CHECK_EQUAL(rc.has_error(), true);
+  BOOST_CHECK_EQUAL(rc.error(), unfold::UnfoldErrc::InvalidArgument);
+}
+
+BOOST_AUTO_TEST_CASE(upgrade_invalid_cert)
+{
+  unfold::utils::IOContext io_context{1};
+  UpgradeControl control(std::make_shared<TestPlatform>(), io_context);
+
+  auto rc = control.set_certificate("cert");
+  BOOST_CHECK_EQUAL(rc.has_error(), true);
+  BOOST_CHECK_EQUAL(rc.error(), unfold::UnfoldErrc::InvalidArgument);
 }
 
 BOOST_AUTO_TEST_CASE(upgrade_control_check)

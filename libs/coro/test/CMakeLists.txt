@@ -1,9 +1,7 @@
 if (HAVE_TESTS)
-  add_executable(coro-test CoroTest.cc)
-  target_code_coverage(coro-test AUTO)
-
-  target_link_libraries(coro-test PRIVATE unfold-coro unfold-http unfold-utils)
-  target_link_libraries(coro-test PRIVATE spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto)
+  # add_executable(coro-test CoroTest.cc)
+  # target_link_libraries(coro-test PRIVATE unfold-coro unfold-http unfold-utils)
+  # target_link_libraries(coro-test PRIVATE spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto)
 
   add_executable(unfold-test-coro UnfoldTestCoro.cc)
 

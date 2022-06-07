@@ -113,7 +113,7 @@ UpgradeControl::set_signature_verification_key(const std::string &key)
   auto result = verifier->set_key(unfold::crypto::SignatureAlgorithmType::ECDSA, key);
   if (!result)
     {
-      logger->error("invalid key '{}' ({})");
+      logger->error("invalid key '{}' ({})", key, result.error().message());
       return outcome::failure(unfold::UnfoldErrc::InvalidArgument);
     }
   return outcome::success();
@@ -122,7 +122,12 @@ UpgradeControl::set_signature_verification_key(const std::string &key)
 outcome::std_result<void>
 UpgradeControl::set_certificate(const std::string &cert)
 {
-  http->add_ca_cert(cert);
+  auto result = http->add_ca_cert(cert);
+  if (!result)
+    {
+      logger->error("invalid ca certificate ({})", result.error().message());
+      return outcome::failure(unfold::UnfoldErrc::InvalidArgument);
+    }
   return outcome::success();
 }
 

@@ -25,6 +25,8 @@
 
 #include <openssl/pem.h>
 
+#include "utils/Logging.hh"
+
 class PublicKey
 {
 public:
@@ -47,6 +49,7 @@ private:
 private:
   std::string public_key;
   EVP_PKEY *pkey{nullptr};
+  std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:signatures")};
 };
 
 #endif // PUBLIC_KEYS_HH

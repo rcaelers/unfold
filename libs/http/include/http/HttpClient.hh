@@ -42,10 +42,7 @@ namespace unfold::http
   public:
     HttpClient();
 
-    void add_ca_cert(const std::string &cert);
-
-    outcome::std_result<Response> get_sync(const std::string &url, std::ostream &file, ProgressCallback cb);
-    outcome::std_result<Response> get_sync(const std::string &url);
+    outcome::std_result<void> add_ca_cert(const std::string &cert);
 
     boost::asio::awaitable<outcome::std_result<Response>> get(const std::string &url, std::ostream &file, ProgressCallback cb);
     boost::asio::awaitable<outcome::std_result<Response>> get(const std::string &url);

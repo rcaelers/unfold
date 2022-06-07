@@ -61,12 +61,19 @@ PublicKey::load_der()
 void
 PublicKey::load_base64_der()
 {
-  std::string p = unfold::utils::Base64::decode(public_key);
-  BIO *bio = BIO_new_mem_buf(reinterpret_cast<const unsigned char *>(p.data()), static_cast<int>(p.size()));
-  if (bio != nullptr)
+  try
     {
-      d2i_PUBKEY_bio(bio, &pkey);
-      BIO_free_all(bio);
+      std::string p = unfold::utils::Base64::decode(public_key);
+      BIO *bio = BIO_new_mem_buf(reinterpret_cast<const unsigned char *>(p.data()), static_cast<int>(p.size()));
+      if (bio != nullptr)
+        {
+          d2i_PUBKEY_bio(bio, &pkey);
+          BIO_free_all(bio);
+        }
+    }
+  catch (std::exception &e)
+    {
+      logger->info("failed to load base64 decode pem certificate ({})", e.what());
     }
 }
 

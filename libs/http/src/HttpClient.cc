@@ -21,6 +21,7 @@
 #include "http/HttpClient.hh"
 
 #include <array>
+#include <boost/outcome/success_failure.hpp>
 #include <stdexcept>
 #include <system_error>
 #include <utility>
@@ -49,7 +50,7 @@ HttpClient::HttpClient()
   ctx.set_verify_mode(boost::asio::ssl::verify_peer);
 }
 
-void
+outcome::std_result<void>
 HttpClient::add_ca_cert(const std::string &cert)
 {
   boost::system::error_code ec;
@@ -57,58 +58,10 @@ HttpClient::add_ca_cert(const std::string &cert)
   if (ec)
     {
       logger->error("add_certificate_authority failed ({})", ec.message());
+      return outcome::failure(unfold::http::HttpClientErrc::InvalidCertificate);
     }
-}
+  return outcome::success();
 
-outcome::std_result<Response>
-HttpClient::get_sync(const std::string &url, std::ostream &file, ProgressCallback cb)
-{
-  boost::asio::io_context ioc;
-  outcome::std_result<Response> ret = outcome::failure(HttpClientErrc::InternalError);
-  boost::asio::co_spawn(
-    ioc,
-    [&]() -> boost::asio::awaitable<void> {
-      try
-        {
-          Connection conn(co_await boost::asio::this_coro::executor, std::ref(ctx));
-          ret = co_await conn.get(url, file, cb);
-          co_return;
-        }
-      catch (std::exception &e)
-        {
-          logger->error("get ostream failed {}", e.what());
-        }
-    },
-    boost::asio::detached);
-  ioc.run();
-  ioc.restart();
-  return ret;
-}
-
-outcome::std_result<Response>
-HttpClient::get_sync(const std::string &url)
-{
-  boost::asio::io_context ioc;
-  outcome::std_result<Response> ret = outcome::failure(HttpClientErrc::InternalError);
-
-  boost::asio::co_spawn(
-    ioc,
-    [&]() -> boost::asio::awaitable<void> {
-      try
-        {
-          Connection conn(co_await boost::asio::this_coro::executor, std::ref(ctx));
-          ret = co_await conn.get(url);
-          co_return;
-        }
-      catch (std::exception &e)
-        {
-          logger->error("get failed {}", e.what());
-        }
-    },
-    boost::asio::detached);
-  ioc.run();
-  ioc.restart();
-  return ret;
 }
 
 boost::asio::awaitable<outcome::std_result<Response>>

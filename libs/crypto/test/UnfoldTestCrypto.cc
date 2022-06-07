@@ -30,6 +30,7 @@
 #if SPDLOG_VERSION >= 10801
 #  include <spdlog/cfg/env.h>
 #endif
+#include <spdlog/fmt/ostr.h>
 
 #include "utils/Logging.hh"
 #include "crypto/SignatureVerifier.hh"
@@ -107,8 +108,23 @@ BOOST_AUTO_TEST_CASE(signature_verify_file_ok_pem)
 
   SignatureVerifier verifier;
   auto result = verifier.set_key(SignatureAlgorithmType::ECDSA, pub_key);
+  BOOST_CHECK_EQUAL(result.has_error(), false);
   result = verifier.verify("junk", signature);
   BOOST_CHECK_EQUAL(result.has_error(), false);
+}
+
+BOOST_AUTO_TEST_CASE(signature_verify_invalid_pem)
+{
+  std::string signature = "aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==";
+  std::string pub_key =
+    "-----BEGIN PUBLIC KEY-----\n"
+    "VGhpc0lzQW5JbnZhbGlkUGVtQ2VydGlmaWNhdGUK\n"
+    "-----END PUBLIC KEY-----\n";
+
+  SignatureVerifier verifier;
+  auto result = verifier.set_key(SignatureAlgorithmType::ECDSA, pub_key);
+  BOOST_CHECK_EQUAL(result.has_error(), true);
+  BOOST_CHECK_EQUAL(result.error(), SignatureVerifierErrc::InvalidPublicKey);
 }
 
 BOOST_AUTO_TEST_CASE(signature_verify_file_ok_der)
@@ -129,13 +145,14 @@ BOOST_AUTO_TEST_CASE(signature_verify_file_ok_der)
   BOOST_CHECK_EQUAL(result.has_error(), false);
 }
 
-BOOST_AUTO_TEST_CASE(signature_verify_invalid_pubkey)
+BOOST_AUTO_TEST_CASE(signature_verify_invalid_der)
 {
   std::string signature = "aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==";
-  std::string pub_key = "foo";
+  std::string pub_key = "xxxxMCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=xxx";
 
   SignatureVerifier verifier;
   auto result = verifier.set_key(SignatureAlgorithmType::ECDSA, pub_key);
+  BOOST_CHECK_EQUAL(result.has_error(), true);
   BOOST_CHECK_EQUAL(result.error(), SignatureVerifierErrc::InvalidPublicKey);
 }
 
@@ -179,6 +196,30 @@ BOOST_AUTO_TEST_CASE(signature_verify_file_not_found)
   BOOST_CHECK_EQUAL(result.has_error(), false);
   result = verifier.verify("notfound", signature);
   BOOST_CHECK_EQUAL(result.error(), SignatureVerifierErrc::NotFound);
+}
+
+BOOST_AUTO_TEST_CASE(signature_verify_without_algorithm)
+{
+  std::string signature = "aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==";
+
+  SignatureVerifier verifier;
+  auto result = verifier.verify("junk", signature);
+  BOOST_CHECK_EQUAL(result.error(), SignatureVerifierErrc::InvalidPublicKey);
+}
+
+BOOST_AUTO_TEST_CASE(signature_verify_without_valid_pubkey)
+{
+  std::string signature = "aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==";
+
+  SignatureVerifier verifier;
+  std::string pub_key = "xxxxMCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=xxx";
+
+  auto result = verifier.set_key(SignatureAlgorithmType::ECDSA, pub_key);
+  BOOST_CHECK_EQUAL(result.has_error(), true);
+  BOOST_CHECK_EQUAL(result.error(), SignatureVerifierErrc::InvalidPublicKey);
+
+  result = verifier.verify("junk", signature);
+  BOOST_CHECK_EQUAL(result.error(), SignatureVerifierErrc::InvalidPublicKey);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

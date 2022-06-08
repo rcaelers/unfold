@@ -182,6 +182,7 @@ Installer::run_installer()
   try
     {
       boost::process::spawn(installer_path.string());
+      logger->info("installer finished");
     }
   catch (std::exception &e)
     {

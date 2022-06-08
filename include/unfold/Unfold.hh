@@ -32,6 +32,8 @@
 
 #include "utils/IOContext.hh"
 
+#include "UnfoldHooks.hh"
+
 namespace unfold
 {
   struct UpdateReleaseNotes
@@ -87,6 +89,8 @@ namespace unfold
     virtual boost::asio::awaitable<outcome::std_result<void>> install_update() = 0;
 
     virtual std::shared_ptr<unfold::UpdateInfo> get_update_info() const = 0;
+
+    virtual std::shared_ptr<unfold::UnfoldHooks> get_hooks() const = 0;
   };
 } // namespace unfold
 

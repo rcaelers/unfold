@@ -7,6 +7,7 @@ target_sources(unfold PRIVATE
   Installer.cc
   UnfoldErrors.cc
   Settings.cc
+  Hooks.cc
   )
 
 if(APPLE)

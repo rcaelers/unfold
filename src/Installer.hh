@@ -29,15 +29,18 @@
 #include "crypto/SignatureVerifier.hh"
 #include "utils/Logging.hh"
 
+#include "unfold/Unfold.hh"
 #include "AppCast.hh"
 #include "Platform.hh"
+#include "Hooks.hh"
 
 class Installer
 {
 public:
   explicit Installer(std::shared_ptr<Platform> platform,
                      std::shared_ptr<unfold::http::HttpClient> http,
-                     std::shared_ptr<unfold::crypto::SignatureVerifier> verifier);
+                     std::shared_ptr<unfold::crypto::SignatureVerifier> verifier,
+                     std::shared_ptr<Hooks> hooks);
 
   void set_download_progress_callback(unfold::Unfold::download_progress_callback_t callback);
 
@@ -53,6 +56,7 @@ private:
   std::shared_ptr<Platform> platform;
   std::shared_ptr<unfold::http::HttpClient> http;
   std::shared_ptr<unfold::crypto::SignatureVerifier> verifier;
+  std::shared_ptr<Hooks> hooks;
 
   std::shared_ptr<AppcastItem> item;
   std::filesystem::path installer_path;

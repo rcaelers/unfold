@@ -32,11 +32,14 @@
 
 #include "AppCast.hh"
 #include "Platform.hh"
+#include "Hooks.hh"
 
 class Checker
 {
 public:
-  explicit Checker(std::shared_ptr<Platform> platform, std::shared_ptr<unfold::http::HttpClient> http);
+  explicit Checker(std::shared_ptr<Platform> platform,
+                   std::shared_ptr<unfold::http::HttpClient> http,
+                   std::shared_ptr<Hooks> hooks);
 
   boost::asio::awaitable<outcome::std_result<bool>> check_for_updates();
 
@@ -55,6 +58,7 @@ private:
 private:
   std::shared_ptr<Platform> platform;
   std::shared_ptr<unfold::http::HttpClient> http;
+  std::shared_ptr<Hooks> hooks;
 
   std::string appcast_url;
   std::string current_version_str;

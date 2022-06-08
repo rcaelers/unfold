@@ -39,10 +39,12 @@
 
 Installer::Installer(std::shared_ptr<Platform> platform,
                      std::shared_ptr<unfold::http::HttpClient> http,
-                     std::shared_ptr<unfold::crypto::SignatureVerifier> verifier)
+                     std::shared_ptr<unfold::crypto::SignatureVerifier> verifier,
+                     std::shared_ptr<Hooks> hooks)
   : platform(std::move(platform))
   , http(std::move(http))
   , verifier(std::move(verifier))
+  , hooks(std::move(hooks))
 {
 }
 

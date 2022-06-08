@@ -37,10 +37,10 @@
 
 #include "Platform.hh"
 
-Checker::Checker(std::shared_ptr<Platform> platform, std::shared_ptr<unfold::http::HttpClient> http)
+Checker::Checker(std::shared_ptr<Platform> platform, std::shared_ptr<unfold::http::HttpClient> http, std::shared_ptr<Hooks> hooks)
   : platform(std::move(platform))
   , http(std::move(http))
-
+  , hooks(hooks)
 {
 }
 

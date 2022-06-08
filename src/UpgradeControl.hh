@@ -38,6 +38,7 @@
 #include "Installer.hh"
 #include "Checker.hh"
 #include "Settings.hh"
+#include "Hooks.hh"
 #include "utils/PeriodicTimer.hh"
 
 #include "semver.hpp"
@@ -69,6 +70,7 @@ public:
   boost::asio::awaitable<outcome::std_result<bool>> check_for_updates() override;
   boost::asio::awaitable<outcome::std_result<void>> install_update() override;
   std::shared_ptr<unfold::UpdateInfo> get_update_info() const override;
+  std::shared_ptr<unfold::UnfoldHooks> get_hooks() const override;
 
 private:
   void init_periodic_update_check();
@@ -79,10 +81,12 @@ private:
   std::shared_ptr<Platform> platform;
   std::shared_ptr<unfold::http::HttpClient> http;
   std::shared_ptr<unfold::crypto::SignatureVerifier> verifier;
+  std::shared_ptr<Hooks> hooks;
   std::shared_ptr<SettingsStorage> storage;
   std::shared_ptr<Settings> state;
   std::shared_ptr<Installer> installer;
   std::shared_ptr<Checker> checker;
+
   unfold::utils::PeriodicTimer checker_timer;
 
   update_available_callback_t update_available_callback;

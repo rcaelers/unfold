@@ -245,7 +245,9 @@ BOOST_AUTO_TEST_CASE(checker_appcast_not_found)
   auto carc = http->add_ca_cert(cert);
   BOOST_CHECK_EQUAL(carc.has_error(), false);
 
-  Checker checker(std::make_shared<TestPlatform>(), http);
+  auto hooks = std::make_shared<Hooks>();
+
+  Checker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcastxxx.xml");
   BOOST_CHECK_EQUAL(rc.has_error(), false);
@@ -285,7 +287,9 @@ BOOST_AUTO_TEST_CASE(checker_invalid_host)
   auto carc = http->add_ca_cert(cert);
   BOOST_CHECK_EQUAL(carc.has_error(), false);
 
-  Checker checker(std::make_shared<TestPlatform>(), http);
+  auto hooks = std::make_shared<Hooks>();
+
+  Checker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_appcast("https://300.0.0.1.2:1337/appcastxxx.xml");
   BOOST_CHECK_EQUAL(rc.has_error(), false);
@@ -321,7 +325,9 @@ BOOST_AUTO_TEST_CASE(checker_invalid_version)
   auto carc = http->add_ca_cert(cert);
   BOOST_CHECK_EQUAL(carc.has_error(), false);
 
-  Checker checker(std::make_shared<TestPlatform>(), http);
+  auto hooks = std::make_shared<Hooks>();
+
+  Checker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_current_version("1.12.0.1.2");
   BOOST_CHECK_EQUAL(rc.has_error(), true);
@@ -337,7 +343,9 @@ BOOST_AUTO_TEST_CASE(checker_invalid_appcast)
   auto carc = http->add_ca_cert(cert);
   BOOST_CHECK_EQUAL(carc.has_error(), false);
 
-  Checker checker(std::make_shared<TestPlatform>(), http);
+  auto hooks = std::make_shared<Hooks>();
+
+  Checker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
   BOOST_CHECK_EQUAL(rc.has_error(), false);
@@ -377,7 +385,9 @@ BOOST_AUTO_TEST_CASE(checker_empty_appcast)
   auto carc = http->add_ca_cert(cert);
   BOOST_CHECK_EQUAL(carc.has_error(), false);
 
-  Checker checker(std::make_shared<TestPlatform>(), http);
+  auto hooks = std::make_shared<Hooks>();
+
+  Checker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
   BOOST_CHECK_EQUAL(rc.has_error(), false);
@@ -471,7 +481,9 @@ BOOST_AUTO_TEST_CASE(checker_invalid_items_in_appcast)
   auto carc = http->add_ca_cert(cert);
   BOOST_CHECK_EQUAL(carc.has_error(), false);
 
-  Checker checker(std::make_shared<TestPlatform>(), http);
+  auto hooks = std::make_shared<Hooks>();
+
+  Checker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
   BOOST_CHECK_EQUAL(rc.has_error(), false);
@@ -520,7 +532,9 @@ BOOST_AUTO_TEST_CASE(checker_no_upgrade)
   auto carc = http->add_ca_cert(cert);
   BOOST_CHECK_EQUAL(carc.has_error(), false);
 
-  Checker checker(std::make_shared<TestPlatform>(), http);
+  auto hooks = std::make_shared<Hooks>();
+
+  Checker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
   BOOST_CHECK_EQUAL(rc.has_error(), false);
@@ -565,7 +579,9 @@ BOOST_AUTO_TEST_CASE(checker_has_upgrade)
   auto carc = http->add_ca_cert(cert);
   BOOST_CHECK_EQUAL(carc.has_error(), false);
 
-  Checker checker(std::make_shared<TestPlatform>(), http);
+  auto hooks = std::make_shared<Hooks>();
+
+  Checker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
   BOOST_CHECK_EQUAL(rc.has_error(), false);
@@ -638,9 +654,11 @@ BOOST_AUTO_TEST_CASE(installer_missing_url)
   auto carc = http->add_ca_cert(cert);
   BOOST_CHECK_EQUAL(carc.has_error(), false);
 
+  auto hooks = std::make_shared<Hooks>();
+
   auto verifier = std::make_shared<SignatureVerifierMock>();
 
-  Installer installer(std::make_shared<TestPlatform>(), http, verifier);
+  Installer installer(std::make_shared<TestPlatform>(), http, verifier, hooks);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -696,9 +714,11 @@ BOOST_AUTO_TEST_CASE(installer_missing_length)
   auto carc = http->add_ca_cert(cert);
   BOOST_CHECK_EQUAL(carc.has_error(), false);
 
+  auto hooks = std::make_shared<Hooks>();
+
   auto verifier = std::make_shared<SignatureVerifierMock>();
 
-  Installer installer(std::make_shared<TestPlatform>(), http, verifier);
+  Installer installer(std::make_shared<TestPlatform>(), http, verifier, hooks);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -756,9 +776,11 @@ BOOST_AUTO_TEST_CASE(installer_incorrect_length)
   auto carc = http->add_ca_cert(cert);
   BOOST_CHECK_EQUAL(carc.has_error(), false);
 
+  auto hooks = std::make_shared<Hooks>();
+
   auto verifier = std::make_shared<SignatureVerifierMock>();
 
-  Installer installer(std::make_shared<TestPlatform>(), http, verifier);
+  Installer installer(std::make_shared<TestPlatform>(), http, verifier, hooks);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -794,9 +816,11 @@ BOOST_AUTO_TEST_CASE(installer_not_found)
   auto carc = http->add_ca_cert(cert);
   BOOST_CHECK_EQUAL(carc.has_error(), false);
 
+  auto hooks = std::make_shared<Hooks>();
+
   auto verifier = std::make_shared<SignatureVerifierMock>();
 
-  Installer installer(std::make_shared<TestPlatform>(), http, verifier);
+  Installer installer(std::make_shared<TestPlatform>(), http, verifier, hooks);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -852,9 +876,11 @@ BOOST_AUTO_TEST_CASE(installer_invalid_host)
   auto carc = http->add_ca_cert(cert);
   BOOST_CHECK_EQUAL(carc.has_error(), false);
 
+  auto hooks = std::make_shared<Hooks>();
+
   auto verifier = std::make_shared<SignatureVerifierMock>();
 
-  Installer installer(std::make_shared<TestPlatform>(), http, verifier);
+  Installer installer(std::make_shared<TestPlatform>(), http, verifier, hooks);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -891,6 +917,8 @@ BOOST_AUTO_TEST_CASE(installer_invalid_signature)
   auto carc = http->add_ca_cert(cert);
   BOOST_CHECK_EQUAL(carc.has_error(), false);
 
+  auto hooks = std::make_shared<Hooks>();
+
   auto verifier = std::make_shared<SignatureVerifierMock>();
 
   EXPECT_CALL(*verifier, set_key(_, _)).Times(0);
@@ -899,7 +927,7 @@ BOOST_AUTO_TEST_CASE(installer_invalid_signature)
     .Times(AtLeast(1))
     .WillRepeatedly(Return(outcome::failure(unfold::crypto::SignatureVerifierErrc::Mismatch)));
 
-  Installer installer(std::make_shared<TestPlatform>(), http, verifier);
+  Installer installer(std::make_shared<TestPlatform>(), http, verifier, hooks);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -936,6 +964,8 @@ BOOST_AUTO_TEST_CASE(installer_failed_to_install)
   auto carc = http->add_ca_cert(cert);
   BOOST_CHECK_EQUAL(carc.has_error(), false);
 
+  auto hooks = std::make_shared<Hooks>();
+
   auto verifier = std::make_shared<unfold::crypto::SignatureVerifier>();
   auto rc = verifier->set_key(unfold::crypto::SignatureAlgorithmType::ECDSA,
                               "MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
@@ -947,7 +977,7 @@ BOOST_AUTO_TEST_CASE(installer_failed_to_install)
   //   .Times(AtLeast(1))
   //   .WillRepeatedly(Return(outcome::failure(unfold::crypto::SignatureVerifierErrc::Mismatch)));
 
-  Installer installer(std::make_shared<TestPlatform>(), http, verifier);
+  Installer installer(std::make_shared<TestPlatform>(), http, verifier, hooks);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(

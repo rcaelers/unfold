@@ -67,10 +67,11 @@ UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform, unfold::utils
   : platform(platform)
   , http(std::make_shared<unfold::http::HttpClient>())
   , verifier(std::make_shared<unfold::crypto::SignatureVerifier>())
+  , hooks(std::make_shared<Hooks>())
   , storage(SettingsStorage::create())
   , state(std::make_shared<Settings>(storage))
-  , installer(std::make_shared<Installer>(platform, http, verifier))
-  , checker(std::make_shared<Checker>(platform, http))
+  , installer(std::make_shared<Installer>(platform, http, verifier, hooks))
+  , checker(std::make_shared<Checker>(platform, http, hooks))
   , checker_timer(io_context.get_io_context())
 {
   init_periodic_update_check();
@@ -86,6 +87,7 @@ UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform,
   : platform(platform)
   , http(http)
   , verifier(verifier)
+  , hooks(std::make_shared<Hooks>())
   , storage(storage)
   , state(std::make_shared<Settings>(storage))
   , installer(installer)
@@ -241,6 +243,12 @@ std::shared_ptr<unfold::UpdateInfo>
 UpgradeControl::get_update_info() const
 {
   return checker->get_update_info();
+}
+
+std::shared_ptr<unfold::UnfoldHooks>
+UpgradeControl::get_hooks() const
+{
+  return hooks;
 }
 
 void

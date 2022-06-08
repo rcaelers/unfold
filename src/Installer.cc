@@ -136,7 +136,7 @@ Installer::verify_installer()
 
   if (item->enclosure->length != size)
     {
-      logger->error("incorrect installer file size ({} instead of {})", item->enclosure->length, size);
+      logger->error("incorrect installer file size ({} instead of {})", size, item->enclosure->length);
       co_return outcome::failure(unfold::UnfoldErrc::InstallerVerificationFailed);
     }
 

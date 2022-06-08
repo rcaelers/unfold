@@ -18,6 +18,8 @@ if (HAVE_TESTS)
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/data/junk" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/data/installer.sh" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
+  add_executable(test-installer TestInstaller.cc)
+
   if(WIN32)
     set_tests_properties(unfold-test PROPERTIES ENVIRONMENT "PATH=${TEST_PATH_ENV}")
   endif()

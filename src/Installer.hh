@@ -39,6 +39,8 @@ public:
                      std::shared_ptr<unfold::http::HttpClient> http,
                      std::shared_ptr<unfold::crypto::SignatureVerifier> verifier);
 
+  void set_download_progress_callback(unfold::Unfold::download_progress_callback_t callback);
+
   boost::asio::awaitable<outcome::std_result<void>> install(std::shared_ptr<AppcastItem> item);
 
 private:
@@ -54,6 +56,7 @@ private:
 
   std::shared_ptr<AppcastItem> item;
   std::filesystem::path installer_path;
+  unfold::Unfold::download_progress_callback_t progress_callback;
   std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:installer")};
 };
 

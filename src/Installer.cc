@@ -46,6 +46,12 @@ Installer::Installer(std::shared_ptr<Platform> platform,
 {
 }
 
+void
+Installer::set_download_progress_callback(unfold::Unfold::download_progress_callback_t callback)
+{
+  this->progress_callback = callback;
+}
+
 boost::asio::awaitable<outcome::std_result<void>>
 Installer::install(std::shared_ptr<AppcastItem> item)
 {
@@ -87,7 +93,12 @@ Installer::download_installer()
       logger->info("downloading {} to {}", item->enclosure->url, installer_path.string());
       std::ofstream out_file(installer_path.string(), std::ofstream::binary);
 
-      auto rc = co_await http->get(item->enclosure->url, out_file, [&](double progress) {});
+      auto rc = co_await http->get(item->enclosure->url, out_file, [&](double progress) {
+        if (progress_callback)
+          {
+            progress_callback(progress);
+          }
+      });
       if (!rc)
         {
           logger->error("failed to download installer {} ({})", item->enclosure->url, rc.error());

@@ -155,6 +155,12 @@ UpgradeControl::set_update_available_callback(update_available_callback_t callba
   update_available_callback = callback;
 }
 
+void
+UpgradeControl::set_download_progress_callback(download_progress_callback_t callback)
+{
+  installer->set_download_progress_callback(callback);
+}
+
 std::optional<std::chrono::system_clock::time_point>
 UpgradeControl::get_last_update_check_time()
 {

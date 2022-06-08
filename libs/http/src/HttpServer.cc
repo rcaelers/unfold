@@ -333,7 +333,7 @@ HttpServer::add(std::string_view file, const std::string &body)
 void
 HttpServer::add_file(std::string_view file, const std::string &filename)
 {
-  std::ifstream f(filename.c_str());
+  std::ifstream f(filename.c_str(), std::ios::binary);
   std::string content((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
   spdlog::info("file {} {}", filename, content.size());
   add(file, content);

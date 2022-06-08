@@ -183,5 +183,13 @@ Installer::run_installer()
       co_return outcome::failure(unfold::UnfoldErrc::InstallerExecutionFailed);
     }
 
+  if (hooks->hook_restart())
+    {
+      if (hooks->hook_restart()())
+        {
+          platform->terminate();
+        }
+    }
+
   co_return outcome::success();
 }

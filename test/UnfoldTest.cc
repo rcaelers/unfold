@@ -21,6 +21,7 @@
 #include "unfold/Unfold.hh"
 #include "unfold/UnfoldErrors.hh"
 #include <boost/outcome/success_failure.hpp>
+#include <filesystem>
 #include <memory>
 #include <string>
 
@@ -46,6 +47,8 @@
 
 #define BOOST_TEST_MODULE "unfold"
 #include <boost/test/unit_test.hpp>
+#include <boost/test/data/test_case.hpp>
+#include <boost/test/data/monomorphic.hpp>
 
 using namespace unfold::utils;
 using ::testing::_;
@@ -997,6 +1000,96 @@ BOOST_AUTO_TEST_CASE(installer_failed_to_install)
     },
     boost::asio::detached);
   ioc.run();
+
+  server.stop();
+}
+
+BOOST_DATA_TEST_CASE(installer_started_installer, boost::unit_test::data::make({true, false}), do_reset)
+{
+  spdlog::info("Reset = {}", do_reset);
+
+  unfold::http::HttpServer server;
+  server.add_file("/installer.exe", "test-installer.exe");
+  server.run();
+
+  std::error_code ec;
+  std::uintmax_t size = std::filesystem::file_size("test-installer.exe", ec);
+
+  std::string appcast_str =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\"\n"
+    "    xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Workrave Test Appcast</title>\n"
+    "        <description>Most recent updates to Workrave Test</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://workrave.org/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.1/0</title>\n"
+    "            <link>https://workrave.org</link>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <sparkle:releaseNotesLink>https://workrave.org/v1.html</sparkle:releaseNotesLink>\n"
+    "            <pubDate>Sun Apr 17 19:30:14 CEST 2022</pubDate>\n"
+    "            <enclosure url=\"https://127.0.0.1:1337/installer.exe\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"" + std::to_string(size) + "\" type=\"application/octet-stream\" />\n"    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+  auto appcast = reader->load_from_string(appcast_str);
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto carc = http->add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
+
+  auto hooks = std::make_shared<Hooks>();
+
+  hooks->hook_restart() = [do_reset]() { return do_reset; };
+
+  auto verifier = std::make_shared<SignatureVerifierMock>();
+  EXPECT_CALL(*verifier, set_key(_, _)).Times(0);
+  EXPECT_CALL(*verifier, verify(_, _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
+
+  std::filesystem::remove("installer.log");
+
+  auto platform = std::make_shared<TestPlatform>();
+
+  Installer installer(platform, http, verifier, hooks);
+
+  double last_progress = 0.0;
+  installer.set_download_progress_callback([&last_progress](auto progress) {
+    BOOST_CHECK_GE(progress, last_progress);
+    last_progress = progress;
+  });
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await installer.install(appcast->items.front());
+          BOOST_CHECK_EQUAL(rc.has_error(), false);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+  BOOST_CHECK_GE(100, last_progress);
+
+  int tries = 100;
+  bool found = false;
+  do
+    {
+      found = std::filesystem::exists("installer.log");
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+  while (tries > 0 && !found);
+  BOOST_CHECK(found);
+
+  BOOST_CHECK_EQUAL(platform->is_terminated(), do_reset);
 
   server.stop();
 }

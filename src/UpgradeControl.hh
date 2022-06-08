@@ -33,13 +33,13 @@
 #include "http/HttpClient.hh"
 #include "utils/Logging.hh"
 #include "utils/IOContext.hh"
+#include "utils/PeriodicTimer.hh"
 
 #include "Platform.hh"
 #include "Installer.hh"
 #include "Checker.hh"
 #include "Settings.hh"
 #include "Hooks.hh"
-#include "utils/PeriodicTimer.hh"
 
 #include "semver.hpp"
 

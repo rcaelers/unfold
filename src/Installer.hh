@@ -52,6 +52,8 @@ private:
   boost::asio::awaitable<outcome::std_result<void>> verify_installer();
   boost::asio::awaitable<outcome::std_result<void>> run_installer();
 
+  void fix_permissions();
+
 private:
   std::shared_ptr<Platform> platform;
   std::shared_ptr<unfold::http::HttpClient> http;

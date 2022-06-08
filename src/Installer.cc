@@ -158,23 +158,29 @@ Installer::verify_installer()
   co_return rc;
 }
 
+void
+Installer::fix_permissions()
+{
+#if !defined(_WIN32)
+  std::error_code ec;
+  std::filesystem::permissions(installer_path.string(),
+                               std::filesystem::perms::owner_exec,
+                               std::filesystem::perm_options::add,
+                               ec);
+  if (ec)
+    {
+      logger->error("failed to make installer {} executable ({})", installer_path.string(), ec.message());
+    }
+#endif
+}
+
 boost::asio::awaitable<outcome::std_result<void>>
 Installer::run_installer()
 {
+  fix_permissions();
+
   try
     {
-
-      std::error_code ec;
-      std::filesystem::permissions(installer_path.string(),
-                                   std::filesystem::perms::owner_exec,
-                                   std::filesystem::perm_options::add,
-                                   ec);
-      if (ec)
-        {
-          logger->error("failed to make installer {} executable ({})", installer_path.string(), ec.message());
-          co_return outcome::failure(unfold::UnfoldErrc::InstallerExecutionFailed);
-        }
-
       boost::process::spawn(installer_path.string());
     }
   catch (std::exception &e)

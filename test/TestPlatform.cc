@@ -55,3 +55,15 @@ TestPlatform::is_supported_os_version(const std::string &minimum_version)
   current_version.from_string("10.10.10");
   return version >= current_version;
 }
+
+void
+TestPlatform::terminate()
+{
+  terminated = true;
+}
+
+bool
+TestPlatform::is_terminated() const
+{
+  return terminated;
+}

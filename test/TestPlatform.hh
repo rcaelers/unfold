@@ -33,10 +33,14 @@ class TestPlatform : public Platform
 public:
   TestPlatform() = default;
 
+  bool is_terminated() const;
+
   bool is_supported_os(const std::string &os) override;
   bool is_supported_os_version(const std::string &minimum_version) override;
+  void terminate() override;
 
 private:
+  bool terminated{false};
   std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:platform")};
 };
 

@@ -33,6 +33,7 @@ public:
 
   virtual bool is_supported_os(const std::string &os) = 0;
   virtual bool is_supported_os_version(const std::string &minimum_version) = 0;
+  virtual void terminate() = 0;
 };
 
 #endif // PLATFORM_HH

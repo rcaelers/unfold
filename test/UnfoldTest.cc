@@ -252,7 +252,7 @@ BOOST_AUTO_TEST_CASE(Windows_settings_string)
   auto rc = storage.set_prefix("Software\\UnfoldTest");
   BOOST_CHECK_EQUAL(rc.has_error(), false);
   rc = storage.remove_key("foo");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
   auto s = storage.get_value("foo", SettingType::String);
   BOOST_CHECK_EQUAL(s.has_value(), false);
   rc = storage.set_value("foo", "bar");
@@ -270,7 +270,7 @@ BOOST_AUTO_TEST_CASE(Windows_settings_int64)
   auto rc = storage.set_prefix("Software\\UnfoldTest");
   BOOST_CHECK_EQUAL(rc.has_error(), false);
   rc = storage.remove_key("foo");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
   auto s = storage.get_value("foo", SettingType::Int64);
   BOOST_CHECK_EQUAL(s.has_value(), false);
   rc = storage.set_value("foo", 42LL);
@@ -287,7 +287,7 @@ BOOST_AUTO_TEST_CASE(Windows_settings_int32)
 
   auto rc = storage.set_prefix("Software\\UnfoldTest");
   rc = storage.remove_key("foo");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
   auto s = storage.get_value("foo", SettingType::Int32);
   BOOST_CHECK_EQUAL(s.has_value(), false);
   rc = storage.set_value("foo", 43);
@@ -304,7 +304,7 @@ BOOST_AUTO_TEST_CASE(Windows_settings_bool)
 
   auto rc = storage.set_prefix("Software\\UnfoldTest");
   rc = storage.remove_key("foo");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
   auto s = storage.get_value("foo", SettingType::Boolean);
   BOOST_CHECK_EQUAL(s.has_value(), false);
   rc = storage.set_value("foo", true);

@@ -23,7 +23,7 @@
 #include <spdlog/fmt/ostr.h>
 
 std::function<bool()> &
-Hooks::hook_restart()
+Hooks::hook_terminate()
 {
-  return restart_hook;
+  return terminate_hook;
 }

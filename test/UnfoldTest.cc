@@ -1177,10 +1177,35 @@ BOOST_AUTO_TEST_CASE(installer_failed_to_install)
   server.stop();
 }
 
-BOOST_DATA_TEST_CASE(installer_started_installer, boost::unit_test::data::make({true, false}), do_reset)
+enum class TerminateHookType
 {
-  spdlog::info("Reset = {}", do_reset);
+  NoTerminateHook,
+  NoTerminate,
+  Terminate
+};
+inline std::ostream &
+operator<<(std::ostream &os, TerminateHookType type)
+{
+  switch (type)
+    {
+    case TerminateHookType::NoTerminateHook:
+      os << "NoTerminateHook";
+      break;
+    case TerminateHookType::NoTerminate:
+      os << "NoTerminate";
+      break;
+    case TerminateHookType::Terminate:
+      os << "Terminate";
+      break;
+    }
+  return os;
+}
 
+BOOST_DATA_TEST_CASE(installer_started_installer,
+                     boost::unit_test::data::make(
+                       {TerminateHookType::NoTerminateHook, TerminateHookType::NoTerminate, TerminateHookType::Terminate}),
+                     do_terminate)
+{
   unfold::http::HttpServer server;
   server.add_file("/installer.exe", "test-installer.exe");
   server.run();
@@ -1216,7 +1241,10 @@ BOOST_DATA_TEST_CASE(installer_started_installer, boost::unit_test::data::make({
 
   auto hooks = std::make_shared<Hooks>();
 
-  hooks->hook_restart() = [do_reset]() { return do_reset; };
+  if (do_terminate != TerminateHookType::NoTerminateHook)
+    {
+      hooks->hook_terminate() = [do_terminate]() { return do_terminate == TerminateHookType::Terminate; };
+    }
 
   auto verifier = std::make_shared<SignatureVerifierMock>();
   EXPECT_CALL(*verifier, set_key(_, _)).Times(0);
@@ -1262,7 +1290,7 @@ BOOST_DATA_TEST_CASE(installer_started_installer, boost::unit_test::data::make({
   while (tries > 0 && !found);
   BOOST_CHECK(found);
 
-  BOOST_CHECK_EQUAL(platform->is_terminated(), do_reset);
+  BOOST_CHECK_EQUAL(platform->is_terminated(), do_terminate != TerminateHookType::NoTerminate);
 
   server.stop();
 }

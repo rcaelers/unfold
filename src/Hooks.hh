@@ -28,11 +28,11 @@ class Hooks : public unfold::UnfoldHooks
 public:
   Hooks() = default;
   ~Hooks() override = default;
-  
-  std::function<bool()> &hook_restart() override;
+
+  std::function<bool()> &hook_terminate() override;
 
 private:
-  std::function<bool()> restart_hook;
+  std::function<bool()> terminate_hook;
 };
 
 #endif // HOOKS_HH

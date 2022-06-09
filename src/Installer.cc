@@ -190,12 +190,15 @@ Installer::run_installer()
       co_return outcome::failure(unfold::UnfoldErrc::InstallerExecutionFailed);
     }
 
-  if (hooks->hook_restart())
+  bool do_terminate = true;
+  if (hooks->hook_terminate())
     {
-      if (hooks->hook_restart()())
-        {
-          platform->terminate();
-        }
+      do_terminate = hooks->hook_terminate()();
+    }
+
+  if (do_terminate)
+    {
+      platform->terminate();
     }
 
   co_return outcome::success();

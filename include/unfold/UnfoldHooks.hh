@@ -30,7 +30,7 @@ namespace unfold
 
     virtual ~UnfoldHooks() = default;
 
-    virtual std::function<bool()> &hook_restart() = 0;
+    virtual std::function<bool()> &hook_terminate() = 0;
   };
 } // namespace unfold
 

@@ -34,6 +34,7 @@
 #if SPDLOG_VERSION >= 10801
 #  include <spdlog/cfg/env.h>
 #endif
+#include <spdlog/fmt/ostr.h>
 
 #include "http/HttpServer.hh"
 #include "utils/Logging.hh"
@@ -42,6 +43,10 @@
 #include "AppCast.hh"
 #include "TestPlatform.hh"
 #include "UpgradeControl.hh"
+
+#if defined(_WIN32)
+#  include "windows/WindowsSettingsStorage.hh"
+#endif
 
 #include "SignatureVerifierMock.hh"
 
@@ -237,6 +242,174 @@ BOOST_AUTO_TEST_CASE(appcast_load_invalid_from_file)
   auto appcast = reader->load_from_file("invalidappcast.xml");
   BOOST_CHECK_EQUAL(appcast.get(), nullptr);
 }
+
+#if defined(_WIN32)
+
+BOOST_AUTO_TEST_CASE(Windows_settings_string)
+{
+  WindowsSettingsStorage storage;
+
+  auto rc = storage.set_prefix("Software\\UnfoldTest");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  rc = storage.remove_key("foo");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  auto s = storage.get_value("foo", SettingType::String);
+  BOOST_CHECK_EQUAL(s.has_value(), false);
+  rc = storage.set_value("foo", "bar");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  s = storage.get_value("foo", SettingType::String);
+  BOOST_CHECK_EQUAL(s.has_value(), true);
+  BOOST_CHECK_EQUAL(std::get<std::string>(s.value()), "bar");
+  BOOST_CHECK_EQUAL(SettingValueToType(s.value()), SettingType::String);
+}
+
+BOOST_AUTO_TEST_CASE(Windows_settings_int64)
+{
+  WindowsSettingsStorage storage;
+
+  auto rc = storage.set_prefix("Software\\UnfoldTest");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  rc = storage.remove_key("foo");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  auto s = storage.get_value("foo", SettingType::Int64);
+  BOOST_CHECK_EQUAL(s.has_value(), false);
+  rc = storage.set_value("foo", 42LL);
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  s = storage.get_value("foo", SettingType::Int64);
+  BOOST_CHECK_EQUAL(s.has_value(), true);
+  BOOST_CHECK_EQUAL(std::get<int64_t>(s.value()), 42LL);
+  BOOST_CHECK_EQUAL(SettingValueToType(s.value()), SettingType::Int64);
+}
+
+BOOST_AUTO_TEST_CASE(Windows_settings_int32)
+{
+  WindowsSettingsStorage storage;
+
+  auto rc = storage.set_prefix("Software\\UnfoldTest");
+  rc = storage.remove_key("foo");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  auto s = storage.get_value("foo", SettingType::Int32);
+  BOOST_CHECK_EQUAL(s.has_value(), false);
+  rc = storage.set_value("foo", 43);
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  s = storage.get_value("foo", SettingType::Int32);
+  BOOST_CHECK_EQUAL(s.has_value(), true);
+  BOOST_CHECK_EQUAL(std::get<int32_t>(s.value()), 43);
+  BOOST_CHECK_EQUAL(SettingValueToType(s.value()), SettingType::Int32);
+}
+
+BOOST_AUTO_TEST_CASE(Windows_settings_bool)
+{
+  WindowsSettingsStorage storage;
+
+  auto rc = storage.set_prefix("Software\\UnfoldTest");
+  rc = storage.remove_key("foo");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  auto s = storage.get_value("foo", SettingType::Boolean);
+  BOOST_CHECK_EQUAL(s.has_value(), false);
+  rc = storage.set_value("foo", true);
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  s = storage.get_value("foo", SettingType::Boolean);
+  BOOST_CHECK_EQUAL(s.has_value(), true);
+  BOOST_CHECK_EQUAL(std::get<bool>(s.value()), true);
+  rc = storage.set_value("foo", false);
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  s = storage.get_value("foo", SettingType::Boolean);
+  BOOST_CHECK_EQUAL(s.has_value(), true);
+  BOOST_CHECK_EQUAL(std::get<bool>(s.value()), false);
+  BOOST_CHECK_EQUAL(SettingValueToType(s.value()), SettingType::Boolean);
+}
+
+BOOST_AUTO_TEST_CASE(Windows_settings_remove)
+{
+  WindowsSettingsStorage storage;
+
+  auto rc = storage.set_prefix("Software\\UnfoldTest");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  rc = storage.remove_key("foo");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  rc = storage.remove_key("\n");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+}
+
+BOOST_AUTO_TEST_CASE(Windows_settings_invalid_subkey)
+{
+  WindowsSettingsStorage storage;
+
+  auto rc = storage.set_prefix("\\\\");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  auto s = storage.get_value("foo", SettingType::Boolean);
+  BOOST_CHECK_EQUAL(s.has_error(), true);
+  s = storage.get_value("foo", SettingType::Boolean);
+  BOOST_CHECK_EQUAL(s.has_error(), true);
+  s = storage.get_value("foo", SettingType::Int32);
+  BOOST_CHECK_EQUAL(s.has_error(), true);
+  s = storage.get_value("foo", SettingType::Int64);
+  BOOST_CHECK_EQUAL(s.has_error(), true);
+  s = storage.get_value("foo", SettingType::String);
+  BOOST_CHECK_EQUAL(s.has_error(), true);
+
+  rc = storage.remove_key("foo");
+  BOOST_CHECK_EQUAL(rc.has_error(), true);
+
+  rc = storage.set_value("foo", true);
+  BOOST_CHECK_EQUAL(rc.has_error(), true);
+  rc = storage.set_value("foo", false);
+  BOOST_CHECK_EQUAL(rc.has_error(), true);
+  rc = storage.set_value("foo", "bar");
+  BOOST_CHECK_EQUAL(rc.has_error(), true);
+  rc = storage.set_value("foo", 42);
+  BOOST_CHECK_EQUAL(rc.has_error(), true);
+  rc = storage.set_value("foo", 42LL);
+  BOOST_CHECK_EQUAL(rc.has_error(), true);
+}
+
+namespace
+{
+  auto very_long_string = std::string(20 * 1024, 'a');
+}
+
+BOOST_AUTO_TEST_CASE(Windows_settings_get_invalid_key)
+{
+  WindowsSettingsStorage storage;
+
+  auto rc = storage.set_prefix("Software\\UnfoldTest");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  auto s = storage.get_value("foo", SettingType::Boolean);
+  BOOST_CHECK_EQUAL(s.has_error(), true);
+  s = storage.get_value(very_long_string, SettingType::Boolean);
+  BOOST_CHECK_EQUAL(s.has_error(), true);
+  s = storage.get_value(very_long_string, SettingType::String);
+  BOOST_CHECK_EQUAL(s.has_error(), true);
+  s = storage.get_value(very_long_string, SettingType::Int32);
+  BOOST_CHECK_EQUAL(s.has_error(), true);
+  s = storage.get_value(very_long_string, SettingType::Int64);
+  BOOST_CHECK_EQUAL(s.has_error(), true);
+
+  rc = storage.remove_key(very_long_string);
+  BOOST_CHECK_EQUAL(rc.has_error(), false); // Windows return "no such key"
+}
+
+BOOST_AUTO_TEST_CASE(Windows_settings_set_invalid_key)
+{
+  WindowsSettingsStorage storage;
+
+  auto rc = storage.set_prefix("Software\\UnfoldTest");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  rc = storage.set_value(very_long_string, true);
+  BOOST_CHECK_EQUAL(rc.has_error(), true);
+  rc = storage.set_value(very_long_string, false);
+  BOOST_CHECK_EQUAL(rc.has_error(), true);
+  rc = storage.set_value(very_long_string, "bar");
+  BOOST_CHECK_EQUAL(rc.has_error(), true);
+  rc = storage.set_value(very_long_string, 42);
+  BOOST_CHECK_EQUAL(rc.has_error(), true);
+  rc = storage.set_value(very_long_string, 42LL);
+  BOOST_CHECK_EQUAL(rc.has_error(), true);
+}
+
+#endif
 
 BOOST_AUTO_TEST_CASE(checker_appcast_not_found)
 {

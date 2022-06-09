@@ -20,6 +20,8 @@
 
 #include "Settings.hh"
 
+#include <optional>
+
 #include <spdlog/fmt/ostr.h>
 
 namespace
@@ -40,7 +42,7 @@ Settings::get_last_update_check_time()
   auto l = storage->get_value(last_update_check_time, SettingType::Int64);
   if (l)
     {
-      return std::chrono::system_clock::time_point(std::chrono::seconds(std::get<int64_t>(*l)));
+      return std::chrono::system_clock::time_point(std::chrono::seconds(std::get<int64_t>(l.value())));
     }
   return {};
 }
@@ -57,7 +59,7 @@ Settings::get_skip_version()
   auto version = storage->get_value(skip_version, SettingType::String);
   if (version)
     {
-      return std::get<std::string>(*version);
+      return std::get<std::string>(version.value());
     }
   return {};
 }

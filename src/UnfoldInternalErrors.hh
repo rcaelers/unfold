@@ -18,28 +18,26 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef WINDOWS_SETTINGS_STORAGE_HH
-#define WINDOWS_SETTINGS_STORAGE_HH
+#ifndef UNFOLD_INTERNAL_ERRORS_HH
+#define UNFOLD_INTERNAL_ERRORS_HH
 
-#include "SettingsStorage.hh"
+#include <system_error>
 
-#include <string>
-
-#include "utils/Logging.hh"
-
-class WindowsSettingsStorage : public SettingsStorage
+enum class UnfoldInternalErrc
 {
-public:
-  ~WindowsSettingsStorage() override = default;
-
-  outcome::std_result<void> set_prefix(const std::string &prefix) override;
-  outcome::std_result<void> remove_key(const std::string &name) override;
-  outcome::std_result<SettingValue> get_value(const std::string &name, SettingType type) const override;
-  outcome::std_result<void> set_value(const std::string &name, const SettingValue &value) override;
-
-private:
-  std::string subkey_;
-  std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:windows")};
+  Success = 0,
+  InvalidSetting = 1,
+  InternalError,
 };
 
-#endif // WINDOWS_SETTINGS_STORAGE_HH
+std::error_code make_error_code(UnfoldInternalErrc ec);
+
+namespace std
+{
+  template<>
+  struct is_error_code_enum<UnfoldInternalErrc> : true_type
+  {
+  };
+} // namespace std
+
+#endif // UNFOLD_INTERNAL_ERRORS_HH

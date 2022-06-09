@@ -8,6 +8,7 @@ target_sources(unfold PRIVATE
   UnfoldErrors.cc
   Settings.cc
   Hooks.cc
+  UnfoldInternalErrors.cc
   )
 
 if(APPLE)

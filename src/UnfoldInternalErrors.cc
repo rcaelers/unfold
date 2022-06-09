@@ -18,28 +18,38 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef WINDOWS_SETTINGS_STORAGE_HH
-#define WINDOWS_SETTINGS_STORAGE_HH
+#include "UnfoldInternalErrors.hh"
 
-#include "SettingsStorage.hh"
-
-#include <string>
-
-#include "utils/Logging.hh"
-
-class WindowsSettingsStorage : public SettingsStorage
+namespace
 {
-public:
-  ~WindowsSettingsStorage() override = default;
+  struct UnfoldInternalErrorCategory : std::error_category
+  {
+    const char *name() const noexcept override
+    {
+      return "unfold";
+    }
+    std::string message(int ev) const override;
+  };
 
-  outcome::std_result<void> set_prefix(const std::string &prefix) override;
-  outcome::std_result<void> remove_key(const std::string &name) override;
-  outcome::std_result<SettingValue> get_value(const std::string &name, SettingType type) const override;
-  outcome::std_result<void> set_value(const std::string &name, const SettingValue &value) override;
+  std::string UnfoldInternalErrorCategory::message(int ev) const
+  {
+    switch (static_cast<UnfoldInternalErrc>(ev))
+      {
+      case UnfoldInternalErrc::Success:
+        return "success";
+      case UnfoldInternalErrc::InvalidSetting:
+        return "invalid settings";
+      case UnfoldInternalErrc::InternalError:
+        return "internal error";
+      }
+    return "(unknown)";
+  }
 
-private:
-  std::string subkey_;
-  std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:windows")};
-};
+  const UnfoldInternalErrorCategory globalUnfoldInternalErrorCategory{};
+} // namespace
 
-#endif // WINDOWS_SETTINGS_STORAGE_HH
+std::error_code
+make_error_code(UnfoldInternalErrc ec)
+{
+  return std::error_code{static_cast<int>(ec), globalUnfoldInternalErrorCategory};
+}

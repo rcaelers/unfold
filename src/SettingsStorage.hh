@@ -24,19 +24,19 @@
 #include <memory>
 #include <string>
 #include <variant>
-#include <optional>
+
+#include <boost/outcome/std_result.hpp>
+namespace outcome = boost::outcome_v2;
 
 enum class SettingType
 {
-  Unknown,
   Boolean,
   Int32,
   Int64,
-  Double,
   String,
 };
 
-using SettingValue = std::variant<bool, int32_t, int64_t, double, std::string>;
+using SettingValue = std::variant<bool, int32_t, int64_t, std::string>;
 
 constexpr SettingType
 SettingValueToType(SettingValue &value)
@@ -57,10 +57,6 @@ SettingValueToType(SettingValue &value)
         {
           return SettingType::Int32;
         }
-      else if constexpr (std::is_same_v<double, T>)
-        {
-          return SettingType::Double;
-        }
       else if constexpr (std::is_same_v<std::string, T>)
         {
           return SettingType::String;
@@ -76,6 +72,27 @@ operator<<(std::ostream &os, const SettingValue &value)
   return os;
 }
 
+inline std::ostream &
+operator<<(std::ostream &os, SettingType type)
+{
+  switch (type)
+    {
+    case SettingType::Boolean:
+      os << "Boolean";
+      break;
+    case SettingType::Int32:
+      os << "Int32";
+      break;
+    case SettingType::Int64:
+      os << "Int64";
+      break;
+    case SettingType::String:
+      os << "String";
+      break;
+    }
+  return os;
+}
+
 class SettingsStorage
 {
 public:
@@ -83,11 +100,11 @@ public:
 
   static std::shared_ptr<SettingsStorage> create();
 
-  virtual void set_prefix(const std::string &prefix) = 0;
+  virtual outcome::std_result<void> set_prefix(const std::string &prefix) = 0;
 
-  virtual void remove_key(const std::string &name) = 0;
-  virtual std::optional<SettingValue> get_value(const std::string &name, SettingType type) const = 0;
-  virtual void set_value(const std::string &name, const SettingValue &value) = 0;
+  virtual outcome::std_result<void> remove_key(const std::string &name) = 0;
+  virtual outcome::std_result<SettingValue> get_value(const std::string &name, SettingType type) const = 0;
+  virtual outcome::std_result<void> set_value(const std::string &name, const SettingValue &value) = 0;
 };
 
 #endif // SETTINGS_STORAGE_HH

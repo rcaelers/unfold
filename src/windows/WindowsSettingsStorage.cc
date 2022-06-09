@@ -20,9 +20,13 @@
 
 #include "WindowsSettingsStorage.hh"
 
+#include <exception>
 #include <memory>
 #include <string>
+
+#include "UnfoldInternalErrors.hh"
 #include "boost/lexical_cast.hpp"
+#include <spdlog/fmt/ostr.h>
 
 #include <variant>
 #include <windows.h>
@@ -33,29 +37,38 @@ SettingsStorage::create()
   return std::make_shared<WindowsSettingsStorage>();
 }
 
-void
+outcome::std_result<void>
 WindowsSettingsStorage::set_prefix(const std::string &prefix)
 {
   subkey_ = prefix;
+  return outcome::success();
 }
 
-void
+outcome::std_result<void>
 WindowsSettingsStorage::remove_key(const std::string &name)
 {
   HKEY key = nullptr;
   LONG err = RegOpenKeyEx(HKEY_CURRENT_USER, subkey_.c_str(), 0, KEY_ALL_ACCESS, &key);
-  if (err == ERROR_SUCCESS)
+  if (err != ERROR_SUCCESS)
     {
-      err = RegDeleteValueA(key, name.c_str());
-      if (err != ERROR_SUCCESS)
-        {
-          logger->error("failed to delete registry key {}\\{}", subkey_, name);
-        }
-      RegCloseKey(key);
+      logger->error("failed to open registry key {}\\{} for deletion", subkey_, name);
+      return outcome::failure(UnfoldInternalErrc::InvalidSetting);
     }
+
+  err = RegDeleteValueA(key, name.c_str());
+  logger->error("RegDeleteValueA {}\\{} {}", subkey_, name, err);
+  if (err != ERROR_SUCCESS && err != ERROR_FILE_NOT_FOUND)
+    {
+      RegCloseKey(key);
+      logger->error("failed to delete registry key {}\\{}", subkey_, name);
+      return outcome::failure(UnfoldInternalErrc::InvalidSetting);
+    }
+
+  RegCloseKey(key);
+  return outcome::success();
 }
 
-std::optional<SettingValue>
+outcome::std_result<SettingValue>
 WindowsSettingsStorage::get_value(const std::string &name, SettingType type) const
 {
   HKEY key = nullptr;
@@ -63,8 +76,8 @@ WindowsSettingsStorage::get_value(const std::string &name, SettingType type) con
   LONG err = RegOpenKeyEx(HKEY_CURRENT_USER, subkey_.c_str(), 0, KEY_ALL_ACCESS, &key);
   if (err != ERROR_SUCCESS)
     {
-      logger->error("failed to open registry key {}\\{}", subkey_, name);
-      return {};
+      logger->error("failed to open registry key {}\\{} for retrieval", subkey_, name);
+      return outcome::failure(UnfoldInternalErrc::InvalidSetting);
     }
 
   std::string value;
@@ -74,9 +87,9 @@ WindowsSettingsStorage::get_value(const std::string &name, SettingType type) con
 
   if (err != ERROR_SUCCESS || (size == 0))
     {
-      logger->error("failed to read registry key {}\\{}", subkey_, name);
+      logger->error("failed to read registry key size {}\\{}", subkey_, name);
       RegCloseKey(key);
-      return {};
+      return outcome::failure(UnfoldInternalErrc::InvalidSetting);
     }
 
   DWORD regtype = 0;
@@ -87,41 +100,43 @@ WindowsSettingsStorage::get_value(const std::string &name, SettingType type) con
     {
       logger->error("failed to read registry key {}\\{}", subkey_, name);
       RegCloseKey(key);
-      return {};
+      return outcome::failure(UnfoldInternalErrc::InvalidSetting);
     }
 
   data[size] = '\0';
   value = data.data();
 
   RegCloseKey(key);
-  switch (type)
+  try
     {
-    case SettingType::Int32:
-      return boost::lexical_cast<int32_t>(value);
+      switch (type)
+        {
+        case SettingType::Int32:
+          return boost::lexical_cast<int32_t>(value);
 
-    case SettingType::Int64:
-      return boost::lexical_cast<int64_t>(value);
+        case SettingType::Int64:
+          return boost::lexical_cast<int64_t>(value);
 
-    case SettingType::Boolean:
-      return boost::lexical_cast<bool>(value);
+        case SettingType::Boolean:
+          return boost::lexical_cast<bool>(value);
 
-    case SettingType::Double:
-      return boost::lexical_cast<double>(value);
-
-    case SettingType::Unknown:
-      [[fallthrough]];
-
-    case SettingType::String:
-      return value;
+        case SettingType::String:
+          return value;
+        }
     }
-  return {};
+  catch (std::exception &e)
+    {
+      logger->error("failed to convert value {} of type {} and {}\\{} ({})", value, type, subkey_, name, e.what());
+      return outcome::failure(UnfoldInternalErrc::InvalidSetting);
+    }
+  return outcome::failure(UnfoldInternalErrc::InvalidSetting);
 }
 
-void
+outcome::std_result<void>
 WindowsSettingsStorage::set_value(const std::string &name, const SettingValue &value)
 {
-  std::visit(
-    [this, name](auto &&arg) {
+  return std::visit(
+    [this, name](auto &&arg) -> outcome::std_result<void> {
       using T = std::decay_t<decltype(arg)>;
 
       std::string v;
@@ -148,9 +163,9 @@ WindowsSettingsStorage::set_value(const std::string &name, const SettingValue &v
                                 &disp);
       if (err != ERROR_SUCCESS)
         {
-          logger->error("failed to read registry key {}\\{}", subkey_, name);
+          logger->error("failed to create registry key {}\\{}", subkey_, name);
           RegCloseKey(key);
-          return;
+          return outcome::failure(UnfoldInternalErrc::InvalidSetting);
         }
 
       err = RegSetValueEx(key, name.c_str(), 0, REG_SZ, (BYTE *)v.c_str(), static_cast<DWORD>(v.length() + 1));
@@ -158,8 +173,9 @@ WindowsSettingsStorage::set_value(const std::string &name, const SettingValue &v
       if (err != ERROR_SUCCESS)
         {
           logger->error("failed to set registry key {}\\{}", subkey_, name);
-          return;
+          return outcome::failure(UnfoldInternalErrc::InvalidSetting);
         }
+      return outcome::success();
     },
     value);
 }

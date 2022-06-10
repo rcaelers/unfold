@@ -5,6 +5,7 @@ if (HAVE_TESTS)
                  AppCastTests.cc
                  CheckerTests.cc
                  InstallerTests.cc
+                 SettingsTests.cc
                  TestPlatform.cc
                  UnfoldTest.cc
                  UpgradeControlTests.cc)

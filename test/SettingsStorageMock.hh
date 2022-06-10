@@ -18,35 +18,24 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef SETTINGS_HH
-#define SETTINGS_HH
+#ifndef SETTINGS_STORAGE_MOCK_HH
+#define SETTINGS_STORAGE_MOCK_HH
 
-#include <memory>
-#include <optional>
+#include "gmock/gmock.h"
 
-#include "utils/Logging.hh"
+#include <boost/outcome/std_result.hpp>
+
 #include "SettingsStorage.hh"
 
-class Settings
+class SettingsStorageMock : public SettingsStorage
 {
 public:
-  explicit Settings(std::shared_ptr<SettingsStorage> storage);
+  SettingsStorageMock() = default;
 
-  std::optional<std::chrono::system_clock::time_point> get_last_update_check_time() const;
-  void set_last_update_check_time(std::chrono::system_clock::time_point);
-
-  std::string get_skip_version() const;
-  void set_skip_version(std::string version);
-
-  std::chrono::seconds get_periodic_update_check_interval() const;
-  void set_periodic_update_check_interval(std::chrono::seconds interval);
-
-  bool get_periodic_update_check_enabled() const;
-  void set_periodic_update_check_enabled(bool enabled);
-
-private:
-  std::shared_ptr<SettingsStorage> storage;
-  std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:settings")};
+  MOCK_METHOD(outcome::std_result<void>, set_prefix, (const std::string &prefix), (override));
+  MOCK_METHOD(outcome::std_result<void>, remove_key, (const std::string &name), (override));
+  MOCK_METHOD(outcome::std_result<SettingValue>, get_value, (const std::string &name, SettingType type), (const, override));
+  MOCK_METHOD(outcome::std_result<void>, set_value, (const std::string &name, const SettingValue &value), (override));
 };
 
-#endif // SETTINGS_HH
+#endif // SETTINGS_STORAGE_MOCK_HH

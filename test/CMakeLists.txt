@@ -1,5 +1,17 @@
 if (HAVE_TESTS)
-  add_executable(unfold-test UnfoldTest.cc TestPlatform.cc)
+  add_executable(unfold-test)
+
+  target_sources(unfold-test PRIVATE
+                 AppCastTests.cc
+                 CheckerTests.cc
+                 InstallerTests.cc
+                 TestPlatform.cc
+                 UnfoldTest.cc
+                 UpgradeControlTests.cc)
+
+  if(WIN32)
+    target_sources(unfold-test PRIVATE WindowsTests.cc)
+  endif()
 
   target_link_libraries(unfold-test PRIVATE unfold)
   target_link_libraries(unfold-test PRIVATE Boost::test_exec_monitor gmock_main)

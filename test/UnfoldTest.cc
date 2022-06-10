@@ -32,6 +32,10 @@
 #endif
 #include <spdlog/fmt/ostr.h>
 
+#include "Fixture.hpp"
+#include "unfold/UnfoldErrors.hh"
+#include "UnfoldInternalErrors.hh"
+
 struct GlobalFixture
 {
   GlobalFixture() = default;
@@ -65,3 +69,57 @@ private:
 };
 
 BOOST_TEST_GLOBAL_FIXTURE(GlobalFixture);
+
+BOOST_FIXTURE_TEST_SUITE(unfold_test, Fixture)
+
+BOOST_AUTO_TEST_CASE(unfold_error_code)
+{
+  auto error = unfold::make_error_code(unfold::UnfoldErrc::InternalError);
+  BOOST_CHECK_EQUAL(error.message(), "internal error");
+  BOOST_CHECK_EQUAL(error.category().name(), "unfold");
+
+  error = unfold::make_error_code(unfold::UnfoldErrc::AppcastDownloadFailed);
+  BOOST_CHECK_EQUAL(error.message(), "failed to download appcast");
+  BOOST_CHECK_EQUAL(error.category().name(), "unfold");
+
+  error = unfold::make_error_code(unfold::UnfoldErrc::InstallerDownloadFailed);
+  BOOST_CHECK_EQUAL(error.message(), "failed to download installer");
+  BOOST_CHECK_EQUAL(error.category().name(), "unfold");
+
+  error = unfold::make_error_code(unfold::UnfoldErrc::InstallerExecutionFailed);
+  BOOST_CHECK_EQUAL(error.message(), "failed to execute installer");
+  BOOST_CHECK_EQUAL(error.category().name(), "unfold");
+
+  error = unfold::make_error_code(unfold::UnfoldErrc::InstallerVerificationFailed);
+  BOOST_CHECK_EQUAL(error.message(), "failed to validate installer integrity");
+  BOOST_CHECK_EQUAL(error.category().name(), "unfold");
+
+  error = unfold::make_error_code(unfold::UnfoldErrc::InvalidAppcast);
+  BOOST_CHECK_EQUAL(error.message(), "invalid appcast");
+  BOOST_CHECK_EQUAL(error.category().name(), "unfold");
+
+  error = unfold::make_error_code(unfold::UnfoldErrc::InvalidArgument);
+  BOOST_CHECK_EQUAL(error.message(), "invalid argument");
+  BOOST_CHECK_EQUAL(error.category().name(), "unfold");
+
+  error = unfold::make_error_code(unfold::UnfoldErrc::Success);
+  BOOST_CHECK_EQUAL(error.message(), "success");
+  BOOST_CHECK_EQUAL(error.category().name(), "unfold");
+}
+
+BOOST_AUTO_TEST_CASE(unfold_internal_error_code)
+{
+  auto error = make_error_code(UnfoldInternalErrc::InternalError);
+  BOOST_CHECK_EQUAL(error.message(), "internal error");
+  BOOST_CHECK_EQUAL(error.category().name(), "unfold");
+
+  error = make_error_code(UnfoldInternalErrc::InvalidSetting);
+  BOOST_CHECK_EQUAL(error.message(), "invalid setting");
+  BOOST_CHECK_EQUAL(error.category().name(), "unfold");
+
+  error = make_error_code(UnfoldInternalErrc::Success);
+  BOOST_CHECK_EQUAL(error.message(), "success");
+  BOOST_CHECK_EQUAL(error.category().name(), "unfold");
+}
+
+BOOST_AUTO_TEST_SUITE_END()

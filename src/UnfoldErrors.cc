@@ -24,38 +24,37 @@ using namespace unfold;
 
 namespace
 {
-  struct UnfoldErrorCategory : std::error_category
+  class UnfoldErrorCategory : public std::error_category
   {
-    const char *name() const noexcept override
+  public:
+    const char *name() const noexcept final
     {
       return "unfold";
     }
-    std::string message(int ev) const override;
-  };
 
-  std::string UnfoldErrorCategory::message(int ev) const
-  {
-    switch (static_cast<UnfoldErrc>(ev))
-      {
-      case UnfoldErrc::Success:
-        return "success";
-      case UnfoldErrc::InvalidArgument:
-        return "invalid argument";
-      case UnfoldErrc::InvalidAppcast:
-        return "invalid appcast";
-      case UnfoldErrc::AppcastDownloadFailed:
-        return "failed to download appcast";
-      case UnfoldErrc::InstallerDownloadFailed:
-        return "failed to download installer";
-      case UnfoldErrc::InstallerVerificationFailed:
-        return "failed to validate installer integrity";
-      case UnfoldErrc::InstallerExecutionFailed:
-        return "failed to execute installer";
-      case UnfoldErrc::InternalError:
-        return "internal error";
-      }
-    return "(unknown)";
-  }
+    std::string message(int ev) const final
+    {
+      switch (static_cast<UnfoldErrc>(ev))
+        {
+        case UnfoldErrc::Success:
+          return "success";
+        case UnfoldErrc::InvalidArgument:
+          return "invalid argument";
+        case UnfoldErrc::InvalidAppcast:
+          return "invalid appcast";
+        case UnfoldErrc::AppcastDownloadFailed:
+          return "failed to download appcast";
+        case UnfoldErrc::InstallerDownloadFailed:
+          return "failed to download installer";
+        case UnfoldErrc::InstallerVerificationFailed:
+          return "failed to validate installer integrity";
+        case UnfoldErrc::InstallerExecutionFailed:
+          return "failed to execute installer";
+        case UnfoldErrc::InternalError:
+          return "internal error";
+        }
+    }
+  };
 
   const UnfoldErrorCategory globalUnfoldErrorCategory{};
 } // namespace

@@ -38,11 +38,10 @@ namespace
       case UnfoldInternalErrc::Success:
         return "success";
       case UnfoldInternalErrc::InvalidSetting:
-        return "invalid settings";
+        return "invalid setting";
       case UnfoldInternalErrc::InternalError:
         return "internal error";
       }
-    return "(unknown)";
   }
 
   const UnfoldInternalErrorCategory globalUnfoldInternalErrorCategory{};

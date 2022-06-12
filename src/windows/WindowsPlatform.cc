@@ -72,7 +72,8 @@ WindowsPlatform::is_supported_os_version(const std::string &minimum_version)
                                                  VER_GREATER_EQUAL));
 }
 
-void WindowsPlatform::terminate()
+void
+WindowsPlatform::terminate()
 {
   // TODO: Implement
 }

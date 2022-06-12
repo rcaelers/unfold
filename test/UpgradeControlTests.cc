@@ -18,16 +18,30 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <algorithm>
+#include <boost/algorithm/string/replace.hpp>
+#include <fstream>
+
+#include <boost/test/tools/old/interface.hpp>
 #include <boost/test/unit_test.hpp>
+#include <boost/algorithm/string.hpp>
+#include <memory>
 #include <spdlog/spdlog.h>
 
 #include "unfold/Unfold.hh"
 #include "unfold/UnfoldErrors.hh"
 #include "http/HttpServer.hh"
+#include "utils/Base64.hh"
 
-#include "Fixture.hpp"
 #include "TestPlatform.hh"
 #include "UpgradeControl.hh"
+#include "SettingsStorageMock.hh"
+#include "SignatureVerifierMock.hh"
+#include "CheckerMock.hh"
+#include "InstallerMock.hh"
+
+#include <openssl/pem.h>
+#include <openssl/err.h>
 
 namespace
 {
@@ -52,12 +66,205 @@ namespace
     "-----END CERTIFICATE-----\n";
 } // namespace
 
-BOOST_FIXTURE_TEST_SUITE(unfold_upgrade_control_test, Fixture)
+namespace
+{
+
+  template<class T>
+  struct Deleter;
+
+  template<>
+  struct Deleter<BIO>
+  {
+    void operator()(BIO *p) const
+    {
+      BIO_free_all(p);
+    }
+  };
+
+  template<>
+  struct Deleter<EVP_MD_CTX>
+  {
+    void operator()(EVP_MD_CTX *p) const
+    {
+      EVP_MD_CTX_free(p);
+    }
+  };
+
+  template<>
+  struct Deleter<EVP_PKEY>
+  {
+    void operator()(EVP_PKEY *p) const
+    {
+      EVP_PKEY_free(p);
+    }
+  };
+
+  template<class Type>
+  using UniquePtr = std::unique_ptr<Type, Deleter<Type>>;
+
+  std::string sign(const std::string &msg, const std::string &priv_key)
+  {
+    UniquePtr<BIO> buff{BIO_new_mem_buf(priv_key.data(), static_cast<int>(priv_key.length()))};
+    BIO_set_close(buff.get(), BIO_CLOSE);
+
+    UniquePtr<EVP_PKEY> key{PEM_read_bio_PrivateKey(buff.get(), nullptr, nullptr, nullptr)};
+    if (key == nullptr)
+      {
+        spdlog::error("Failed to read private key");
+        return "";
+      }
+
+    UniquePtr<EVP_MD_CTX> ctx{EVP_MD_CTX_new()};
+    if (ctx == nullptr)
+      {
+        spdlog::error("Failed to create EVP_MD_CTX");
+        return "";
+      }
+
+    if (EVP_DigestSignInit(ctx.get(), nullptr, nullptr, nullptr, key.get()) != 1)
+      {
+        spdlog::error("Failed to init EVP_MD_CTX");
+        return "";
+      }
+
+    std::size_t signature_len{0};
+    if (EVP_DigestSign(ctx.get(), nullptr, &signature_len, reinterpret_cast<const unsigned char *>(msg.data()), msg.length())
+        != 1)
+      {
+        spdlog::error("Failed to get signature length");
+        return "";
+      }
+
+    std::vector<unsigned char> signature_buffer(signature_len);
+    if (EVP_DigestSign(ctx.get(),
+                       signature_buffer.data(),
+                       &signature_len,
+                       reinterpret_cast<const unsigned char *>(msg.data()),
+                       msg.length())
+        != 1)
+      {
+        spdlog::error("Failed to sign message");
+        return "";
+      }
+
+    std::string signature(signature_buffer.begin(), signature_buffer.end());
+
+    spdlog::info("Signature: {} {}", signature_len, unfold::utils::Base64::encode(signature));
+    return unfold::utils::Base64::encode(signature);
+  }
+
+} // namespace
+
+struct FixtureBase
+{
+  FixtureBase() = default;
+  ~FixtureBase() = default;
+
+  FixtureBase(const FixtureBase &) = delete;
+  FixtureBase &operator=(const FixtureBase &) = delete;
+  FixtureBase(FixtureBase &&) = delete;
+  FixtureBase &operator=(FixtureBase &&) = delete;
+
+  void init_appcast()
+  {
+    std::ifstream finstaller("test-installer.exe", std::ios::binary);
+    std::string content((std::istreambuf_iterator<char>(finstaller)), std::istreambuf_iterator<char>());
+
+    std::ifstream fappcast("appcast.xml");
+    std::string appcast((std::istreambuf_iterator<char>(fappcast)), std::istreambuf_iterator<char>());
+
+    auto key =
+      "-----BEGIN PRIVATE KEY-----\n"
+      "MC4CAQAwBQYDK2VwBCIEIGr4JHh7bcf/IBR+UGLPliWPMXe4cT9rPfyvaJCNLGgq\n"
+      "-----END PRIVATE KEY-----\n";
+    auto sig = sign(content, key);
+
+    boost::replace_all(appcast, "$SIGNATURE", sig);
+    boost::replace_all(appcast, "$LENGTH", std::to_string(content.length()));
+
+    server.add("/appcast.xml", appcast);
+    server.add("/installer.exe", content);
+    server.run();
+  }
+  unfold::http::HttpServer server;
+  std::shared_ptr<TestPlatform> platform;
+  std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("test")};
+};
+
+struct IntegrationTestFixture : public FixtureBase
+{
+  ~IntegrationTestFixture() = default;
+
+  IntegrationTestFixture(const IntegrationTestFixture &) = delete;
+  IntegrationTestFixture &operator=(const IntegrationTestFixture &) = delete;
+  IntegrationTestFixture(IntegrationTestFixture &&) = delete;
+  IntegrationTestFixture &operator=(IntegrationTestFixture &&) = delete;
+
+  IntegrationTestFixture()
+  {
+    platform = std::make_shared<TestPlatform>();
+  }
+};
+
+struct MockedTestFixture : public FixtureBase
+{
+  ~MockedTestFixture() = default;
+
+  MockedTestFixture(const MockedTestFixture &) = delete;
+  MockedTestFixture &operator=(const MockedTestFixture &) = delete;
+  MockedTestFixture(MockedTestFixture &&) = delete;
+  MockedTestFixture &operator=(MockedTestFixture &&) = delete;
+
+  MockedTestFixture()
+  {
+    platform = std::make_shared<TestPlatform>();
+
+    http = std::make_shared<unfold::http::HttpClient>();
+    verifier = std::make_shared<SignatureVerifierMock>();
+    storage = std::make_shared<SettingsStorageMock>();
+    // TBD:
+    // checker = std::make_shared<CheckerMock>();
+    // installer = std::make_shared<InstallerMock>();
+
+    control = std::make_shared<UpgradeControl>(platform, http, verifier, storage, installer, checker, io_context);
+  }
+
+  void init_appcast()
+  {
+    std::ifstream finstaller("test-installer.exe", std::ios::binary);
+    std::string content((std::istreambuf_iterator<char>(finstaller)), std::istreambuf_iterator<char>());
+
+    std::ifstream fappcast("appcast.xml");
+    std::string appcast((std::istreambuf_iterator<char>(fappcast)), std::istreambuf_iterator<char>());
+
+    auto key =
+      "-----BEGIN PRIVATE KEY-----\n"
+      "MC4CAQAwBQYDK2VwBCIEIGr4JHh7bcf/IBR+UGLPliWPMXe4cT9rPfyvaJCNLGgq\n"
+      "-----END PRIVATE KEY-----\n";
+    auto sig = sign(content, key);
+
+    boost::replace_all(appcast, "$SIGNATURE", sig);
+    boost::replace_all(appcast, "$LENGTH", std::to_string(content.length()));
+
+    server.add("/appcast.xml", appcast);
+    server.add("/installer.exe", content);
+    server.run();
+  }
+  unfold::utils::IOContext io_context{1};
+  std::shared_ptr<unfold::http::HttpClient> http;
+  std::shared_ptr<unfold::crypto::SignatureVerifier> verifier;
+  std::shared_ptr<SettingsStorage> storage;
+  std::shared_ptr<Installer> installer;
+  std::shared_ptr<Checker> checker;
+  std::shared_ptr<UpgradeControl> control;
+};
+
+BOOST_FIXTURE_TEST_SUITE(unfold_upgrade_control_integration_test, IntegrationTestFixture)
 
 BOOST_AUTO_TEST_CASE(upgrade_invalid_key)
 {
   unfold::utils::IOContext io_context{1};
-  UpgradeControl control(std::make_shared<TestPlatform>(), io_context);
+  UpgradeControl control(platform, io_context);
 
   auto rc = control.set_signature_verification_key("xxxxMCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=xxx");
   BOOST_CHECK_EQUAL(rc.has_error(), true);
@@ -67,7 +274,7 @@ BOOST_AUTO_TEST_CASE(upgrade_invalid_key)
 BOOST_AUTO_TEST_CASE(upgrade_invalid_cert)
 {
   unfold::utils::IOContext io_context{1};
-  UpgradeControl control(std::make_shared<TestPlatform>(), io_context);
+  UpgradeControl control(platform, io_context);
 
   auto rc = control.set_certificate("cert");
   BOOST_CHECK_EQUAL(rc.has_error(), true);
@@ -76,14 +283,84 @@ BOOST_AUTO_TEST_CASE(upgrade_invalid_cert)
 
 BOOST_AUTO_TEST_CASE(upgrade_control_check)
 {
-  unfold::http::HttpServer server;
-  server.add_file("/appcast.xml", "appcast.xml");
-  server.add_file("/workrave-1.11.0-alpha.1.exe", "junk");
-  server.add_file("/installer.sh", "installer.sh");
-  server.run();
-
   unfold::utils::IOContext io_context{1};
-  UpgradeControl control(std::make_shared<TestPlatform>(), io_context);
+  UpgradeControl control(platform, io_context);
+
+  init_appcast();
+  control.set_configuration_prefix("Software\\Unfold\\Test");
+
+  auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = control.set_certificate(cert);
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = control.set_current_version("1.10.45");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  double last_progress = 0.0;
+  control.set_download_progress_callback([&last_progress](auto progress) {
+    BOOST_CHECK_GE(progress, last_progress);
+    last_progress = progress;
+  });
+
+  control.get_hooks()->hook_terminate() = []() { return false; };
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await control.check_for_updates();
+          BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+          auto update_info = control.get_update_info();
+          BOOST_CHECK_EQUAL(update_info->title, "Workrave");
+          BOOST_CHECK_EQUAL(update_info->current_version, "1.10.45");
+          BOOST_CHECK_EQUAL(update_info->version, "1.11.0-alpha.1");
+          BOOST_CHECK_EQUAL(update_info->release_notes.size(), 4);
+          BOOST_CHECK_EQUAL(update_info->release_notes.front().version, "1.11.0-alpha.1");
+
+          std::filesystem::remove("installer.log");
+
+          auto ri = co_await control.install_update();
+          BOOST_CHECK_EQUAL(ri.has_error(), false);
+          int tries = 100;
+          bool found = false;
+          do
+            {
+              found = std::filesystem::exists("installer.log");
+              std::this_thread::sleep_for(std::chrono::milliseconds(50));
+              tries--;
+            }
+          while (tries > 0 && !found);
+          BOOST_CHECK(found);
+          BOOST_CHECK_GE(100, last_progress);
+          BOOST_CHECK_EQUAL(platform->is_terminated(), false);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+
+  server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(upgrade_last_upgrade_time)
+{
+  init_appcast();
+  unfold::utils::IOContext io_context{1};
+  UpgradeControl control(platform, io_context);
+
+  control.set_configuration_prefix("Software\\Unfold\\Test");
 
   auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
   BOOST_CHECK_EQUAL(rc.has_error(), false);
@@ -103,12 +380,20 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
+          auto now = std::chrono::system_clock::now();
+          auto l1 = control.get_last_update_check_time();
+          if (l1)
+            {
+              BOOST_CHECK_LE((*l1).time_since_epoch().count(), now.time_since_epoch().count());
+            }
+          sleep(1);
+
           auto rc = co_await control.check_for_updates();
           BOOST_CHECK_EQUAL(rc.has_error(), false);
 
-          // TODO: fails on Wndows
-          // auto ri = co_await control.install();
-          // BOOST_CHECK_EQUAL(ri.has_error(), false);
+          auto l2 = control.get_last_update_check_time();
+          BOOST_CHECK_LE((*l2).time_since_epoch().count(), now.time_since_epoch().count());
+          BOOST_CHECK_GE((*l2).time_since_epoch().count(), (*l1).time_since_epoch().count());
         }
       catch (std::exception &e)
         {
@@ -122,16 +407,12 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check)
   server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check)
+BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_later)
 {
-  unfold::http::HttpServer server;
-  server.add_file("/appcast.xml", "appcast.xml");
-  server.add_file("/workrave-1.11.0-alpha.1.exe", "junk");
-  server.add_file("/installer.sh", "installer.sh");
-  server.run();
+  init_appcast();
 
   unfold::utils::IOContext io_context{1};
-  UpgradeControl control(std::make_shared<TestPlatform>(), io_context);
+  UpgradeControl control(platform, io_context);
 
   auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
   BOOST_CHECK_EQUAL(rc.has_error(), false);
@@ -145,6 +426,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check)
   rc = control.set_current_version("1.10.45");
   BOOST_CHECK_EQUAL(rc.has_error(), false);
 
+  control.reset_skip_version();
   control.set_periodic_update_check_interval(std::chrono::seconds{1});
   control.set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
     spdlog::info("Update available");
@@ -158,4 +440,75 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check)
   server.stop();
 }
 
+BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_skip)
+{
+  init_appcast();
+
+  unfold::utils::IOContext io_context{1};
+  UpgradeControl control(platform, io_context);
+
+  auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = control.set_certificate(cert);
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = control.set_current_version("1.10.45");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  control.reset_skip_version();
+  control.set_periodic_update_check_interval(std::chrono::seconds{1});
+  control.set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
+    spdlog::info("Update available");
+    io_context.stop();
+    co_return unfold::UpdateResponse::Skip;
+  });
+
+  control.set_periodic_update_check_enabled(true);
+
+  io_context.wait();
+  server.stop();
+
+  BOOST_CHECK_EQUAL(control.get_skip_version(), "1.11.0-alpha.1");
+}
+
+BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_install_now)
+{
+  init_appcast();
+
+  unfold::utils::IOContext io_context{1};
+  UpgradeControl control(platform, io_context);
+
+  auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = control.set_certificate(cert);
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = control.set_current_version("1.10.45");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  control.reset_skip_version();
+  control.set_periodic_update_check_interval(std::chrono::seconds{1});
+  control.set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
+    spdlog::info("Update available");
+    io_context.stop();
+    co_return unfold::UpdateResponse::Install;
+  });
+
+  control.set_periodic_update_check_enabled(true);
+
+  io_context.wait();
+  server.stop();
+}
+
+BOOST_AUTO_TEST_SUITE_END()
+
+BOOST_FIXTURE_TEST_SUITE(unfold_upgrade_control_test, MockedTestFixture)
 BOOST_AUTO_TEST_SUITE_END()

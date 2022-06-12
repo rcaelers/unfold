@@ -35,6 +35,7 @@
 #include "Checker.hh"
 #include "Installer.hh"
 #include "Platform.hh"
+#include "Settings.hh"
 #include "SettingsStorage.hh"
 
 #include "unfold/Unfold.hh"
@@ -221,7 +222,6 @@ UpgradeControl::check_for_updates_and_notify()
     {
     case unfold::UpdateResponse::Install:
       co_return co_await install_update();
-      break;
     case unfold::UpdateResponse::Later:
       break;
     case unfold::UpdateResponse::Skip:
@@ -249,6 +249,18 @@ std::shared_ptr<unfold::UnfoldHooks>
 UpgradeControl::get_hooks() const
 {
   return hooks;
+}
+
+std::string
+UpgradeControl::get_skip_version() const
+{
+  return state->get_skip_version();
+}
+
+void
+UpgradeControl::reset_skip_version()
+{
+  state->set_skip_version("");
 }
 
 void

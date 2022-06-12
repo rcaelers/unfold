@@ -18,6 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <boost/outcome/success_failure.hpp>
 #include <boost/test/unit_test.hpp>
 #include <boost/test/data/test_case.hpp>
 #include <boost/test/data/monomorphic.hpp>
@@ -122,7 +123,6 @@ BOOST_AUTO_TEST_CASE(installer_missing_length)
 {
   unfold::http::HttpServer server;
   server.add_file("/workrave-1.11.0-alpha.1.exe", "junk");
-  server.add_file("/installer.sh", "installer.sh");
   server.run();
 
   std::string appcast_str =
@@ -184,7 +184,6 @@ BOOST_AUTO_TEST_CASE(installer_incorrect_length)
 {
   unfold::http::HttpServer server;
   server.add_file("/workrave-1.11.0-alpha.1.exe", "junk");
-  server.add_file("/installer.sh", "installer.sh");
   server.run();
 
   std::string appcast_str =
@@ -345,11 +344,15 @@ BOOST_AUTO_TEST_CASE(installer_invalid_host)
 BOOST_AUTO_TEST_CASE(installer_invalid_signature)
 {
   unfold::http::HttpServer server;
-  server.add_file("/installer.sh", "installer.sh");
+  server.add_file("/installer.exe", "test-installer.exe");
   server.run();
+
+  std::error_code ec;
+  std::uintmax_t size = std::filesystem::file_size("test-installer.exe", ec);
 
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
   auto appcast = reader->load_from_file("appcast.xml");
+  appcast->items.front()->enclosure->length = size;
 
   auto http = std::make_shared<unfold::http::HttpClient>();
   auto carc = http->add_ca_cert(cert);
@@ -392,11 +395,15 @@ BOOST_AUTO_TEST_CASE(installer_invalid_signature)
 BOOST_AUTO_TEST_CASE(installer_failed_to_install)
 {
   unfold::http::HttpServer server;
-  server.add_file("/installer.sh", "installer.sh");
+  server.add_file("/installer.exe", "junk");
   server.run();
+
+  std::error_code ec;
+  std::uintmax_t size = std::filesystem::file_size("junk", ec);
 
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
   auto appcast = reader->load_from_file("appcast.xml");
+  appcast->items.front()->enclosure->length = size;
 
   auto http = std::make_shared<unfold::http::HttpClient>();
   auto carc = http->add_ca_cert(cert);
@@ -404,16 +411,11 @@ BOOST_AUTO_TEST_CASE(installer_failed_to_install)
 
   auto hooks = std::make_shared<Hooks>();
 
-  auto verifier = std::make_shared<unfold::crypto::SignatureVerifier>();
-  auto rc = verifier->set_key(unfold::crypto::SignatureAlgorithmType::ECDSA,
-                              "MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  auto verifier = std::make_shared<SignatureVerifierMock>();
 
-  // EXPECT_CALL(*verifier, set_key(_, _)).Times(0);
+  EXPECT_CALL(*verifier, set_key(_, _)).Times(0);
 
-  // EXPECT_CALL(*verifier, verify(_, _))
-  //   .Times(AtLeast(1))
-  //   .WillRepeatedly(Return(outcome::failure(unfold::crypto::SignatureVerifierErrc::Mismatch)));
+  EXPECT_CALL(*verifier, verify(_, _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
 
   Installer installer(std::make_shared<TestPlatform>(), http, verifier, hooks);
 
@@ -548,6 +550,7 @@ BOOST_DATA_TEST_CASE(installer_started_installer,
     {
       found = std::filesystem::exists("installer.log");
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      tries--;
     }
   while (tries > 0 && !found);
   BOOST_CHECK(found);

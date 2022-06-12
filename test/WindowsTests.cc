@@ -25,6 +25,7 @@
 #include "unfold/UnfoldErrors.hh"
 
 #include "windows/WindowsSettingsStorage.hh"
+#include "windows/WindowsPlatform.hh"
 
 #include "SignatureVerifierMock.hh"
 #include "Fixture.hpp"
@@ -193,6 +194,30 @@ BOOST_AUTO_TEST_CASE(windows_settings_set_invalid_key)
   BOOST_CHECK_EQUAL(rc.has_error(), true);
   rc = storage.set_value(very_long_string, 42LL);
   BOOST_CHECK_EQUAL(rc.has_error(), true);
+}
+
+BOOST_AUTO_TEST_CASE(windows_platform_is_supported)
+{
+  WindowsPlatform platform;
+
+  auto rc = platform.is_supported_os("foo");
+  BOOST_CHECK_EQUAL(rc, false);
+  rc = platform.is_supported_os("windows");
+  BOOST_CHECK_EQUAL(rc, true);
+  rc = platform.is_supported_os("linux");
+  BOOST_CHECK_EQUAL(rc, false);
+  rc = platform.is_supported_os("macos");
+  BOOST_CHECK_EQUAL(rc, false);
+
+  auto rc32 = platform.is_supported_os("windows-x86");
+  auto rc64 = platform.is_supported_os("windows-x64");
+#ifdef _WIN64
+  BOOST_CHECK_EQUAL(rc32, false);
+  BOOST_CHECK_EQUAL(rc64, true);
+#else
+  BOOST_CHECK_EQUAL(rc32, true);
+  BOOST_CHECK_EQUAL(rc64, false);
+#endif
 }
 
 BOOST_AUTO_TEST_SUITE_END()

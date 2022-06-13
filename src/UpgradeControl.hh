@@ -36,8 +36,8 @@
 #include "utils/PeriodicTimer.hh"
 
 #include "Platform.hh"
-#include "Installer.hh"
-#include "Checker.hh"
+#include "UpgradeInstaller.hh"
+#include "UpgradeChecker.hh"
 #include "Settings.hh"
 #include "Hooks.hh"
 
@@ -72,12 +72,13 @@ public:
   std::shared_ptr<unfold::UpdateInfo> get_update_info() const override;
   std::shared_ptr<unfold::UnfoldHooks> get_hooks() const override;
 
+  boost::asio::awaitable<outcome::std_result<void>> check_for_updates_and_notify();
+
   void reset_skip_version();
   std::string get_skip_version() const;
 
 private:
   void init_periodic_update_check();
-  boost::asio::awaitable<outcome::std_result<void>> check_for_updates_and_notify();
   void update_last_update_check_time();
 
 private:

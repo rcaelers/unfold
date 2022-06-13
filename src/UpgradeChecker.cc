@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "Checker.hh"
+#include "UpgradeChecker.hh"
 
 #include <exception>
 #include <memory>
@@ -37,7 +37,9 @@
 
 #include "Platform.hh"
 
-Checker::Checker(std::shared_ptr<Platform> platform, std::shared_ptr<unfold::http::HttpClient> http, std::shared_ptr<Hooks> hooks)
+UpgradeChecker::UpgradeChecker(std::shared_ptr<Platform> platform,
+                               std::shared_ptr<unfold::http::HttpClient> http,
+                               std::shared_ptr<Hooks> hooks)
   : platform(std::move(platform))
   , http(std::move(http))
   , hooks(hooks)
@@ -45,14 +47,14 @@ Checker::Checker(std::shared_ptr<Platform> platform, std::shared_ptr<unfold::htt
 }
 
 outcome::std_result<void>
-Checker::set_appcast(const std::string &url)
+UpgradeChecker::set_appcast(const std::string &url)
 {
   appcast_url = url;
   return outcome::success();
 }
 
 outcome::std_result<void>
-Checker::set_current_version(const std::string &version)
+UpgradeChecker::set_current_version(const std::string &version)
 {
   try
     {
@@ -68,19 +70,19 @@ Checker::set_current_version(const std::string &version)
 }
 
 std::shared_ptr<unfold::UpdateInfo>
-Checker::get_update_info() const
+UpgradeChecker::get_update_info() const
 {
   return update_info;
 }
 
 std::shared_ptr<AppcastItem>
-Checker::get_selected_update() const
+UpgradeChecker::get_selected_update() const
 {
   return selected_item;
 }
 
 boost::asio::awaitable<outcome::std_result<bool>>
-Checker::check_for_updates()
+UpgradeChecker::check_for_updates()
 {
   selected_item.reset();
   update_info.reset();
@@ -109,7 +111,7 @@ Checker::check_for_updates()
 }
 
 boost::asio::awaitable<outcome::std_result<std::string>>
-Checker::download_appcast()
+UpgradeChecker::download_appcast()
 {
   auto rc = co_await http->get(appcast_url);
 
@@ -136,7 +138,7 @@ Checker::download_appcast()
 }
 
 outcome::std_result<std::shared_ptr<Appcast>>
-Checker::parse_appcast(const std::string &appcast_xml)
+UpgradeChecker::parse_appcast(const std::string &appcast_xml)
 {
   AppcastReader reader([this](auto item) { return is_applicable(item); });
 
@@ -159,7 +161,7 @@ Checker::parse_appcast(const std::string &appcast_xml)
 }
 
 bool
-Checker::is_applicable(std::shared_ptr<AppcastItem> item)
+UpgradeChecker::is_applicable(std::shared_ptr<AppcastItem> item)
 {
   if (!platform->is_supported_os(item->enclosure->os))
     {
@@ -188,7 +190,7 @@ Checker::is_applicable(std::shared_ptr<AppcastItem> item)
 }
 
 void
-Checker::build_update_info(std::shared_ptr<Appcast> appcast)
+UpgradeChecker::build_update_info(std::shared_ptr<Appcast> appcast)
 {
   update_info = std::make_shared<unfold::UpdateInfo>();
 

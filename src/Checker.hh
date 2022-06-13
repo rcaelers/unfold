@@ -21,53 +21,23 @@
 #ifndef CHECKER_HH
 #define CHECKER_HH
 
-#include <memory>
 #include <string>
-#include <filesystem>
 
 #include "unfold/Unfold.hh"
-#include "http/HttpClient.hh"
-#include "crypto/SignatureVerifier.hh"
-#include "utils/Logging.hh"
 
 #include "AppCast.hh"
-#include "Platform.hh"
-#include "Hooks.hh"
+
+namespace outcome = boost::outcome_v2;
 
 class Checker
 {
 public:
-  explicit Checker(std::shared_ptr<Platform> platform,
-                   std::shared_ptr<unfold::http::HttpClient> http,
-                   std::shared_ptr<Hooks> hooks);
-
-  boost::asio::awaitable<outcome::std_result<bool>> check_for_updates();
-
-  outcome::std_result<void> set_appcast(const std::string &url);
-  outcome::std_result<void> set_current_version(const std::string &version);
-
-  std::shared_ptr<unfold::UpdateInfo> get_update_info() const;
-  std::shared_ptr<AppcastItem> get_selected_update() const;
-
-private:
-  boost::asio::awaitable<outcome::std_result<std::string>> download_appcast();
-  outcome::std_result<std::shared_ptr<Appcast>> parse_appcast(const std::string &appcast_xml);
-  void build_update_info(std::shared_ptr<Appcast> appcast);
-  bool is_applicable(std::shared_ptr<AppcastItem> item);
-
-private:
-  std::shared_ptr<Platform> platform;
-  std::shared_ptr<unfold::http::HttpClient> http;
-  std::shared_ptr<Hooks> hooks;
-
-  std::string appcast_url;
-  std::string current_version_str;
-  semver::version current_version;
-
-  std::shared_ptr<AppcastItem> selected_item;
-  std::shared_ptr<unfold::UpdateInfo> update_info;
-
-  std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:checker")};
+  virtual ~Checker() = default;
+  virtual boost::asio::awaitable<outcome::std_result<bool>> check_for_updates() = 0;
+  virtual outcome::std_result<void> set_appcast(const std::string &url) = 0;
+  virtual outcome::std_result<void> set_current_version(const std::string &version) = 0;
+  virtual std::shared_ptr<unfold::UpdateInfo> get_update_info() const = 0;
+  virtual std::shared_ptr<AppcastItem> get_selected_update() const = 0;
 };
 
 #endif // CHECKER_HH

@@ -26,7 +26,7 @@
 
 #include "TestPlatform.hh"
 #include "Fixture.hpp"
-#include "Checker.hh"
+#include "UpgradeChecker.hh"
 
 namespace
 {
@@ -65,7 +65,7 @@ BOOST_AUTO_TEST_CASE(checker_appcast_not_found)
 
   auto hooks = std::make_shared<Hooks>();
 
-  Checker checker(std::make_shared<TestPlatform>(), http, hooks);
+  UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcastxxx.xml");
   BOOST_CHECK_EQUAL(rc.has_error(), false);
@@ -107,7 +107,7 @@ BOOST_AUTO_TEST_CASE(checker_invalid_host)
 
   auto hooks = std::make_shared<Hooks>();
 
-  Checker checker(std::make_shared<TestPlatform>(), http, hooks);
+  UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_appcast("https://300.0.0.1.2:1337/appcastxxx.xml");
   BOOST_CHECK_EQUAL(rc.has_error(), false);
@@ -145,7 +145,7 @@ BOOST_AUTO_TEST_CASE(checker_invalid_version)
 
   auto hooks = std::make_shared<Hooks>();
 
-  Checker checker(std::make_shared<TestPlatform>(), http, hooks);
+  UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_current_version("1.12.0.1.2");
   BOOST_CHECK_EQUAL(rc.has_error(), true);
@@ -163,7 +163,7 @@ BOOST_AUTO_TEST_CASE(checker_invalid_appcast)
 
   auto hooks = std::make_shared<Hooks>();
 
-  Checker checker(std::make_shared<TestPlatform>(), http, hooks);
+  UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
   BOOST_CHECK_EQUAL(rc.has_error(), false);
@@ -205,7 +205,7 @@ BOOST_AUTO_TEST_CASE(checker_empty_appcast)
 
   auto hooks = std::make_shared<Hooks>();
 
-  Checker checker(std::make_shared<TestPlatform>(), http, hooks);
+  UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
   BOOST_CHECK_EQUAL(rc.has_error(), false);
@@ -301,7 +301,7 @@ BOOST_AUTO_TEST_CASE(checker_invalid_items_in_appcast)
 
   auto hooks = std::make_shared<Hooks>();
 
-  Checker checker(std::make_shared<TestPlatform>(), http, hooks);
+  UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
   BOOST_CHECK_EQUAL(rc.has_error(), false);
@@ -352,7 +352,7 @@ BOOST_AUTO_TEST_CASE(checker_no_upgrade)
 
   auto hooks = std::make_shared<Hooks>();
 
-  Checker checker(std::make_shared<TestPlatform>(), http, hooks);
+  UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
   BOOST_CHECK_EQUAL(rc.has_error(), false);
@@ -399,7 +399,7 @@ BOOST_AUTO_TEST_CASE(checker_has_upgrade)
 
   auto hooks = std::make_shared<Hooks>();
 
-  Checker checker(std::make_shared<TestPlatform>(), http, hooks);
+  UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
   BOOST_CHECK_EQUAL(rc.has_error(), false);

@@ -31,7 +31,7 @@
 #include "AppCast.hh"
 #include "Fixture.hpp"
 #include "Hooks.hh"
-#include "Installer.hh"
+#include "UpgradeInstaller.hh"
 #include "SignatureVerifierMock.hh"
 #include "TestPlatform.hh"
 
@@ -97,7 +97,7 @@ BOOST_AUTO_TEST_CASE(installer_missing_url)
 
   auto verifier = std::make_shared<SignatureVerifierMock>();
 
-  Installer installer(std::make_shared<TestPlatform>(), http, verifier, hooks);
+  UpgradeInstaller installer(std::make_shared<TestPlatform>(), http, verifier, hooks);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -156,7 +156,7 @@ BOOST_AUTO_TEST_CASE(installer_missing_length)
 
   auto verifier = std::make_shared<SignatureVerifierMock>();
 
-  Installer installer(std::make_shared<TestPlatform>(), http, verifier, hooks);
+  UpgradeInstaller installer(std::make_shared<TestPlatform>(), http, verifier, hooks);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -217,7 +217,7 @@ BOOST_AUTO_TEST_CASE(installer_incorrect_length)
 
   auto verifier = std::make_shared<SignatureVerifierMock>();
 
-  Installer installer(std::make_shared<TestPlatform>(), http, verifier, hooks);
+  UpgradeInstaller installer(std::make_shared<TestPlatform>(), http, verifier, hooks);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -257,7 +257,7 @@ BOOST_AUTO_TEST_CASE(installer_not_found)
 
   auto verifier = std::make_shared<SignatureVerifierMock>();
 
-  Installer installer(std::make_shared<TestPlatform>(), http, verifier, hooks);
+  UpgradeInstaller installer(std::make_shared<TestPlatform>(), http, verifier, hooks);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -317,7 +317,7 @@ BOOST_AUTO_TEST_CASE(installer_invalid_host)
 
   auto verifier = std::make_shared<SignatureVerifierMock>();
 
-  Installer installer(std::make_shared<TestPlatform>(), http, verifier, hooks);
+  UpgradeInstaller installer(std::make_shared<TestPlatform>(), http, verifier, hooks);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -368,7 +368,7 @@ BOOST_AUTO_TEST_CASE(installer_invalid_signature)
     .Times(AtLeast(1))
     .WillRepeatedly(Return(outcome::failure(unfold::crypto::SignatureVerifierErrc::Mismatch)));
 
-  Installer installer(std::make_shared<TestPlatform>(), http, verifier, hooks);
+  UpgradeInstaller installer(std::make_shared<TestPlatform>(), http, verifier, hooks);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -417,7 +417,7 @@ BOOST_AUTO_TEST_CASE(installer_failed_to_install)
 
   EXPECT_CALL(*verifier, verify(_, _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
 
-  Installer installer(std::make_shared<TestPlatform>(), http, verifier, hooks);
+  UpgradeInstaller installer(std::make_shared<TestPlatform>(), http, verifier, hooks);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -518,7 +518,7 @@ BOOST_DATA_TEST_CASE(installer_started_installer,
 
   auto platform = std::make_shared<TestPlatform>();
 
-  Installer installer(platform, http, verifier, hooks);
+  UpgradeInstaller installer(platform, http, verifier, hooks);
 
   double last_progress = 0.0;
   installer.set_download_progress_callback([&last_progress](auto progress) {

@@ -3,8 +3,8 @@ add_library(unfold SHARED)
 target_sources(unfold PRIVATE
   AppCast.cc
   UpgradeControl.cc
-  Checker.cc
-  Installer.cc
+  UpgradeChecker.cc
+  UpgradeInstaller.cc
   UnfoldErrors.cc
   Settings.cc
   Hooks.cc

@@ -30,7 +30,11 @@
 class CheckerMock : public Checker
 {
 public:
-  // TDB
+  MOCK_METHOD(boost::asio::awaitable<outcome::std_result<bool>>, check_for_updates, (), (override));
+  MOCK_METHOD(outcome::std_result<void>, set_appcast, (const std::string &url), (override));
+  MOCK_METHOD(outcome::std_result<void>, set_current_version, (const std::string &version), (override));
+  MOCK_METHOD(std::shared_ptr<unfold::UpdateInfo>, get_update_info, (), (const, override));
+  MOCK_METHOD(std::shared_ptr<AppcastItem>, get_selected_update, (), (const, override));
 };
 
 #endif // CHECKER_MOCK_HH

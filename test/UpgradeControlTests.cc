@@ -20,14 +20,17 @@
 
 #include <algorithm>
 #include <boost/algorithm/string/replace.hpp>
+#include <boost/outcome/success_failure.hpp>
 #include <fstream>
 
 #include <boost/test/tools/old/interface.hpp>
 #include <boost/test/unit_test.hpp>
 #include <boost/algorithm/string.hpp>
+#include <gmock/gmock-cardinalities.h>
 #include <memory>
 #include <spdlog/spdlog.h>
 
+#include "SettingsStorage.hh"
 #include "unfold/Unfold.hh"
 #include "unfold/UnfoldErrors.hh"
 #include "http/HttpServer.hh"
@@ -42,6 +45,11 @@
 
 #include <openssl/pem.h>
 #include <openssl/err.h>
+
+using ::testing::_;
+using ::testing::AtLeast;
+using ::testing::InvokeWithoutArgs;
+using ::testing::Return;
 
 namespace
 {
@@ -158,7 +166,11 @@ namespace
 struct FixtureBase
 {
   FixtureBase() = default;
-  ~FixtureBase() = default;
+
+  ~FixtureBase()
+  {
+    server.stop();
+  }
 
   FixtureBase(const FixtureBase &) = delete;
   FixtureBase &operator=(const FixtureBase &) = delete;
@@ -222,9 +234,8 @@ struct MockedTestFixture : public FixtureBase
     http = std::make_shared<unfold::http::HttpClient>();
     verifier = std::make_shared<SignatureVerifierMock>();
     storage = std::make_shared<SettingsStorageMock>();
-    // TBD:
-    // checker = std::make_shared<CheckerMock>();
-    // installer = std::make_shared<InstallerMock>();
+    checker = std::make_shared<CheckerMock>();
+    installer = std::make_shared<InstallerMock>();
 
     control = std::make_shared<UpgradeControl>(platform, http, verifier, storage, installer, checker, io_context);
   }
@@ -250,18 +261,19 @@ struct MockedTestFixture : public FixtureBase
     server.add("/installer.exe", content);
     server.run();
   }
+
   unfold::utils::IOContext io_context{1};
   std::shared_ptr<unfold::http::HttpClient> http;
-  std::shared_ptr<unfold::crypto::SignatureVerifier> verifier;
-  std::shared_ptr<SettingsStorage> storage;
-  std::shared_ptr<Installer> installer;
-  std::shared_ptr<Checker> checker;
+  std::shared_ptr<SignatureVerifierMock> verifier;
+  std::shared_ptr<SettingsStorageMock> storage;
+  std::shared_ptr<InstallerMock> installer;
+  std::shared_ptr<CheckerMock> checker;
   std::shared_ptr<UpgradeControl> control;
 };
 
 BOOST_FIXTURE_TEST_SUITE(unfold_upgrade_control_integration_test, IntegrationTestFixture)
 
-BOOST_AUTO_TEST_CASE(upgrade_invalid_key)
+BOOST_AUTO_TEST_CASE(upgrade_control_invalid_key)
 {
   unfold::utils::IOContext io_context{1};
   UpgradeControl control(platform, io_context);
@@ -271,7 +283,7 @@ BOOST_AUTO_TEST_CASE(upgrade_invalid_key)
   BOOST_CHECK_EQUAL(rc.error(), unfold::UnfoldErrc::InvalidArgument);
 }
 
-BOOST_AUTO_TEST_CASE(upgrade_invalid_cert)
+BOOST_AUTO_TEST_CASE(upgrade_control_invalid_cert)
 {
   unfold::utils::IOContext io_context{1};
   UpgradeControl control(platform, io_context);
@@ -350,8 +362,6 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check)
     },
     boost::asio::detached);
   ioc.run();
-
-  server.stop();
 }
 
 BOOST_AUTO_TEST_CASE(upgrade_last_upgrade_time)
@@ -403,8 +413,6 @@ BOOST_AUTO_TEST_CASE(upgrade_last_upgrade_time)
     },
     boost::asio::detached);
   ioc.run();
-
-  server.stop();
 }
 
 BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_later)
@@ -437,7 +445,6 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_later)
   control.set_periodic_update_check_enabled(true);
 
   io_context.wait();
-  server.stop();
 }
 
 BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_skip)
@@ -470,7 +477,6 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_skip)
   control.set_periodic_update_check_enabled(true);
 
   io_context.wait();
-  server.stop();
 
   BOOST_CHECK_EQUAL(control.get_skip_version(), "1.11.0-alpha.1");
 }
@@ -505,10 +511,110 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_install_now)
   control.set_periodic_update_check_enabled(true);
 
   io_context.wait();
-  server.stop();
 }
 
 BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_FIXTURE_TEST_SUITE(unfold_upgrade_control_test, MockedTestFixture)
+
+BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_later)
+{
+  init_appcast();
+
+  EXPECT_CALL(*checker, set_appcast("https://127.0.0.1:1337/appcast.xml")).Times(1).WillOnce(Return(outcome::success()));
+
+  auto rc = control->set_appcast("https://127.0.0.1:1337/appcast.xml");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = control->set_certificate(cert);
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  EXPECT_CALL(*verifier,
+              set_key(unfold::crypto::SignatureAlgorithmType::ECDSA,
+                      "MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM="))
+    .Times(1)
+    .WillOnce(Return(outcome::success()));
+
+  rc = control->set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  EXPECT_CALL(*checker, set_current_version("1.10.45")).Times(1).WillOnce(Return(outcome::success()));
+
+  rc = control->set_current_version("1.10.45");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  EXPECT_CALL(*storage, get_value("SkipVersion", SettingType::String))
+    .Times(AtLeast(1))
+    .WillRepeatedly(Return(outcome::success("")));
+  EXPECT_CALL(*storage, set_value("SkipVersion", SettingValue{""})).Times(1).WillOnce(Return(outcome::success()));
+  EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
+
+  control->reset_skip_version();
+  control->set_periodic_update_check_interval(std::chrono::seconds{1});
+  control->set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
+    spdlog::info("Update available");
+    io_context.stop();
+    co_return unfold::UpdateResponse::Later;
+  });
+
+  EXPECT_CALL(*checker, check_for_updates())
+    .Times(AtLeast(1))
+    .WillRepeatedly(
+      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
+
+  EXPECT_CALL(*checker, get_update_info())
+    .Times(AtLeast(1))
+    .WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
+      auto info = std::make_shared<unfold::UpdateInfo>();
+      info->current_version = "1.10.45";
+      info->version = "1.11.0-alpha.1";
+      info->title = "Workrave";
+      auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
+      info->release_notes.push_back(r);
+      return info;
+    }));
+  control->set_periodic_update_check_enabled(true);
+
+  io_context.wait();
+}
+
+BOOST_AUTO_TEST_CASE(upgrade_control_check_failed)
+{
+  init_appcast();
+
+  EXPECT_CALL(*storage, set_value("SkipVersion", SettingValue{""})).Times(1).WillOnce(Return(outcome::success()));
+  EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
+
+  control->reset_skip_version();
+  control->set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
+    spdlog::info("Update available");
+    io_context.stop();
+    co_return unfold::UpdateResponse::Later;
+  });
+
+  EXPECT_CALL(*checker, check_for_updates())
+    .Times(AtLeast(1))
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> {
+      co_return outcome::failure(unfold::UnfoldErrc::AppcastDownloadFailed);
+    }));
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await control->check_for_updates_and_notify();
+          BOOST_CHECK_EQUAL(rc.has_error(), true);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+}
+
 BOOST_AUTO_TEST_SUITE_END()

@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "Installer.hh"
+#include "UpgradeInstaller.hh"
 
 #include <exception>
 #include <memory>
@@ -37,10 +37,10 @@
 
 #include "Platform.hh"
 
-Installer::Installer(std::shared_ptr<Platform> platform,
-                     std::shared_ptr<unfold::http::HttpClient> http,
-                     std::shared_ptr<unfold::crypto::SignatureVerifier> verifier,
-                     std::shared_ptr<Hooks> hooks)
+UpgradeInstaller::UpgradeInstaller(std::shared_ptr<Platform> platform,
+                                   std::shared_ptr<unfold::http::HttpClient> http,
+                                   std::shared_ptr<unfold::crypto::SignatureVerifier> verifier,
+                                   std::shared_ptr<Hooks> hooks)
   : platform(std::move(platform))
   , http(std::move(http))
   , verifier(std::move(verifier))
@@ -49,13 +49,13 @@ Installer::Installer(std::shared_ptr<Platform> platform,
 }
 
 void
-Installer::set_download_progress_callback(unfold::Unfold::download_progress_callback_t callback)
+UpgradeInstaller::set_download_progress_callback(unfold::Unfold::download_progress_callback_t callback)
 {
   this->progress_callback = callback;
 }
 
 boost::asio::awaitable<outcome::std_result<void>>
-Installer::install(std::shared_ptr<AppcastItem> item)
+UpgradeInstaller::install(std::shared_ptr<AppcastItem> item)
 {
   this->item = item;
 
@@ -73,7 +73,7 @@ Installer::install(std::shared_ptr<AppcastItem> item)
 }
 
 outcome::std_result<std::filesystem::path>
-Installer::get_installer_filename()
+UpgradeInstaller::get_installer_filename()
 {
   auto r = boost::urls::parse_uri(item->enclosure->url);
   if (r.has_value())
@@ -88,7 +88,7 @@ Installer::get_installer_filename()
 }
 
 boost::asio::awaitable<outcome::std_result<void>>
-Installer::download_installer()
+UpgradeInstaller::download_installer()
 {
   try
     {
@@ -124,7 +124,7 @@ Installer::download_installer()
 }
 
 boost::asio::awaitable<outcome::std_result<void>>
-Installer::verify_installer()
+UpgradeInstaller::verify_installer()
 {
   std::error_code ec;
   std::uintmax_t size = std::filesystem::file_size(installer_path, ec);
@@ -159,7 +159,7 @@ Installer::verify_installer()
 }
 
 void
-Installer::fix_permissions()
+UpgradeInstaller::fix_permissions()
 {
 #if !defined(_WIN32)
   std::error_code ec;
@@ -175,7 +175,7 @@ Installer::fix_permissions()
 }
 
 boost::asio::awaitable<outcome::std_result<void>>
-Installer::run_installer()
+UpgradeInstaller::run_installer()
 {
   fix_permissions();
 

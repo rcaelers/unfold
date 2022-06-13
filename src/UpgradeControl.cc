@@ -32,8 +32,8 @@
 #include <spdlog/fmt/ostr.h>
 
 #include "AppCast.hh"
-#include "Checker.hh"
-#include "Installer.hh"
+#include "UpgradeChecker.hh"
+#include "UpgradeInstaller.hh"
 #include "Platform.hh"
 #include "Settings.hh"
 #include "SettingsStorage.hh"
@@ -71,8 +71,8 @@ UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform, unfold::utils
   , hooks(std::make_shared<Hooks>())
   , storage(SettingsStorage::create())
   , state(std::make_shared<Settings>(storage))
-  , installer(std::make_shared<Installer>(platform, http, verifier, hooks))
-  , checker(std::make_shared<Checker>(platform, http, hooks))
+  , installer(std::make_shared<UpgradeInstaller>(platform, http, verifier, hooks))
+  , checker(std::make_shared<UpgradeChecker>(platform, http, hooks))
   , checker_timer(io_context.get_io_context())
 {
   init_periodic_update_check();
@@ -149,7 +149,11 @@ UpgradeControl::set_periodic_update_check_interval(std::chrono::seconds interval
 void
 UpgradeControl::set_configuration_prefix(const std::string &prefix)
 {
-  storage->set_prefix(prefix);
+  auto rc = storage->set_prefix(prefix);
+  if (!rc)
+    {
+      logger->error("failed to set configuration prefix '{}' ({})", prefix, rc.error().message());
+    }
 }
 
 void
@@ -186,6 +190,7 @@ UpgradeControl::check_for_updates()
 boost::asio::awaitable<outcome::std_result<void>>
 UpgradeControl::check_for_updates_and_notify()
 {
+  logger->info("checking for updates");
   auto rc = co_await check_for_updates();
   if (!rc)
     {
@@ -202,6 +207,7 @@ UpgradeControl::check_for_updates_and_notify()
   auto info = checker->get_update_info();
   if (!info)
     {
+      logger->error("failed to get update info: {}", rc.error().message());
       co_return outcome::failure(unfold::UnfoldErrc::InternalError);
     }
 
@@ -213,7 +219,7 @@ UpgradeControl::check_for_updates_and_notify()
 
   if (!update_available_callback)
     {
-      logger->info("update to version {} available, but nothing to notify", info->version);
+      logger->error("update to version {} available, but nothing to notify", info->version);
       co_return outcome::success();
     }
 
@@ -270,7 +276,7 @@ UpgradeControl::init_periodic_update_check()
     auto rc = co_await check_for_updates_and_notify();
     if (!rc)
       {
-        logger->error("failed to check for updates: {}", rc.error().message());
+        logger->error("failed to perform periodic check for updates: {}", rc.error().message());
       }
   });
 }

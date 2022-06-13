@@ -25,45 +25,18 @@
 #include <string>
 #include <filesystem>
 
-#include "http/HttpClient.hh"
-#include "crypto/SignatureVerifier.hh"
-#include "utils/Logging.hh"
-
 #include "unfold/Unfold.hh"
 #include "AppCast.hh"
-#include "Platform.hh"
-#include "Hooks.hh"
+
+namespace outcome = boost::outcome_v2;
 
 class Installer
 {
 public:
-  explicit Installer(std::shared_ptr<Platform> platform,
-                     std::shared_ptr<unfold::http::HttpClient> http,
-                     std::shared_ptr<unfold::crypto::SignatureVerifier> verifier,
-                     std::shared_ptr<Hooks> hooks);
+  virtual ~Installer() = default;
 
-  void set_download_progress_callback(unfold::Unfold::download_progress_callback_t callback);
-
-  boost::asio::awaitable<outcome::std_result<void>> install(std::shared_ptr<AppcastItem> item);
-
-private:
-  outcome::std_result<std::filesystem::path> get_installer_filename();
-  boost::asio::awaitable<outcome::std_result<void>> download_installer();
-  boost::asio::awaitable<outcome::std_result<void>> verify_installer();
-  boost::asio::awaitable<outcome::std_result<void>> run_installer();
-
-  void fix_permissions();
-
-private:
-  std::shared_ptr<Platform> platform;
-  std::shared_ptr<unfold::http::HttpClient> http;
-  std::shared_ptr<unfold::crypto::SignatureVerifier> verifier;
-  std::shared_ptr<Hooks> hooks;
-
-  std::shared_ptr<AppcastItem> item;
-  std::filesystem::path installer_path;
-  unfold::Unfold::download_progress_callback_t progress_callback;
-  std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:installer")};
+  virtual void set_download_progress_callback(unfold::Unfold::download_progress_callback_t callback) = 0;
+  virtual boost::asio::awaitable<outcome::std_result<void>> install(std::shared_ptr<AppcastItem> item) = 0;
 };
 
 #endif // INSTALLER_HH

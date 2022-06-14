@@ -28,6 +28,7 @@
 #include <memory>
 #include <spdlog/spdlog.h>
 
+#include "UnfoldInternalErrors.hh"
 #include "unfold/Unfold.hh"
 #include "unfold/UnfoldErrors.hh"
 
@@ -125,6 +126,11 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_later)
   rc = control->set_current_version("1.10.45");
   BOOST_CHECK_EQUAL(rc.has_error(), false);
 
+  EXPECT_CALL(*storage, set_prefix("some\\prefix")).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
+  EXPECT_CALL(*storage, set_prefix("some\\wrong\\prefix")).Times(AtLeast(1)).WillRepeatedly(Return(outcome::failure(UnfoldInternalErrc::InternalError)));
+  control->set_configuration_prefix("some\\prefix");
+  control->set_configuration_prefix("some\\wrong\\prefix");
+
   EXPECT_CALL(*storage, get_value("SkipVersion", SettingType::String))
     .Times(AtLeast(1))
     .WillRepeatedly(Return(outcome::success("")));
@@ -160,12 +166,11 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_later)
   io_context.wait();
 }
 
-BOOST_AUTO_TEST_CASE(upgrade_control_check_failed)
+BOOST_AUTO_TEST_CASE(upgrade_control_checker_failed)
 {
-  EXPECT_CALL(*storage, set_value("SkipVersion", SettingValue{""})).Times(1).WillOnce(Return(outcome::success()));
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
 
-  control->reset_skip_version();
+  bool available{false};
   control->set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
     spdlog::info("Update available");
     io_context.stop();
@@ -195,6 +200,415 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check_failed)
     },
     boost::asio::detached);
   ioc.run();
+  BOOST_CHECK_EQUAL(available, false);
+}
+
+BOOST_AUTO_TEST_CASE(upgrade_control_no_upgrade_available)
+{
+  EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
+
+  bool available{false};
+  control->set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
+    spdlog::info("Update available");
+    io_context.stop();
+    available = true;
+    co_return unfold::UpdateResponse::Later;
+  });
+
+  EXPECT_CALL(*checker, check_for_updates())
+    .Times(AtLeast(1))
+    .WillRepeatedly(
+      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(false); }));
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await control->check_for_updates_and_notify();
+          BOOST_CHECK_EQUAL(rc.has_error(), false);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+  BOOST_CHECK_EQUAL(available, false);
+}
+
+BOOST_AUTO_TEST_CASE(upgrade_control_no_upgrade_info)
+{
+  EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
+
+  bool available{false};
+  control->set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
+    spdlog::info("Update available");
+    io_context.stop();
+    available = true;
+    co_return unfold::UpdateResponse::Later;
+  });
+
+  EXPECT_CALL(*checker, check_for_updates())
+    .Times(AtLeast(1))
+    .WillRepeatedly(
+      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
+
+  EXPECT_CALL(*checker, get_update_info()).Times(1).WillRepeatedly(Return(std::shared_ptr<unfold::UpdateInfo>{}));
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await control->check_for_updates_and_notify();
+          BOOST_CHECK_EQUAL(rc.has_error(), true);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+  BOOST_CHECK_EQUAL(available, false);
+}
+
+BOOST_AUTO_TEST_CASE(upgrade_control_skip_version)
+{
+  EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
+
+  bool available{false};
+  control->set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
+    spdlog::info("Update available");
+    io_context.stop();
+    available = true;
+    co_return unfold::UpdateResponse::Later;
+  });
+
+  EXPECT_CALL(*checker, check_for_updates())
+    .Times(AtLeast(1))
+    .WillRepeatedly(
+      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
+
+  EXPECT_CALL(*storage, get_value("SkipVersion", SettingType::String))
+    .Times(AtLeast(1))
+    .WillRepeatedly(Return(outcome::success("1.11.0-alpha.1")));
+
+  EXPECT_CALL(*checker, get_update_info())
+    .Times(AtLeast(1))
+    .WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
+      auto info = std::make_shared<unfold::UpdateInfo>();
+      info->current_version = "1.10.45";
+      info->version = "1.11.0-alpha.1";
+      info->title = "Workrave";
+      auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
+      info->release_notes.push_back(r);
+      return info;
+    }));
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await control->check_for_updates_and_notify();
+          BOOST_CHECK_EQUAL(rc.has_error(), false);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+  BOOST_CHECK_EQUAL(available, false);
+}
+
+BOOST_AUTO_TEST_CASE(upgrade_control_no_callback)
+{
+  EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
+
+  EXPECT_CALL(*checker, check_for_updates())
+    .Times(AtLeast(1))
+    .WillRepeatedly(
+      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
+
+  EXPECT_CALL(*storage, get_value("SkipVersion", SettingType::String))
+    .Times(AtLeast(1))
+    .WillRepeatedly(Return(outcome::success("1.11.0-alpha.0")));
+
+  EXPECT_CALL(*checker, get_update_info())
+    .Times(AtLeast(1))
+    .WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
+      auto info = std::make_shared<unfold::UpdateInfo>();
+      info->current_version = "1.10.45";
+      info->version = "1.11.0-alpha.1";
+      info->title = "Workrave";
+      auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
+      info->release_notes.push_back(r);
+      return info;
+    }));
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await control->check_for_updates_and_notify();
+          BOOST_CHECK_EQUAL(rc.has_error(), true);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+}
+
+BOOST_AUTO_TEST_CASE(upgrade_control_callback_later)
+{
+  EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
+
+  bool available{false};
+  control->set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
+    spdlog::info("Update available");
+    io_context.stop();
+    available = true;
+    co_return unfold::UpdateResponse::Later;
+  });
+
+  EXPECT_CALL(*checker, check_for_updates())
+    .Times(AtLeast(1))
+    .WillRepeatedly(
+      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
+
+  EXPECT_CALL(*storage, get_value("SkipVersion", SettingType::String))
+    .Times(AtLeast(1))
+    .WillRepeatedly(Return(outcome::success("1.11.0-alpha.0")));
+
+  EXPECT_CALL(*checker, get_update_info())
+    .Times(AtLeast(1))
+    .WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
+      auto info = std::make_shared<unfold::UpdateInfo>();
+      info->current_version = "1.10.45";
+      info->version = "1.11.0-alpha.1";
+      info->title = "Workrave";
+      auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
+      info->release_notes.push_back(r);
+      return info;
+    }));
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await control->check_for_updates_and_notify();
+          BOOST_CHECK_EQUAL(rc.has_error(), false);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+  BOOST_CHECK_EQUAL(available, true);
+}
+
+BOOST_AUTO_TEST_CASE(upgrade_control_callback_skip)
+{
+  EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
+
+  bool available{false};
+  control->set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
+    spdlog::info("Update available");
+    io_context.stop();
+    available = true;
+    co_return unfold::UpdateResponse::Skip;
+  });
+
+  EXPECT_CALL(*checker, check_for_updates())
+    .Times(AtLeast(1))
+    .WillRepeatedly(
+      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
+
+  EXPECT_CALL(*storage, get_value("SkipVersion", SettingType::String))
+    .Times(AtLeast(1))
+    .WillRepeatedly(Return(outcome::success("1.11.0-alpha.0")));
+
+  EXPECT_CALL(*storage, set_value("SkipVersion", SettingValue{"1.11.0-alpha.1"})).Times(1).WillOnce(Return(outcome::success()));
+
+  EXPECT_CALL(*checker, get_update_info())
+    .Times(AtLeast(1))
+    .WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
+      auto info = std::make_shared<unfold::UpdateInfo>();
+      info->current_version = "1.10.45";
+      info->version = "1.11.0-alpha.1";
+      info->title = "Workrave";
+      auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
+      info->release_notes.push_back(r);
+      return info;
+    }));
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await control->check_for_updates_and_notify();
+          BOOST_CHECK_EQUAL(rc.has_error(), false);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+  BOOST_CHECK_EQUAL(available, true);
+}
+
+BOOST_AUTO_TEST_CASE(upgrade_control_callback_install)
+{
+  EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
+
+  bool available{false};
+  control->set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
+    spdlog::info("Update available");
+    io_context.stop();
+    available = true;
+    co_return unfold::UpdateResponse::Install;
+  });
+
+  EXPECT_CALL(*checker, check_for_updates())
+    .Times(AtLeast(1))
+    .WillRepeatedly(
+      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
+
+  EXPECT_CALL(*storage, get_value("SkipVersion", SettingType::String))
+    .Times(AtLeast(1))
+    .WillRepeatedly(Return(outcome::success("1.11.0-alpha.0")));
+
+  EXPECT_CALL(*checker, get_update_info())
+    .Times(AtLeast(1))
+    .WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
+      auto info = std::make_shared<unfold::UpdateInfo>();
+      info->current_version = "1.10.45";
+      info->version = "1.11.0-alpha.1";
+      info->title = "Workrave";
+      auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
+      info->release_notes.push_back(r);
+      return info;
+    }));
+
+  auto item = std::make_shared<AppcastItem>();
+  EXPECT_CALL(*checker, get_selected_update())
+    .Times(AtLeast(1))
+    .WillRepeatedly(InvokeWithoutArgs([item]() -> std::shared_ptr<AppcastItem> { return item; }));
+
+  EXPECT_CALL(*installer, install(item))
+    .Times(AtLeast(1))
+    .WillRepeatedly(
+      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await control->check_for_updates_and_notify();
+          BOOST_CHECK_EQUAL(rc.has_error(), false);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+  BOOST_CHECK_EQUAL(available, true);
+}
+
+BOOST_AUTO_TEST_CASE(upgrade_control_callback_install_failed)
+{
+  EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
+
+  bool available{false};
+  control->set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
+    spdlog::info("Update available");
+    io_context.stop();
+    available = true;
+    co_return unfold::UpdateResponse::Install;
+  });
+
+  EXPECT_CALL(*checker, check_for_updates())
+    .Times(AtLeast(1))
+    .WillRepeatedly(
+      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
+
+  EXPECT_CALL(*storage, get_value("SkipVersion", SettingType::String))
+    .Times(AtLeast(1))
+    .WillRepeatedly(Return(outcome::success("1.11.0-alpha.0")));
+
+  EXPECT_CALL(*checker, get_update_info())
+    .Times(AtLeast(1))
+    .WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
+      auto info = std::make_shared<unfold::UpdateInfo>();
+      info->current_version = "1.10.45";
+      info->version = "1.11.0-alpha.1";
+      info->title = "Workrave";
+      auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
+      info->release_notes.push_back(r);
+      return info;
+    }));
+
+  auto item = std::make_shared<AppcastItem>();
+  EXPECT_CALL(*checker, get_selected_update())
+    .Times(AtLeast(1))
+    .WillRepeatedly(InvokeWithoutArgs([item]() -> std::shared_ptr<AppcastItem> { return item; }));
+
+  EXPECT_CALL(*installer, install(item))
+    .Times(AtLeast(1))
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> {
+      co_return outcome::failure(unfold::UnfoldErrc::InternalError);
+    }));
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await control->check_for_updates_and_notify();
+          BOOST_CHECK_EQUAL(rc.has_error(), true);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+  BOOST_CHECK_EQUAL(available, true);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

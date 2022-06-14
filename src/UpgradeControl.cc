@@ -205,7 +205,7 @@ UpgradeControl::check_for_updates_and_notify()
   auto info = checker->get_update_info();
   if (!info)
     {
-      logger->error("failed to get update info: {}", rc.error().message());
+      logger->error("failed to get update info");
       co_return outcome::failure(unfold::UnfoldErrc::InternalError);
     }
 
@@ -218,7 +218,7 @@ UpgradeControl::check_for_updates_and_notify()
   if (!update_available_callback)
     {
       logger->error("update to version {} available, but nothing to notify", info->version);
-      co_return outcome::success();
+      co_return outcome::failure(unfold::UnfoldErrc::InvalidArgument);
     }
 
   auto resp = co_await update_available_callback();

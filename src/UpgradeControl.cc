@@ -49,7 +49,7 @@
 #if defined(WIN32)
 #  include "windows/WindowsPlatform.hh"
 #else
-#  include "DummyPlatform.hh"
+#  error Unsupported platform
 #endif
 
 std::shared_ptr<unfold::Unfold>
@@ -57,8 +57,6 @@ unfold::Unfold::create(unfold::utils::IOContext &io_context)
 {
 #if defined(WIN32)
   auto platform = std::make_shared<WindowsPlatform>();
-#else
-  auto platform = std::make_shared<DummyPlatform>();
 #endif
 
   return std::make_shared<UpgradeControl>(platform, io_context);

@@ -64,11 +64,13 @@ UpdateDialog::UpdateDialog(std::shared_ptr<unfold::UpdateInfo> info)
 
   try
     {
-      Gtk::Image *logo = Gtk::manage(new Gtk::Image("workrave.png"));
+      auto pix = Gdk::Pixbuf::create_from_resource("/workrave/workrave.png");
+      Gtk::Image *logo = Gtk::manage(new Gtk::Image(pix));
       logobox->pack_start(*logo, false, false, 0);
     }
-  catch (const Glib::Exception &)
+  catch (const Glib::Exception &e)
     {
+      spdlog::info("error loading image {}", e.what());
     }
 
   auto *vbox = Gtk::manage(new Gtk::Box(Gtk::ORIENTATION_VERTICAL));

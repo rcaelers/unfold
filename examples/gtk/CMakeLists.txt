@@ -22,10 +22,13 @@ if(WIN32)
 
   if(CMAKE_SYSTEM_PROCESSOR MATCHES "amd64|AMD64")
     target_link_directories(webview2 INTERFACE ${webview2_SOURCE_DIR}/build/native/x64)
+    install(FILES ${webview2_SOURCE_DIR}/runtimes/win-x64/native/WebView2Loader.dll DESTINATION bin)
   elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "x86|X86")
     target_link_directories(webview2 INTERFACE ${webview2_SOURCE_DIR}/build/native/x86)
+    install(FILES ${webview2_SOURCE_DIR}/runtimes/x86/native/WebView2Loader.dll DESTINATION bin)
   elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|ARM64")
     target_link_directories(webview2 INTERFACE ${webview2_SOURCE_DIR}/build/native/arm64)
+    install(FILES ${webview2_SOURCE_DIR}/runtimes/arm64/native/WebView2Loader.dll DESTINATION bin)
   else()
     message(FATAL_ERROR "Unsupported processor: ${CMAKE_SYSTEM_PROCESSOR}")
   endif()
@@ -37,6 +40,7 @@ add_executable(gtk_example)
 
 target_sources(gtk_example PRIVATE
   main.cc
+  resources.gresource.xml.c
   UpdateDialog.cc
   )
 
@@ -52,6 +56,8 @@ pkg_check_modules(
   GTK REQUIRED
   gtkmm-3.0>=3.22.0
   gtk+-3.0>=3.22.0)
+
+find_program(GLIB_COMPILE_RESOURCES NAMES glib-compile-resources REQUIRED)
 
 target_include_directories(gtk_example PRIVATE ${GTK_INCLUDE_DIRS})
 target_link_directories(gtk_example PRIVATE ${GTK_LIBRARY_DIRS})
@@ -74,4 +80,27 @@ if (WIN32)
     set_target_properties(gtk_example PROPERTIES LINK_FLAGS "-mwindows")
   endif()
 endif()
+
+execute_process(
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	COMMAND ${GLIB_COMPILE_RESOURCES} --generate-dependencies resources.gresource.xml
+	OUTPUT_VARIABLE RESOURCES_DEPENDENCIES
+)
+
+add_custom_command(
+	OUTPUT resources.gresource.xml.c
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	COMMAND ${GLIB_COMPILE_RESOURCES}
+	ARGS
+    --sourcedir=${CMAKE_CURRENT_SOURCE_DIR}
+    --target=${CMAKE_CURRENT_BINARY_DIR}/resources.gresource.xml.c
+		--generate-source
+		${CMAKE_CURRENT_SOURCE_DIR}/resources.gresource.xml
+	VERBATIM
+	MAIN_DEPENDENCY ${CMAKE_CURRENT_SOURCE_DIR}/resources.gresource.xml
+	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${RESOURCES_DEPENDENCIES}
+)
+
 file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/workrave.png" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
+
+install(TARGETS gtk_example DESTINATION bin)

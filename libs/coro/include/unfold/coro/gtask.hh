@@ -18,8 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef CORO_GTASK_HH
-#define CORO_GTASK_HH
+#ifndef UNFOLD_CORO_GTASK_HH
+#define UNFOLD_CORO_GTASK_HH
 
 #include <exception>
 #include <memory>
@@ -32,7 +32,7 @@
 #include <glib-object.h>
 
 #include "coro.hh"
-#include "coro/task.hh"
+#include "unfold/coro/task.hh"
 
 namespace unfold::coro
 {

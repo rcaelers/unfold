@@ -18,17 +18,46 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef CORO_CORO_HH
-#define CORO_CORO_HH
+#ifndef UNFOLD_CORO_SCHEDULER_HH
+#define UNFOLD_CORO_SCHEDULER_HH
 
-#if __has_include(<coroutine>)
-#  include <coroutine>
-#elif __has_include(<experimental/coroutine>)
-#  include <experimental/coroutine>
-namespace std
+#include <chrono>
+#include <exception>
+#include <utility>
+
+#include "coro.hh"
+
+namespace unfold::coro
 {
-  using namespace ::std::experimental;
-};
-#endif
+  template<typename ValueType>
+  class [[nodiscard]] task;
 
-#endif // CORO_CORO_HH
+  struct sleep_awaiter : std::suspend_always
+  {
+    explicit sleep_awaiter(std::chrono::milliseconds duration)
+      : duration_(duration)
+    {
+    }
+
+    void await_suspend(std::coroutine_handle<> h)
+    {
+      handle_ = h;
+    }
+
+  private:
+    std::coroutine_handle<> handle_;
+    std::chrono::milliseconds duration_{};
+  };
+
+  class scheduler
+  {
+  public:
+    virtual ~scheduler() = default;
+    virtual auto get_executor() const = 0;
+    virtual void spawn(task<void> &&task) = 0;
+    virtual sleep_awaiter sleep(int duration) = 0;
+  };
+
+} // namespace unfold::coro
+
+#endif // UNFOLD_CORO_SCHEDULER_HH

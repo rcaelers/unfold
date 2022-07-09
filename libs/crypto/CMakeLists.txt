@@ -13,10 +13,10 @@ target_link_libraries(unfold-crypto PRIVATE unfold-utils spdlog::spdlog OpenSSL:
 target_include_directories(
   unfold-crypto
   PRIVATE
-  ${CMAKE_SOURCE_DIR}/libs/crypto/src
+  ${PROJECT_SOURCE_DIR}/libs/crypto/src
   ${boosturl_SOURCE_DIR}/include
   PUBLIC
-  ${CMAKE_SOURCE_DIR}/libs/crypto/include)
+  ${PROJECT_SOURCE_DIR}/libs/crypto/include)
 
 target_code_coverage(unfold-crypto AUTO ALL)
 

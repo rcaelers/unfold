@@ -194,7 +194,7 @@ BOOST_FIXTURE_TEST_SUITE(unfold_integration_test, IntegrationTestFixture)
 
 BOOST_AUTO_TEST_CASE(upgrade_control_invalid_key)
 {
-  unfold::utils::IOContext io_context{1};
+  unfold::coro::IOContext io_context{1};
   UpgradeControl control(platform, io_context);
 
   auto rc = control.set_signature_verification_key("xxxxMCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=xxx");
@@ -204,7 +204,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_invalid_key)
 
 BOOST_AUTO_TEST_CASE(upgrade_control_invalid_cert)
 {
-  unfold::utils::IOContext io_context{1};
+  unfold::coro::IOContext io_context{1};
   UpgradeControl control(platform, io_context);
 
   auto rc = control.set_certificate("cert");
@@ -214,7 +214,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_invalid_cert)
 
 BOOST_AUTO_TEST_CASE(upgrade_control_check)
 {
-  unfold::utils::IOContext io_context{1};
+  unfold::coro::IOContext io_context{1};
   UpgradeControl control(platform, io_context);
 
   init_appcast();
@@ -286,7 +286,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check)
 BOOST_AUTO_TEST_CASE(upgrade_last_upgrade_time)
 {
   init_appcast();
-  unfold::utils::IOContext io_context{1};
+  unfold::coro::IOContext io_context{1};
   UpgradeControl control(platform, io_context);
 
   control.set_configuration_prefix("Software\\Unfold\\Test");
@@ -338,7 +338,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_later)
 {
   init_appcast();
 
-  unfold::utils::IOContext io_context{1};
+  unfold::coro::IOContext io_context{1};
   UpgradeControl control(platform, io_context);
 
   auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
@@ -370,7 +370,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_skip)
 {
   init_appcast();
 
-  unfold::utils::IOContext io_context{1};
+  unfold::coro::IOContext io_context{1};
   UpgradeControl control(platform, io_context);
 
   auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
@@ -404,7 +404,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_install_now)
 {
   init_appcast();
 
-  unfold::utils::IOContext io_context{1};
+  unfold::coro::IOContext io_context{1};
   UpgradeControl control(platform, io_context);
 
   auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");

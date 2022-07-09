@@ -1,4 +1,5 @@
 add_library(unfold SHARED)
+add_library(${PROJECT_NAME}::unfold ALIAS unfold)
 
 target_sources(unfold PRIVATE
   AppCast.cc
@@ -21,19 +22,25 @@ if(WIN32)
   target_link_libraries(unfold PUBLIC ws2_32 mswsock)
 endif()
 
-target_link_libraries(unfold PUBLIC unfold-utils unfold-crypto unfold-http unfold-coro)
-target_link_libraries(unfold PUBLIC Boost::coroutine semver::semver PRIVATE Boost::filesystem spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto)
+target_link_libraries(unfold PRIVATE unfold-utils unfold-crypto unfold-http unfold-coro)
+target_link_libraries(unfold PRIVATE Boost::coroutine semver::semver PRIVATE Boost::filesystem spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto)
 target_compile_definitions(unfold PRIVATE BOOST_URL_NO_LIB)
 
 target_include_directories(
   unfold
   PRIVATE
-  ${CMAKE_SOURCE_DIR}/include/unfold
-  ${CMAKE_SOURCE_DIR}/src
+  ${PROJECT_SOURCE_DIR}/include/unfold
+  ${PROJECT_SOURCE_DIR}/src
   ${boosturl_SOURCE_DIR}/include
   PUBLIC
-  ${CMAKE_SOURCE_DIR}/include)
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
 target_code_coverage(unfold AUTO ALL)
 
-install(TARGETS unfold DESTINATION ${LIBDIR})
+install(TARGETS unfold
+  EXPORT ${PROJECT_NAME}Targets
+  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+  )

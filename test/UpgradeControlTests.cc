@@ -89,7 +89,7 @@ struct MockedTestFixture
     control = std::make_shared<UpgradeControl>(platform, http, verifier, storage, installer, checker, io_context);
   }
 
-  unfold::utils::IOContext io_context{1};
+  unfold::coro::IOContext io_context{1};
   std::shared_ptr<unfold::http::HttpClient> http;
   std::shared_ptr<SignatureVerifierMock> verifier;
   std::shared_ptr<SettingsStorageMock> storage;
@@ -127,7 +127,9 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_later)
   BOOST_CHECK_EQUAL(rc.has_error(), false);
 
   EXPECT_CALL(*storage, set_prefix("some\\prefix")).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(*storage, set_prefix("some\\wrong\\prefix")).Times(AtLeast(1)).WillRepeatedly(Return(outcome::failure(UnfoldInternalErrc::InternalError)));
+  EXPECT_CALL(*storage, set_prefix("some\\wrong\\prefix"))
+    .Times(AtLeast(1))
+    .WillRepeatedly(Return(outcome::failure(UnfoldInternalErrc::InternalError)));
   control->set_configuration_prefix("some\\prefix");
   control->set_configuration_prefix("some\\wrong\\prefix");
 

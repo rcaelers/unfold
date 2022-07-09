@@ -46,23 +46,18 @@
 #include "utils/PeriodicTimer.hh"
 #include "utils/TempDirectory.hh"
 
+// TODO: move to different file
 #if defined(WIN32)
 #  include "windows/WindowsPlatform.hh"
-#else
-#  error Unsupported platform
-#endif
-
 std::shared_ptr<unfold::Unfold>
-unfold::Unfold::create(unfold::utils::IOContext &io_context)
+unfold::Unfold::create(unfold::coro::IOContext &io_context)
 {
-#if defined(WIN32)
   auto platform = std::make_shared<WindowsPlatform>();
-#endif
-
   return std::make_shared<UpgradeControl>(platform, io_context);
 }
+#endif
 
-UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform, unfold::utils::IOContext &io_context)
+UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform, unfold::coro::IOContext &io_context)
   : platform(platform)
   , http(std::make_shared<unfold::http::HttpClient>())
   , verifier(std::make_shared<unfold::crypto::SignatureVerifier>())
@@ -82,7 +77,7 @@ UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform,
                                std::shared_ptr<SettingsStorage> storage,
                                std::shared_ptr<Installer> installer,
                                std::shared_ptr<Checker> checker,
-                               unfold::utils::IOContext &io_context)
+                               unfold::coro::IOContext &io_context)
   : platform(platform)
   , http(http)
   , verifier(verifier)

@@ -19,9 +19,9 @@ target_compile_definitions(unfold-http PRIVATE BOOST_URL_NO_LIB)
 target_include_directories(
   unfold-http
   PRIVATE
-  ${CMAKE_SOURCE_DIR}/libs/http/src
+  ${PROJECT_SOURCE_DIR}/libs/http/src
   ${boosturl_SOURCE_DIR}/include
   PUBLIC
-  ${CMAKE_SOURCE_DIR}/libs/http/include)
+  ${PROJECT_SOURCE_DIR}/libs/http/include)
 
 add_subdirectory(test)

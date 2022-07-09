@@ -35,9 +35,9 @@
 #include "http/HttpClient.hh"
 #include "http/HttpClientErrors.hh"
 #include "utils/Logging.hh"
-#include "utils/IOContext.hh"
+#include "unfold/coro/IOContext.hh"
 
-#include "coro/gtask.hh"
+#include "unfold/coro/gtask.hh"
 
 #define BOOST_TEST_MODULE "unfold"
 #include <boost/test/unit_test.hpp>
@@ -122,7 +122,7 @@ struct Fixture
 
   GMainContext *context = nullptr;
   GMainLoop *loop = nullptr;
-  unfold::utils::IOContext io_context{1};
+  unfold::coro::IOContext io_context{1};
   unfold::coro::glib::scheduler scheduler;
   std::shared_ptr<spdlog::logger> logger{Logging::create("test")};
 };

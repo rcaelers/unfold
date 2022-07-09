@@ -18,41 +18,17 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef UTILS_IO_CONTEXT_HH
-#define UTILS_IO_CONTEXT_HH
+#ifndef UNFOLD_CORO_CORO_HH
+#define UNFOLD_CORO_CORO_HH
 
-#include <boost/asio/io_context.hpp>
-#include <thread>
-#include <latch>
-
-#include <spdlog/spdlog.h>
-#include <spdlog/fmt/ostr.h>
-
-#include <boost/asio.hpp>
-
-namespace unfold::utils
+#if __has_include(<coroutine>)
+#  include <coroutine>
+#elif __has_include(<experimental/coroutine>)
+#  include <experimental/coroutine>
+namespace std
 {
-  class IOContext
-  {
-  public:
-    explicit IOContext(int num_threads);
-    ~IOContext();
+  using namespace ::std::experimental;
+};
+#endif
 
-    boost::asio::io_context *get_io_context();
-    void stop();
-    void wait();
-
-    IOContext(const IOContext &) = delete;
-    IOContext &operator=(const IOContext &) = delete;
-    IOContext(IOContext &&) = delete;
-    IOContext &operator=(IOContext &&) = delete;
-
-  private:
-    boost::asio::io_context ioc_;
-    std::latch sync_;
-    boost::asio::executor_work_guard<boost::asio::io_context::executor_type> guard_;
-    std::vector<std::thread> workers_;
-  };
-} // namespace unfold::utils
-
-#endif // UTILS_IO_CONTEXT_HH
+#endif // UNFOLD_CORO_CORO_HH

@@ -32,8 +32,8 @@
 
 #include "http/HttpServer.hh"
 #include "unfold/Unfold.hh"
-#include "coro/gtask.hh"
-#include "utils/IOContext.hh"
+#include "unfold/coro/gtask.hh"
+#include "unfold/coro/IOContext.hh"
 
 #if defined(WIN32)
 int APIENTRY
@@ -108,7 +108,7 @@ main(int argc, char *argv[])
   server.add_file("/installer.sh", "../../test/installer.sh");
   server.run();
 
-  unfold::utils::IOContext io_context{1};
+  unfold::coro::IOContext io_context{1};
   auto updater = unfold::Unfold::create(io_context);
 
   auto rc = updater->set_appcast("https://127.0.0.1:1337/appcast.xml");

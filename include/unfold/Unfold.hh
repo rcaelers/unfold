@@ -30,7 +30,7 @@
 #include <boost/outcome/std_result.hpp>
 #include <boost/asio.hpp>
 
-#include "utils/IOContext.hh"
+#include "unfold/coro/IOContext.hh"
 
 #include "UnfoldHooks.hh"
 
@@ -70,7 +70,7 @@ namespace unfold
     using update_available_callback_t = std::function<boost::asio::awaitable<UpdateResponse>()>;
     using download_progress_callback_t = std::function<void(double progress)>;
 
-    static std::shared_ptr<Unfold> create(unfold::utils::IOContext &io_context);
+    static std::shared_ptr<Unfold> create(unfold::coro::IOContext &io_context);
 
     virtual outcome::std_result<void> set_appcast(const std::string &url) = 0;
     virtual outcome::std_result<void> set_current_version(const std::string &version) = 0;

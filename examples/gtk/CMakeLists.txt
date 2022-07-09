@@ -44,7 +44,7 @@ target_sources(gtk_example PRIVATE
   UpdateDialog.cc
   )
 
-target_link_libraries(gtk_example PRIVATE unfold)
+target_link_libraries(gtk_example PRIVATE unfold unfold-coro unfold-http unfold-utils)
 target_link_libraries(gtk_example PRIVATE spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto)
 
 if (WIN32)

@@ -6,7 +6,7 @@ if (HAVE_TESTS)
   target_link_libraries(unfold-test-crypto PRIVATE spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto)
   target_link_libraries(unfold-test-crypto PRIVATE ${EXTRA_LIBRARIES})
 
-  target_include_directories(unfold-test-crypto PRIVATE ${CMAKE_SOURCE_DIR}/src)
+  target_include_directories(unfold-test-crypto PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
   add_test(NAME unfold-test-crypto COMMAND unfold-test-crypto)
   target_code_coverage(unfold-test-crypto AUTO ALL EXCLUDE _build libs/utils test/)

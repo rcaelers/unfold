@@ -15,12 +15,12 @@ if (HAVE_TESTS)
     target_sources(unfold-test PRIVATE WindowsTests.cc)
   endif()
 
-  target_link_libraries(unfold-test PRIVATE unfold)
+  target_link_libraries(unfold-test PRIVATE unfold unfold-coro unfold-crypto unfold-utils unfold-http)
   target_link_libraries(unfold-test PRIVATE Boost::test_exec_monitor gmock_main)
-  target_link_libraries(unfold-test PRIVATE spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto)
+  target_link_libraries(unfold-test PRIVATE spdlog::spdlog semver::semver OpenSSL::SSL OpenSSL::Crypto)
   target_link_libraries(unfold-test PRIVATE ${EXTRA_LIBRARIES})
 
-  target_include_directories(unfold-test PRIVATE ${CMAKE_SOURCE_DIR}/src)
+  target_include_directories(unfold-test PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
   add_test(NAME unfold-test COMMAND unfold-test)
   target_code_coverage(unfold-test AUTO ALL OBJECTS unfold EXCLUDE _build test/)

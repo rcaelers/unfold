@@ -18,46 +18,41 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef CORO_SCHEDULER_HH
-#define CORO_SCHEDULER_HH
+#ifndef UNFOLD_CORO_IO_CONTEXT_HH
+#define UNFOLD_CORO_IO_CONTEXT_HH
 
-#include <chrono>
-#include <exception>
-#include <utility>
+#include <boost/asio/io_context.hpp>
+#include <thread>
+#include <latch>
 
-#include "coro.hh"
+#include <spdlog/spdlog.h>
+#include <spdlog/fmt/ostr.h>
+
+#include <boost/asio.hpp>
 
 namespace unfold::coro
 {
-  template<typename ValueType>
-  class [[nodiscard]] task;
-
-  struct sleep_awaiter : std::suspend_always
-  {
-    explicit sleep_awaiter(std::chrono::milliseconds duration)
-      : duration_(duration)
-    {
-    }
-
-    void await_suspend(std::coroutine_handle<> h)
-    {
-      handle_ = h;
-    }
-
-  private:
-    std::coroutine_handle<> handle_;
-    std::chrono::milliseconds duration_{};
-  };
-
-  class scheduler
+  class IOContext
   {
   public:
-    virtual ~scheduler() = default;
-    virtual auto get_executor() const = 0;
-    virtual void spawn(task<void> &&task) = 0;
-    virtual sleep_awaiter sleep(int duration) = 0;
-  };
+    explicit IOContext(int num_threads);
+    ~IOContext();
 
+    boost::asio::io_context *get_io_context();
+    void stop();
+    void wait();
+
+    IOContext(const IOContext &) = delete;
+    IOContext &operator=(const IOContext &) = delete;
+    IOContext(IOContext &&) = delete;
+    IOContext &operator=(IOContext &&) = delete;
+
+  private:
+    boost::asio::io_context ioc_;
+    std::latch sync_;
+    boost::asio::executor_work_guard<boost::asio::io_context::executor_type> guard_;
+    std::vector<std::thread> workers_;
+  };
 } // namespace unfold::coro
 
-#endif // CORO_SCHEDULER_HH
+#endif // UNFOLD_CORO_IO_CONTEXT_HH

@@ -32,7 +32,7 @@
 
 #include "http/HttpClient.hh"
 #include "utils/Logging.hh"
-#include "utils/IOContext.hh"
+#include "unfold/coro/IOContext.hh"
 #include "utils/PeriodicTimer.hh"
 
 #include "Platform.hh"
@@ -46,7 +46,7 @@
 class UpgradeControl : public unfold::Unfold
 {
 public:
-  UpgradeControl(std::shared_ptr<Platform> platform, unfold::utils::IOContext &io_context);
+  UpgradeControl(std::shared_ptr<Platform> platform, unfold::coro::IOContext &io_context);
 
   UpgradeControl(std::shared_ptr<Platform> platform,
                  std::shared_ptr<unfold::http::HttpClient> http,
@@ -54,7 +54,7 @@ public:
                  std::shared_ptr<SettingsStorage> storage,
                  std::shared_ptr<Installer> installer,
                  std::shared_ptr<Checker> checker,
-                 unfold::utils::IOContext &io_context);
+                 unfold::coro::IOContext &io_context);
 
   outcome::std_result<void> set_appcast(const std::string &url) override;
   outcome::std_result<void> set_current_version(const std::string &version) override;

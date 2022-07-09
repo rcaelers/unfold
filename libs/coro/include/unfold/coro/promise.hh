@@ -18,8 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef CORO_PROMISE_HH
-#define CORO_PROMISE_HH
+#ifndef UNFOLD_CORO_PROMISE_HH
+#define UNFOLD_CORO_PROMISE_HH
 
 #include <exception>
 #include <utility>
@@ -193,4 +193,4 @@ namespace unfold::coro
   } // namespace detail
 } // namespace unfold::coro
 
-#endif // CORO_PROMISE_HH
+#endif // UNFOLD_CORO_PROMISE_HH

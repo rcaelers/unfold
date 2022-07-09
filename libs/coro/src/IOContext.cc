@@ -18,11 +18,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "utils/IOContext.hh"
+#include "unfold/coro/IOContext.hh"
 
 #include <spdlog/spdlog.h>
 
-using namespace unfold::utils;
+using namespace unfold::coro;
 
 IOContext::IOContext(int num_threads)
   : ioc_(num_threads)

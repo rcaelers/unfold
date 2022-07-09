@@ -1,7 +1,13 @@
 cmake_minimum_required(VERSION 3.23)
 cmake_policy(VERSION 3.23)
 
-project(unfold VERSION 0.1 LANGUAGES CXX C)
+project(Unfold VERSION 0.1 LANGUAGES CXX C)
+
+if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+    set(IS_TOPLEVEL_PROJECT TRUE)
+else()
+    set(IS_TOPLEVEL_PROJECT FALSE)
+endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 
@@ -44,7 +50,7 @@ endif()
 #----------------------------------------------------------------------------------------------------
 # Testing
 
-option(WITH_TESTS "Enable unit tests" OFF)
+option(WITH_TESTS "Enable unit tests" ${IS_TOPLEVEL_PROJECT})
 include(code-coverage)
 
 if (WITH_TESTS)
@@ -52,7 +58,6 @@ if (WITH_TESTS)
   enable_testing()
   add_code_coverage_all_targets()
 endif()
-
 
 #----------------------------------------------------------------------------------------------------
 # Dependencies
@@ -162,5 +167,41 @@ endif()
 add_subdirectory(libs)
 add_subdirectory(src)
 add_subdirectory(test)
-add_subdirectory(examples)
 
+#----------------------------------------------------------------------------------------------------
+# Examples
+
+option(WITH_EXAMPLES "Build unfold examples" ${IS_TOPLEVEL_PROJECT})
+
+if (WITH_EXAMPLES)
+  add_subdirectory(examples)
+endif()
+
+#----------------------------------------------------------------------------------------------------
+# Install
+
+include(CMakePackageConfigHelpers)
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libs/coro/include/
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+configure_package_config_file(
+  cmake/${PROJECT_NAME}Config.cmake.in
+  ${PROJECT_NAME}Config.cmake
+  INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
+
+write_basic_package_version_file(
+    ${PROJECT_NAME}ConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion)
+
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+              ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})
+
+install(EXPORT ${PROJECT_NAME}Targets
+        NAMESPACE ${PROJECT_NAME}::
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME})

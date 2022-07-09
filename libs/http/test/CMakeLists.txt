@@ -7,7 +7,7 @@ if (HAVE_TESTS)
   target_link_libraries(unfold-test-http PRIVATE spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto)
   target_link_libraries(unfold-test-http PRIVATE ${EXTRA_LIBRARIES})
 
-  target_include_directories(unfold-test-http PRIVATE ${CMAKE_SOURCE_DIR}/src)
+  target_include_directories(unfold-test-http PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
   add_test(NAME unfold-test-http COMMAND unfold-test-http)
 
@@ -28,5 +28,5 @@ endif()
   target_link_libraries(unfold-test-http-server PRIVATE spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto)
   target_link_libraries(unfold-test-http-server PRIVATE ${EXTRA_LIBRARIES})
 
-  target_include_directories(unfold-test-http-server PRIVATE ${CMAKE_SOURCE_DIR}/src)
+  target_include_directories(unfold-test-http-server PRIVATE ${PROJECT_SOURCE_DIR}/src)
 endif()

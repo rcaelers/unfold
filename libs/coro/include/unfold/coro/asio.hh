@@ -18,8 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef CORO_ASIO_HH
-#define CORO_ASIO_HH
+#ifndef UNFOLD_CORO_ASIO_HH
+#define UNFOLD_CORO_ASIO_HH
 
 #include <exception>
 #include <utility>
@@ -94,4 +94,4 @@ namespace unfold::coro::detail
 
 } // namespace unfold::coro::detail
 
-#endif // CORO_ASIO_HH
+#endif // UNFOLD_CORO_ASIO_HH

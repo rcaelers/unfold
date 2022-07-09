@@ -6,7 +6,6 @@ target_sources(unfold-utils PRIVATE
   src/Logging.cc
   src/TempDirectory.cc
   src/PeriodicTimer.cc
-  src/IOContext.cc
 )
 
 if(WIN32)
@@ -20,8 +19,8 @@ target_link_libraries(unfold-utils PRIVATE spdlog::spdlog)
 target_include_directories(
   unfold-utils
   PRIVATE
-  ${CMAKE_SOURCE_DIR}/libs/utils/src
+  ${PROJECT_SOURCE_DIR}/libs/utils/src
   ${boosturl_SOURCE_DIR}/include
   PUBLIC
-  ${CMAKE_SOURCE_DIR}/libs/utils/include)
+  ${PROJECT_SOURCE_DIR}/libs/utils/include)
 

@@ -112,6 +112,7 @@ endif()
 FetchContent_Declare(
   boosturl
   GIT_REPOSITORY https://github.com/CPPAlliance/url
+  GIT_TAG ef2db3c1e52474b881812da92ae495cd936ed150
   GIT_SHALLOW TRUE
 )
 FetchContent_Populate(boosturl)
@@ -135,7 +136,7 @@ if (WITH_TESTS)
     googletest
     GIT_REPOSITORY https://github.com/google/googletest.git
     GIT_SHALLOW TRUE
-    GIT_TAG release-1.11.0
+    GIT_TAG release-1.12.1
   )
   # For Windows: Prevent overriding the parent project's compiler/linker settings
   set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)

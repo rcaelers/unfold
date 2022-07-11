@@ -34,6 +34,7 @@ target_include_directories(
   ${boosturl_SOURCE_DIR}/include
   PUBLIC
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/libs/coro/include>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
 target_code_coverage(unfold AUTO ALL)

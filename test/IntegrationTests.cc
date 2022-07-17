@@ -212,7 +212,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_invalid_cert)
   BOOST_CHECK_EQUAL(rc.error(), unfold::UnfoldErrc::InvalidArgument);
 }
 
-BOOST_AUTO_TEST_CASE(upgrade_control_check)
+BOOST_AUTO_TEST_CASE(upgrade_control_check_alpha)
 {
   unfold::coro::IOContext io_context{1};
   UpgradeControl control(platform, io_context);
@@ -230,6 +230,9 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check)
   BOOST_CHECK_EQUAL(rc.has_error(), false);
 
   rc = control.set_current_version("1.10.45");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = control.set_allowed_channels({"alpha"});
   BOOST_CHECK_EQUAL(rc.has_error(), false);
 
   double last_progress = 0.0;
@@ -255,6 +258,80 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check)
           BOOST_CHECK_EQUAL(update_info->version, "1.11.0-alpha.1");
           BOOST_CHECK_EQUAL(update_info->release_notes.size(), 4);
           BOOST_CHECK_EQUAL(update_info->release_notes.front().version, "1.11.0-alpha.1");
+
+          std::filesystem::remove("installer.log");
+
+          auto ri = co_await control.install_update();
+          BOOST_CHECK_EQUAL(ri.has_error(), false);
+          int tries = 100;
+          bool found = false;
+          do
+            {
+              found = std::filesystem::exists("installer.log");
+              std::this_thread::sleep_for(std::chrono::milliseconds(50));
+              tries--;
+            }
+          while (tries > 0 && !found);
+          BOOST_CHECK(found);
+          BOOST_CHECK_GE(100, last_progress);
+          BOOST_CHECK_EQUAL(platform->is_terminated(), false);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+}
+
+BOOST_AUTO_TEST_CASE(upgrade_control_check_release)
+{
+  unfold::coro::IOContext io_context{1};
+  UpgradeControl control(platform, io_context);
+
+  init_appcast();
+  control.set_configuration_prefix("Software\\Unfold\\Test");
+
+  auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = control.set_certificate(cert);
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = control.set_current_version("1.10.45");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = control.set_allowed_channels({"release"});
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  double last_progress = 0.0;
+  control.set_download_progress_callback([&last_progress](auto progress) {
+    BOOST_CHECK_GE(progress, last_progress);
+    last_progress = progress;
+  });
+
+  control.get_hooks()->hook_terminate() = []() { return false; };
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await control.check_for_updates();
+          BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+          auto update_info = control.get_update_info();
+          BOOST_CHECK_EQUAL(update_info->title, "Workrave");
+          BOOST_CHECK_EQUAL(update_info->current_version, "1.10.45");
+          BOOST_CHECK_EQUAL(update_info->version, "1.10.49");
+          BOOST_CHECK_EQUAL(update_info->release_notes.size(), 3);
+          BOOST_CHECK_EQUAL(update_info->release_notes.front().version, "1.10.49");
 
           std::filesystem::remove("installer.log");
 

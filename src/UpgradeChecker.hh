@@ -23,6 +23,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 #include <filesystem>
 
 #include "unfold/Unfold.hh"
@@ -46,6 +47,7 @@ public:
 
   outcome::std_result<void> set_appcast(const std::string &url) override;
   outcome::std_result<void> set_current_version(const std::string &version) override;
+  outcome::std_result<void> set_allowed_channels(const std::vector<std::string> &channels) override;
 
   std::shared_ptr<unfold::UpdateInfo> get_update_info() const override;
   std::shared_ptr<AppcastItem> get_selected_update() const override;
@@ -62,6 +64,7 @@ private:
   std::shared_ptr<Hooks> hooks;
 
   std::string appcast_url;
+  std::vector<std::string> allowed_channels;
   std::string current_version_str;
   semver::version current_version;
 

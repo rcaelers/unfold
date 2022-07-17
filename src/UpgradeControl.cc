@@ -104,6 +104,12 @@ UpgradeControl::set_current_version(const std::string &version)
 }
 
 outcome::std_result<void>
+UpgradeControl::set_allowed_channels(const std::vector<std::string> &channels)
+{
+  return checker->set_allowed_channels(channels);
+}
+
+outcome::std_result<void>
 UpgradeControl::set_signature_verification_key(const std::string &key)
 {
   auto result = verifier->set_key(unfold::crypto::SignatureAlgorithmType::ECDSA, key);

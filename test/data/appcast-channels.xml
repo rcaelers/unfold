@@ -8,6 +8,50 @@
     <link>https://workrave.org/</link>
 
     <item>
+      <title>Workrave 1.11.0-alpha.3</title>
+      <description><![CDATA[
+Workrave 1.11.0-alpha3 has been released.
+This release fixes the GNOME shell applet.
+
+Changes since Workrave 1.11.0-alpha.2:
+
+- Fix GNOME shell applet loading on Ubuntu Focal
+]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.11.0-alpha.3</sparkle:version>
+      <sparkle:channel>alpha</sparkle:channel>
+      <pubDate>Thu, 30 Jun 2022 04:53:59 +0200</pubDate>
+      <enclosure os="windows-x64" url="http://localhost:1337/workrave-1.11.0-alpha.3.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
+      <title>Workrave 1.11.0-alpha.2</title>
+      <description><![CDATA[
+Workrave 1.11.0-alpha2 has been released.
+
+Changes since Workrave 1.11.0-alpha.1:
+
+- Networking suport was removed
+- Focus assist settings moved from menu to preferences
+- The menus are no longer accessible during a break (#394 by 1Jesper1)
+- Bug fixes:
+- Fix GNOME shell applet on GNOME 42 (#396)
+- The installer will ask for a reboot if in-use files were overwritten
+- The installer will terminate Workrave when it is running
+- The application icon is now properly displayed
+- The break warning window no longer disappears when moving aside
+- Translations:
+- Updated Simplified Chinese translation (#391 by sr093906)
+- Updated Italian translation (#403 by albanobattistella)
+]]>      </description>
+      <link>https://workrave.org</link>
+      <sparkle:version>1.11.0-alpha.2</sparkle:version>
+      <sparkle:channel>alpha</sparkle:channel>
+      <pubDate>Tue, 31 May 2022 05:52:34 +0200</pubDate>
+      <enclosure os="windows-x64" url="http://localhost:1337/workrave-1.11.0-alpha.2.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+    </item>
+
+    <item>
       <title>Workrave 1.11.0-alpha.1</title>
       <description><![CDATA[
 - Major internal code cleanup and code modernization.
@@ -35,8 +79,8 @@
 - and more... (the final 1.11 release will have a more complete list of changes)
  ]]>      </description>
       <link>https://workrave.org</link>
-      <sparkle:channel>alpha</sparkle:channel>
       <sparkle:version>1.11.0-alpha.1</sparkle:version>
+      <sparkle:channel>alpha</sparkle:channel>
       <pubDate>Sun, 27 Feb 2022 11:02:33 +0100</pubDate>
       <enclosure os="windows-x64" url="https://127.0.0.1:1337/installer.exe" sparkle:edSignature="$SIGNATURE" length="$LENGTH" type="application/octet-stream" />
     </item>
@@ -49,8 +93,9 @@
  ]]>      </description>
       <link>https://workrave.org</link>
       <sparkle:version>1.10.49</sparkle:version>
+      <sparkle:channel>release</sparkle:channel>
       <pubDate>Wed, 05 Jan 2022 03:05:19 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://127.0.0.1:1337/installer.exe" sparkle:edSignature="$SIGNATURE" length="$LENGTH" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.49.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>

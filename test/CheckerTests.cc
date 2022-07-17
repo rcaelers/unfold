@@ -443,4 +443,237 @@ BOOST_AUTO_TEST_CASE(checker_has_upgrade)
   server.stop();
 }
 
+BOOST_AUTO_TEST_CASE(checker_channels_allowed_none)
+{
+  unfold::http::HttpServer server;
+  server.add_file("/appcast.xml", "appcast-channels.xml");
+  server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto carc = http->add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
+
+  auto hooks = std::make_shared<Hooks>();
+
+  UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
+
+  auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = checker.set_current_version("1.10.48");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto check_result = co_await checker.check_for_updates();
+          BOOST_CHECK_EQUAL(check_result.has_error(), false);
+          BOOST_CHECK_EQUAL(check_result.value(), true);
+
+          auto appcast = checker.get_selected_update();
+          BOOST_CHECK_EQUAL(appcast->version, "1.11.0-alpha.3");
+          BOOST_CHECK_EQUAL(appcast->publication_date, "Thu, 30 Jun 2022 04:53:59 +0200");
+          BOOST_CHECK_EQUAL(appcast->title, "Workrave 1.11.0-alpha.3");
+          auto info = checker.get_update_info();
+          BOOST_CHECK_EQUAL(info->title, "Workrave");
+          BOOST_CHECK_EQUAL(info->current_version, "1.10.48");
+          BOOST_CHECK_EQUAL(info->version, "1.11.0-alpha.3");
+          BOOST_CHECK_EQUAL(info->release_notes.size(), 4);
+          BOOST_CHECK_EQUAL(info->release_notes.front().version, "1.11.0-alpha.3");
+          BOOST_CHECK_EQUAL(info->release_notes.front().date, "Thu, 30 Jun 2022 04:53:59 +0200");
+          BOOST_CHECK_EQUAL(info->release_notes.back().version, "1.10.49");
+          BOOST_CHECK_EQUAL(info->release_notes.back().date, "Wed, 05 Jan 2022 03:05:19 +0100");
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+
+  server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(checker_channels_allowed_alpha)
+{
+  unfold::http::HttpServer server;
+  server.add_file("/appcast.xml", "appcast-channels.xml");
+  server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto carc = http->add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
+
+  auto hooks = std::make_shared<Hooks>();
+
+  UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
+
+  auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = checker.set_current_version("1.10.48");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = checker.set_allowed_channels({"release", "alpha"});
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto check_result = co_await checker.check_for_updates();
+          BOOST_CHECK_EQUAL(check_result.has_error(), false);
+          BOOST_CHECK_EQUAL(check_result.value(), true);
+
+          auto appcast = checker.get_selected_update();
+          BOOST_CHECK_EQUAL(appcast->version, "1.11.0-alpha.3");
+          BOOST_CHECK_EQUAL(appcast->publication_date, "Thu, 30 Jun 2022 04:53:59 +0200");
+          BOOST_CHECK_EQUAL(appcast->title, "Workrave 1.11.0-alpha.3");
+          auto info = checker.get_update_info();
+          BOOST_CHECK_EQUAL(info->title, "Workrave");
+          BOOST_CHECK_EQUAL(info->current_version, "1.10.48");
+          BOOST_CHECK_EQUAL(info->version, "1.11.0-alpha.3");
+          BOOST_CHECK_EQUAL(info->release_notes.size(), 4);
+          BOOST_CHECK_EQUAL(info->release_notes.front().version, "1.11.0-alpha.3");
+          BOOST_CHECK_EQUAL(info->release_notes.front().date, "Thu, 30 Jun 2022 04:53:59 +0200");
+          BOOST_CHECK_EQUAL(info->release_notes.back().version, "1.10.49");
+          BOOST_CHECK_EQUAL(info->release_notes.back().date, "Wed, 05 Jan 2022 03:05:19 +0100");
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+
+  server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(checker_channels_allowed_release)
+{
+  unfold::http::HttpServer server;
+  server.add_file("/appcast.xml", "appcast-channels.xml");
+  server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto carc = http->add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
+
+  auto hooks = std::make_shared<Hooks>();
+
+  UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
+
+  auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = checker.set_current_version("1.10.47");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = checker.set_allowed_channels({"release"});
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto check_result = co_await checker.check_for_updates();
+          BOOST_CHECK_EQUAL(check_result.has_error(), false);
+          BOOST_CHECK_EQUAL(check_result.value(), true);
+
+          auto appcast = checker.get_selected_update();
+          BOOST_CHECK_EQUAL(appcast->version, "1.10.49");
+          BOOST_CHECK_EQUAL(appcast->publication_date, "Wed, 05 Jan 2022 03:05:19 +0100");
+          BOOST_CHECK_EQUAL(appcast->title, "Workrave 1.10.49");
+          auto info = checker.get_update_info();
+          BOOST_CHECK_EQUAL(info->title, "Workrave");
+          BOOST_CHECK_EQUAL(info->current_version, "1.10.47");
+          BOOST_CHECK_EQUAL(info->version, "1.10.49");
+          BOOST_CHECK_EQUAL(info->release_notes.size(), 2);
+          BOOST_CHECK_EQUAL(info->release_notes.front().version, "1.10.49");
+          BOOST_CHECK_EQUAL(info->release_notes.front().date, "Wed, 05 Jan 2022 03:05:19 +0100");
+          BOOST_CHECK_EQUAL(info->release_notes.back().version, "1.10.48");
+          BOOST_CHECK_EQUAL(info->release_notes.back().date, "Tue, 03 Aug 2021 05:26:00 +0200");
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+
+  server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(checker_channels_allowed_empty)
+{
+  unfold::http::HttpServer server;
+  server.add_file("/appcast.xml", "appcast-channels.xml");
+  server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto carc = http->add_ca_cert(cert);
+  BOOST_CHECK_EQUAL(carc.has_error(), false);
+
+  auto hooks = std::make_shared<Hooks>();
+
+  UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
+
+  auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = checker.set_current_version("1.10.48");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = checker.set_allowed_channels({});
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto check_result = co_await checker.check_for_updates();
+          BOOST_CHECK_EQUAL(check_result.has_error(), false);
+          BOOST_CHECK_EQUAL(check_result.value(), true);
+
+          auto appcast = checker.get_selected_update();
+          BOOST_CHECK_EQUAL(appcast->version, "1.11.0-alpha.3");
+          BOOST_CHECK_EQUAL(appcast->publication_date, "Thu, 30 Jun 2022 04:53:59 +0200");
+          BOOST_CHECK_EQUAL(appcast->title, "Workrave 1.11.0-alpha.3");
+          auto info = checker.get_update_info();
+          BOOST_CHECK_EQUAL(info->title, "Workrave");
+          BOOST_CHECK_EQUAL(info->current_version, "1.10.48");
+          BOOST_CHECK_EQUAL(info->version, "1.11.0-alpha.3");
+          BOOST_CHECK_EQUAL(info->release_notes.size(), 4);
+          BOOST_CHECK_EQUAL(info->release_notes.front().version, "1.11.0-alpha.3");
+          BOOST_CHECK_EQUAL(info->release_notes.front().date, "Thu, 30 Jun 2022 04:53:59 +0200");
+          BOOST_CHECK_EQUAL(info->release_notes.back().version, "1.10.49");
+          BOOST_CHECK_EQUAL(info->release_notes.back().date, "Wed, 05 Jan 2022 03:05:19 +0100");
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+
+  server.stop();
+}
+
 BOOST_AUTO_TEST_SUITE_END()

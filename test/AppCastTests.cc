@@ -42,6 +42,7 @@ BOOST_AUTO_TEST_CASE(appcast_load_from_string)
     "        <item>\n"
     "            <title>Version 1.0</title>\n"
     "            <link>https://workrave.org</link>\n"
+    "            <sparkle:channel>release</sparkle:channel>\n"
     "            <sparkle:version>1.0</sparkle:version>\n"
     "            <sparkle:releaseNotesLink>https://workrave.org/v1.html</sparkle:releaseNotesLink>\n"
     "            <pubDate>Sun Apr 17 19:30:14 CEST 2022</pubDate>\n"
@@ -59,7 +60,7 @@ BOOST_AUTO_TEST_CASE(appcast_load_from_string)
 
   BOOST_CHECK_EQUAL(appcast->items.size(), 1);
 
-  BOOST_CHECK_EQUAL(appcast->items[0]->channel, "");
+  BOOST_CHECK_EQUAL(appcast->items[0]->channel, "release");
   BOOST_CHECK_EQUAL(appcast->items[0]->title, "Version 1.0");
   BOOST_CHECK_EQUAL(appcast->items[0]->link, "https://workrave.org");
   BOOST_CHECK_EQUAL(appcast->items[0]->version, "1.0");

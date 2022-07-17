@@ -43,7 +43,7 @@ struct AppcastEnclosure
 
 struct AppcastItem
 {
-  std::string channel; // TODO: not supported
+  std::string channel;
   std::string title;
   std::string link;
   std::string version;

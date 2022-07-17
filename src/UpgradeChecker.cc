@@ -69,6 +69,13 @@ UpgradeChecker::set_current_version(const std::string &version)
   return outcome::success();
 }
 
+outcome::std_result<void>
+UpgradeChecker::set_allowed_channels(const std::vector<std::string> &channels)
+{
+  allowed_channels = channels;
+  return outcome::success();
+}
+
 std::shared_ptr<unfold::UpdateInfo>
 UpgradeChecker::get_update_info() const
 {
@@ -169,6 +176,12 @@ UpgradeChecker::is_applicable(std::shared_ptr<AppcastItem> item)
     }
 
   if (!item->minimum_system_version.empty() && platform->is_supported_os_version(item->minimum_system_version))
+    {
+      return false;
+    }
+
+  if (!item->channel.empty() && !allowed_channels.empty()
+      && std::find(allowed_channels.begin(), allowed_channels.end(), item->channel) == allowed_channels.end())
     {
       return false;
     }

@@ -1,5 +1,5 @@
 add_library(unfold-utils OBJECT)
-target_code_coverage(unfold-utils AUTO)
+target_code_coverage(unfold-utils AUTO ALL)
 
 target_sources(unfold-utils PRIVATE
   src/Base64.cc

@@ -37,7 +37,7 @@ target_include_directories(
   $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/libs/coro/include>
   $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
-target_code_coverage(unfold AUTO ALL)
+target_code_coverage(unfold ALL AUTO)
 
 install(TARGETS unfold
   EXPORT ${PROJECT_NAME}Targets

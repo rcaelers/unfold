@@ -7,7 +7,7 @@ target_sources(unfold-http PRIVATE
   src/Connection.cc
 )
 
-target_code_coverage(unfold-http AUTO)
+target_code_coverage(unfold-http ALL AUTO)
 
 if(WIN32)
   target_link_libraries(unfold-http PUBLIC ws2_32 mswsock)

@@ -18,6 +18,6 @@ target_include_directories(
   PUBLIC
   ${PROJECT_SOURCE_DIR}/libs/crypto/include)
 
-target_code_coverage(unfold-crypto AUTO ALL)
+target_code_coverage(unfold-crypto ALL AUTO)
 
 add_subdirectory(test)

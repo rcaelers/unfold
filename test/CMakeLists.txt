@@ -23,7 +23,7 @@ if (HAVE_TESTS)
   target_include_directories(unfold-test PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
   add_test(NAME unfold-test COMMAND unfold-test)
-  target_code_coverage(unfold-test AUTO ALL OBJECTS unfold EXCLUDE _build test/)
+  target_code_coverage(unfold-test ALL AUTO OBJECTS unfold EXCLUDE _build test/ libs)
 
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/data/testappcast.xml" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/data/okappcast.xml" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")

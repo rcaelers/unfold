@@ -1,6 +1,6 @@
 if (HAVE_TESTS)
   add_executable(unfold-test-http UnfoldTestHttp.cc)
-  target_code_coverage(unfold-test-http AUTO EXCLUDE _build libs/utils test/)
+  target_code_coverage(unfold-test-http ALL AUTO EXCLUDE _build libs/utils test/)
 
   target_link_libraries(unfold-test-http PRIVATE unfold-http unfold-utils)
   target_link_libraries(unfold-test-http PRIVATE Boost::test_exec_monitor)

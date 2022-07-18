@@ -9,7 +9,7 @@ if (HAVE_TESTS)
   target_include_directories(unfold-test-crypto PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
   add_test(NAME unfold-test-crypto COMMAND unfold-test-crypto)
-  target_code_coverage(unfold-test-crypto AUTO ALL EXCLUDE _build libs/utils test/)
+  target_code_coverage(unfold-test-crypto ALL AUTO EXCLUDE _build libs/utils test/)
 
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/data/junk" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/data/morejunk" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")

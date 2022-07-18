@@ -321,7 +321,10 @@ function(target_code_coverage TARGET_NAME)
             $<TARGET_FILE:${TARGET_NAME}> ${target_code_coverage_ARGS}
           COMMAND
             ${CMAKE_COMMAND} -E echo "-object=$<TARGET_FILE:${TARGET_NAME}>"
-            ${SO_OBJECTS} >> ${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/binaries.list
+            >> ${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/binaries.list
+          COMMAND
+            ${CMAKE_COMMAND} -E echo ${SO_OBJECTS}
+            >> ${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/binaries.list
           COMMAND
             ${CMAKE_COMMAND} -E echo
             "${CMAKE_CURRENT_BINARY_DIR}/${target_code_coverage_COVERAGE_TARGET_NAME}.profraw"

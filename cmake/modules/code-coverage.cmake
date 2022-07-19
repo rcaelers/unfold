@@ -604,6 +604,7 @@ function(add_code_coverage_all_targets)
             $$FILELIST
             -instr-profile=${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/all-merged.profdata
             -show-line-counts-or-regions
+            --show-branches=percent --show-expansions --show-instantiation-summary
             -output-dir=${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/all-merged
             -format="html" ${EXCLUDE_REGEX}
           DEPENDS ccov-all-processing)
@@ -615,6 +616,7 @@ function(add_code_coverage_all_targets)
             ${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/binaries.list`
             -instr-profile=${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/all-merged.profdata
             -show-line-counts-or-regions
+            --show-branches=percent --show-expansions --show-instantiation-summary
             -output-dir=${CMAKE_COVERAGE_OUTPUT_DIRECTORY}/all-merged
             -format="html" ${EXCLUDE_REGEX}
           DEPENDS ccov-all-processing)

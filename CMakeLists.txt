@@ -56,7 +56,7 @@ include(code-coverage)
 if (WITH_TESTS)
   set(HAVE_TESTS ON)
   enable_testing()
-  add_code_coverage_all_targets()
+  add_code_coverage_all_targets(EXCLUDE msys64 _build test HttpServer.cc)
 endif()
 
 #----------------------------------------------------------------------------------------------------

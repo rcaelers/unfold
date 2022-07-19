@@ -9,9 +9,10 @@ target_sources(unfold-utils PRIVATE
 )
 
 if(WIN32)
-target_sources(unfold-utils PRIVATE
-  src/StringUtils.cc
-)
+  target_sources(unfold-utils PRIVATE
+    src/StringUtils.cc
+  )
+  target_link_libraries(unfold-utils PUBLIC ws2_32 mswsock)
 endif()
 
 target_link_libraries(unfold-utils PRIVATE spdlog::spdlog)
@@ -24,3 +25,4 @@ target_include_directories(
   PUBLIC
   ${PROJECT_SOURCE_DIR}/libs/utils/include)
 
+add_subdirectory(test)

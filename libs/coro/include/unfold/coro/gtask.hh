@@ -124,8 +124,8 @@ namespace unfold::coro
 
     struct sleep_awaiter : std::suspend_always
     {
-      sleep_awaiter(guint duration, GMainContext *context)
-        : duration_(duration)
+      sleep_awaiter(guint duration_ms, GMainContext *context)
+        : duration_ms_(duration_ms)
         , context_(context)
       {
       }
@@ -140,7 +140,7 @@ namespace unfold::coro
       void await_suspend(std::coroutine_handle<> h)
       {
         handle_ = h;
-        GSource *source = g_timeout_source_new_seconds(duration_);
+        GSource *source = g_timeout_source_new(duration_ms_);
         g_source_set_callback(source, on_timer_callback, this, nullptr);
         g_source_attach(source, context_);
         g_source_unref(source);
@@ -148,7 +148,7 @@ namespace unfold::coro
 
     private:
       std::coroutine_handle<> handle_;
-      guint duration_;
+      guint duration_ms_;
       GMainContext *context_;
     };
 
@@ -180,9 +180,9 @@ namespace unfold::coro
         exec->execute([exec, task = std::move(task)]() mutable { task.resume(); });
       }
 
-      auto sleep(guint duration)
+      auto sleep(guint duration_ms)
       {
-        return sleep_awaiter{duration, context_};
+        return sleep_awaiter{duration_ms, context_};
       }
 
     private:

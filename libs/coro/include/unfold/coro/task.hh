@@ -60,7 +60,14 @@ namespace unfold::coro
 
       auto await_resume()
       {
-        return std::move(this->handle_.promise().result());
+        if constexpr (std::is_void_v<decltype(this->handle_.promise().result())>)
+          {
+            return this->handle_.promise().result();
+          }
+        else
+          {
+            return std::move(this->handle_.promise().result());
+          }
       }
 
     private:

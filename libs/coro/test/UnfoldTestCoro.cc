@@ -121,8 +121,15 @@ struct Fixture
   Fixture(Fixture &&) = delete;
   Fixture &operator=(Fixture &&) = delete;
 
-  unfold::coro::gtask<int> coro_test_throws();
-  unfold::coro::gtask<void> coro_test_throws_task(GMainLoop *loop);
+  enum class SubTest
+  {
+    ThrowIntRet,
+    ThrowVoidRet
+  };
+
+  unfold::coro::gtask<void> coro_test_throws_void();
+  unfold::coro::gtask<int> coro_test_throws_int();
+  unfold::coro::gtask<void> coro_test_throws_task(GMainLoop *loop, SubTest subtest);
 
   GMainContext *context = nullptr;
   GMainLoop *loop = nullptr;
@@ -132,7 +139,7 @@ struct Fixture
 };
 
 unfold::coro::gtask<int>
-Fixture::coro_test_throws()
+Fixture::coro_test_throws_int()
 {
   co_await scheduler.sleep(100);
   throw std::runtime_error("error");
@@ -140,12 +147,27 @@ Fixture::coro_test_throws()
 }
 
 unfold::coro::gtask<void>
-Fixture::coro_test_throws_task(GMainLoop *loop)
+Fixture::coro_test_throws_void()
+{
+  co_await scheduler.sleep(100);
+  throw std::runtime_error("error");
+  co_return;
+}
+
+unfold::coro::gtask<void>
+Fixture::coro_test_throws_task(GMainLoop *loop, SubTest subtest)
 {
   try
     {
-      auto x = co_await coro_test_throws();
-      BOOST_CHECK_EQUAL(x, 1);
+      switch (subtest)
+        {
+        case SubTest::ThrowIntRet:
+          co_await coro_test_throws_int();
+          break;
+        case SubTest::ThrowVoidRet:
+          co_await coro_test_throws_void();
+          break;
+        }
       BOOST_CHECK(false);
     }
   catch (std::exception &e)
@@ -220,9 +242,16 @@ BOOST_AUTO_TEST_CASE(coro1)
   server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(coro_test_throws)
+BOOST_AUTO_TEST_CASE(coro_test_throws_int)
 {
-  unfold::coro::gtask<void> task = coro_test_throws_task(loop);
+  unfold::coro::gtask<void> task = coro_test_throws_task(loop, Fixture::SubTest::ThrowIntRet);
+  scheduler.spawn(std::move(task));
+  g_main_loop_run(loop);
+}
+
+BOOST_AUTO_TEST_CASE(coro_test_throws_void)
+{
+  unfold::coro::gtask<void> task = coro_test_throws_task(loop, Fixture::SubTest::ThrowVoidRet);
   scheduler.spawn(std::move(task));
   g_main_loop_run(loop);
 }

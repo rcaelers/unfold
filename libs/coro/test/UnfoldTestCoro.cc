@@ -18,6 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <exception>
 #include <memory>
 #include <fstream>
 
@@ -120,6 +121,9 @@ struct Fixture
   Fixture(Fixture &&) = delete;
   Fixture &operator=(Fixture &&) = delete;
 
+  unfold::coro::gtask<int> coro_test_throws();
+  unfold::coro::gtask<void> coro_test_throws_task(GMainLoop *loop);
+
   GMainContext *context = nullptr;
   GMainLoop *loop = nullptr;
   unfold::coro::IOContext io_context{1};
@@ -127,9 +131,34 @@ struct Fixture
   std::shared_ptr<spdlog::logger> logger{Logging::create("test")};
 };
 
+unfold::coro::gtask<int>
+Fixture::coro_test_throws()
+{
+  co_await scheduler.sleep(100);
+  throw std::runtime_error("error");
+  co_return 1;
+}
+
+unfold::coro::gtask<void>
+Fixture::coro_test_throws_task(GMainLoop *loop)
+{
+  try
+    {
+      auto x = co_await coro_test_throws();
+      BOOST_CHECK_EQUAL(x, 1);
+      BOOST_CHECK(false);
+    }
+  catch (std::exception &e)
+    {
+      BOOST_CHECK_EQUAL(e.what(), "error");
+    }
+  g_main_loop_quit(loop);
+  co_return;
+}
+
 BOOST_TEST_GLOBAL_FIXTURE(GlobalFixture);
 
-BOOST_FIXTURE_TEST_SUITE(unfold_test, Fixture)
+BOOST_FIXTURE_TEST_SUITE(unfold_coro_test, Fixture)
 
 boost::asio::awaitable<outcome::std_result<std::string>>
 download_appcast()
@@ -189,6 +218,13 @@ BOOST_AUTO_TEST_CASE(coro1)
 
   g_main_loop_run(loop);
   server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(coro_test_throws)
+{
+  unfold::coro::gtask<void> task = coro_test_throws_task(loop);
+  scheduler.spawn(std::move(task));
+  g_main_loop_run(loop);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -44,7 +44,7 @@ jobs:
           mkdir _build _deploy
           export MINGW_ROOT=/c/msys64
           export MSYSTEM=CLANG64
-          cmake -GNinja -B_build -H. -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/msys2.cmake -DCMAKE_INSTALL_PREFIX=_deploy -DWITH_TESTS=ON
+          cmake -GNinja -B_build -H. -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/msys2.cmake -DCMAKE_INSTALL_PREFIX=_deploy -DUNFOLD_WITH_TESTS=ON
           ninja -C _build -v install
           cd _build
           ctest -V

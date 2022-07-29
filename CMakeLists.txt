@@ -50,10 +50,11 @@ endif()
 #----------------------------------------------------------------------------------------------------
 # Testing
 
-option(WITH_TESTS "Enable unit tests" ${IS_TOPLEVEL_PROJECT})
+option(UNFOLD_WITH_TESTS "Enable unit tests" ${IS_TOPLEVEL_PROJECT})
 include(code-coverage)
 
-if (WITH_TESTS)
+set(HAVE_TESTS OFF)
+if (UNFOLD_WITH_TESTS)
   set(HAVE_TESTS ON)
   enable_testing()
   add_code_coverage_all_targets(EXCLUDE msys64 _build test HttpServer.cc)
@@ -131,7 +132,7 @@ FetchContent_MakeAvailable(semver)
 #----------------------------------------------------------------------------------------------------
 # Google test/mock
 
-if (WITH_TESTS)
+if (UNFOLD_WITH_TESTS)
   FetchContent_Declare(
     googletest
     GIT_REPOSITORY https://github.com/google/googletest.git
@@ -172,9 +173,9 @@ add_subdirectory(test)
 #----------------------------------------------------------------------------------------------------
 # Examples
 
-option(WITH_EXAMPLES "Build unfold examples" ${IS_TOPLEVEL_PROJECT})
+option(UNFOLD_WITH_EXAMPLES "Build unfold examples" ${IS_TOPLEVEL_PROJECT})
 
-if (WITH_EXAMPLES)
+if (UNFOLD_WITH_EXAMPLES)
   add_subdirectory(examples)
 endif()
 

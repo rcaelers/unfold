@@ -11,9 +11,9 @@
   "cmake.installPrefix": "${workspaceFolder}/_deploy",
   "cmake.generator": "Ninja",
   "cmake.configureSettings": {
-    "WITH_TESTS": "ON",
+    "UNFOLD_WITH_TESTS": "ON",
     "CODE_COVERAGE": "OFF",
-    "WITH_TRACING": "ON",
+    "UNFOLD_WITH_TRACING": "ON",
     "CMAKE_PREFIX_PATH": "${workspaceFolder}/_ext",
     "CMAKE_BUILD_TYPE": "Debug",
     "CMAKE_C_COMPILER": "clang",

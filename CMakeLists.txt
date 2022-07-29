@@ -115,7 +115,6 @@ FetchContent_Declare(
   boosturl
   GIT_REPOSITORY https://github.com/CPPAlliance/url
   GIT_TAG ef2db3c1e52474b881812da92ae495cd936ed150
-  GIT_SHALLOW TRUE
 )
 FetchContent_Populate(boosturl)
 
@@ -126,7 +125,6 @@ FetchContent_Declare(
   semver
   GIT_REPOSITORY https://github.com/Neargye/semver
   GIT_TAG d3645f7b7d9c0d2d91c9a1e817c4d47ea4ccf514
-  GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(semver)
 

@@ -51,17 +51,3 @@ jobs:
           ninja -C _build -v install
           cd _build
           ctest -V
-
-  # build-mingw:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #       with:
-  #         fetch-depth: 0
-
-  #     - name: Build
-  #       run: |
-  #         docker run --security-opt seccomp=unconfined --rm \
-  #             -v $GITHUB_WORKSPACE:/workspace/source \
-  #             ghcr.io/rcaelers/workrave-build:mingw-fedora-rawhide \
-  #             sh -c "cmake -GNinja -B_build -H. -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/mingw64-clang.cmake -DCMAKE_INSTALL_PREFIX=_deploy && ninja -C _build -v install"

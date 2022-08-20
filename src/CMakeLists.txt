@@ -1,5 +1,6 @@
 add_library(unfold SHARED)
 add_library(${PROJECT_NAME}::unfold ALIAS unfold)
+set_target_properties(unfold PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
 
 target_sources(unfold PRIVATE
   AppCast.cc

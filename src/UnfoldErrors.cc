@@ -53,6 +53,7 @@ namespace
         case UnfoldErrc::InternalError:
           return "internal error";
         }
+      return "(unknown)";
     }
   };
 

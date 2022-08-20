@@ -42,6 +42,7 @@ namespace
       case UnfoldInternalErrc::InternalError:
         return "internal error";
       }
+    return "(unknown)";
   }
 
   const UnfoldInternalErrorCategory globalUnfoldInternalErrorCategory{};

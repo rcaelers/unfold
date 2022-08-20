@@ -37,4 +37,5 @@ SignatureAlgorithmFactory::create(SignatureAlgorithmType type)
     case SignatureAlgorithmType::ECDSA:
       return std::make_shared<ECDSASignatureAlgorithm>();
     }
+  return {};
 }

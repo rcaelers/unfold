@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.23)
 cmake_policy(VERSION 3.23)
 
+if(POLICY CMP0135)
+cmake_policy(SET CMP0135 NEW)
+endif()
+
 project(Unfold VERSION 0.1 LANGUAGES CXX C)
 
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)

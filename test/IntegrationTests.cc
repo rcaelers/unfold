@@ -386,19 +386,16 @@ BOOST_AUTO_TEST_CASE(upgrade_last_upgrade_time)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          auto now = std::chrono::system_clock::now();
-          auto l1 = control.get_last_update_check_time();
-          if (l1)
-            {
-              BOOST_CHECK_LE((*l1).time_since_epoch().count(), now.time_since_epoch().count());
-            }
-          sleep(1);
-
           auto rc = co_await control.check_for_updates();
           BOOST_CHECK_EQUAL(rc.has_error(), false);
 
+          auto l1 = control.get_last_update_check_time();
+          sleep(1);
+
+          rc = co_await control.check_for_updates();
+          BOOST_CHECK_EQUAL(rc.has_error(), false);
+
           auto l2 = control.get_last_update_check_time();
-          BOOST_CHECK_LE((*l2).time_since_epoch().count(), now.time_since_epoch().count());
           BOOST_CHECK_GE((*l2).time_since_epoch().count(), (*l1).time_since_epoch().count());
         }
       catch (std::exception &e)

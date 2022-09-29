@@ -48,6 +48,11 @@ namespace unfold::http
     boost::asio::awaitable<outcome::std_result<Response>> get(const std::string &url);
 
   private:
+#if defined(WIN32)
+    void add_windows_root_certs(boost::asio::ssl::context &ctx);
+#endif
+
+  private:
     boost::asio::ssl::context ctx{boost::asio::ssl::context::tlsv12_client};
     std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:http")};
   };

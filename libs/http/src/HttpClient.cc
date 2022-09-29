@@ -29,6 +29,10 @@
 #include <fstream>
 #include <exception>
 
+#if defined(WIN32)
+#  include <wincrypt.h>
+#endif
+
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
 
@@ -37,7 +41,7 @@
 #include <boost/asio/spawn.hpp>
 #include <boost/asio/experimental/as_tuple.hpp>
 #include "boost/outcome/outcome.hpp"
-#include <boost/url/src.hpp>
+#include "boost/url/src.hpp"
 
 #include "Connection.hh"
 #include "http/HttpClientErrors.hh"
@@ -46,7 +50,11 @@ using namespace unfold::http;
 
 HttpClient::HttpClient()
 {
+#if defined(WIN32)
+  add_windows_root_certs(ctx);
+#else
   ctx.set_default_verify_paths();
+#endif
   ctx.set_verify_mode(boost::asio::ssl::verify_peer);
 }
 
@@ -61,8 +69,38 @@ HttpClient::add_ca_cert(const std::string &cert)
       return outcome::failure(unfold::http::HttpClientErrc::InvalidCertificate);
     }
   return outcome::success();
-
 }
+
+#if defined(WIN32)
+void
+HttpClient::add_windows_root_certs(boost::asio::ssl::context &ctx)
+{
+  HCERTSTORE cert_store = CertOpenSystemStore(0, "ROOT");
+  if (cert_store == nullptr)
+    {
+      logger->error("cannot open Windows cert store");
+      return;
+    }
+
+  X509_STORE *store = X509_STORE_new();
+  PCCERT_CONTEXT context = nullptr;
+  while ((context = CertEnumCertificatesInStore(cert_store, context)) != nullptr)
+    {
+      auto *encoded_cert = const_cast<const unsigned char **>(&context->pbCertEncoded);
+      auto encoded_cert_len = static_cast<long>(context->cbCertEncoded);
+      X509 *x509 = d2i_X509(nullptr, encoded_cert, encoded_cert_len);
+      if (x509 != nullptr)
+        {
+          X509_STORE_add_cert(store, x509);
+          X509_free(x509);
+        }
+    }
+
+  CertFreeCertificateContext(context);
+  CertCloseStore(cert_store, 0);
+  SSL_CTX_set_cert_store(ctx.native_handle(), store);
+}
+#endif
 
 boost::asio::awaitable<outcome::std_result<Response>>
 HttpClient::get(const std::string &url, std::ostream &file, ProgressCallback cb)

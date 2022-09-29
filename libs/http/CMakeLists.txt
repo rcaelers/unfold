@@ -10,7 +10,7 @@ target_sources(unfold-http PRIVATE
 target_code_coverage(unfold-http ALL AUTO)
 
 if(WIN32)
-  target_link_libraries(unfold-http PUBLIC ws2_32 mswsock)
+  target_link_libraries(unfold-http PUBLIC ws2_32 mswsock crypt32)
 endif()
 
 target_link_libraries(unfold-http PUBLIC Boost::coroutine PRIVATE unfold-utils spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto)

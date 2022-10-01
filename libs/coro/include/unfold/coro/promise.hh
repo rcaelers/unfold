@@ -187,8 +187,8 @@ namespace unfold::coro
 
     private:
       std::coroutine_handle<> continuation_{nullptr};
-      SchedulerType *scheduler_;
-      boost::asio::io_context *ioc_;
+      SchedulerType *scheduler_{nullptr};
+      boost::asio::io_context *ioc_{nullptr};
     };
   } // namespace detail
 } // namespace unfold::coro

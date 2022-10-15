@@ -249,7 +249,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check_alpha)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          auto rc = co_await control.check_for_updates();
+          auto rc = co_await control.check_for_update();
           BOOST_CHECK_EQUAL(rc.has_error(), false);
 
           auto update_info = control.get_update_info();
@@ -323,7 +323,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check_release)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          auto rc = co_await control.check_for_updates();
+          auto rc = co_await control.check_for_update();
           BOOST_CHECK_EQUAL(rc.has_error(), false);
 
           auto update_info = control.get_update_info();
@@ -386,13 +386,13 @@ BOOST_AUTO_TEST_CASE(upgrade_last_upgrade_time)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          auto rc = co_await control.check_for_updates();
+          auto rc = co_await control.check_for_update();
           BOOST_CHECK_EQUAL(rc.has_error(), false);
 
           auto l1 = control.get_last_update_check_time();
           sleep(1);
 
-          rc = co_await control.check_for_updates();
+          rc = co_await control.check_for_update();
           BOOST_CHECK_EQUAL(rc.has_error(), false);
 
           auto l2 = control.get_last_update_check_time();

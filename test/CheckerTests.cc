@@ -79,7 +79,7 @@ BOOST_AUTO_TEST_CASE(checker_appcast_not_found)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          auto check_result = co_await checker.check_for_updates();
+          auto check_result = co_await checker.check_for_update();
           BOOST_CHECK_EQUAL(check_result.has_error(), true);
           BOOST_CHECK_EQUAL(check_result.error(), unfold::UnfoldErrc::AppcastDownloadFailed);
         }
@@ -121,7 +121,7 @@ BOOST_AUTO_TEST_CASE(checker_invalid_host)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          auto check_result = co_await checker.check_for_updates();
+          auto check_result = co_await checker.check_for_update();
           BOOST_CHECK_EQUAL(check_result.has_error(), true);
           BOOST_CHECK_EQUAL(check_result.error(), unfold::UnfoldErrc::AppcastDownloadFailed);
         }
@@ -177,7 +177,7 @@ BOOST_AUTO_TEST_CASE(checker_invalid_appcast)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          auto check_result = co_await checker.check_for_updates();
+          auto check_result = co_await checker.check_for_update();
           BOOST_CHECK_EQUAL(check_result.has_error(), true);
           BOOST_CHECK_EQUAL(check_result.error(), unfold::UnfoldErrc::InvalidAppcast);
         }
@@ -219,7 +219,7 @@ BOOST_AUTO_TEST_CASE(checker_empty_appcast)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          auto check_result = co_await checker.check_for_updates();
+          auto check_result = co_await checker.check_for_update();
           BOOST_CHECK_EQUAL(check_result.has_error(), true);
           BOOST_CHECK_EQUAL(check_result.error(), unfold::UnfoldErrc::InvalidAppcast);
         }
@@ -315,7 +315,7 @@ BOOST_AUTO_TEST_CASE(checker_invalid_items_in_appcast)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          auto check_result = co_await checker.check_for_updates();
+          auto check_result = co_await checker.check_for_update();
           BOOST_CHECK_EQUAL(check_result.has_error(), false);
           BOOST_CHECK_EQUAL(check_result.value(), true);
 
@@ -366,7 +366,7 @@ BOOST_AUTO_TEST_CASE(checker_no_upgrade)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          auto check_result = co_await checker.check_for_updates();
+          auto check_result = co_await checker.check_for_update();
           BOOST_CHECK_EQUAL(check_result.has_error(), false);
           BOOST_CHECK_EQUAL(check_result.value(), false);
 
@@ -413,7 +413,7 @@ BOOST_AUTO_TEST_CASE(checker_has_upgrade)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          auto check_result = co_await checker.check_for_updates();
+          auto check_result = co_await checker.check_for_update();
           BOOST_CHECK_EQUAL(check_result.has_error(), false);
           BOOST_CHECK_EQUAL(check_result.value(), true);
 
@@ -469,7 +469,7 @@ BOOST_AUTO_TEST_CASE(checker_channels_allowed_none)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          auto check_result = co_await checker.check_for_updates();
+          auto check_result = co_await checker.check_for_update();
           BOOST_CHECK_EQUAL(check_result.has_error(), false);
           BOOST_CHECK_EQUAL(check_result.value(), true);
 
@@ -528,7 +528,7 @@ BOOST_AUTO_TEST_CASE(checker_channels_allowed_alpha)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          auto check_result = co_await checker.check_for_updates();
+          auto check_result = co_await checker.check_for_update();
           BOOST_CHECK_EQUAL(check_result.has_error(), false);
           BOOST_CHECK_EQUAL(check_result.value(), true);
 
@@ -587,7 +587,7 @@ BOOST_AUTO_TEST_CASE(checker_channels_allowed_release)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          auto check_result = co_await checker.check_for_updates();
+          auto check_result = co_await checker.check_for_update();
           BOOST_CHECK_EQUAL(check_result.has_error(), false);
           BOOST_CHECK_EQUAL(check_result.value(), true);
 
@@ -646,7 +646,7 @@ BOOST_AUTO_TEST_CASE(checker_channels_allowed_empty)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          auto check_result = co_await checker.check_for_updates();
+          auto check_result = co_await checker.check_for_update();
           BOOST_CHECK_EQUAL(check_result.has_error(), false);
           BOOST_CHECK_EQUAL(check_result.value(), true);
 

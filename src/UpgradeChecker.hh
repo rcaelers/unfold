@@ -43,7 +43,7 @@ public:
                           std::shared_ptr<unfold::http::HttpClient> http,
                           std::shared_ptr<Hooks> hooks);
 
-  boost::asio::awaitable<outcome::std_result<bool>> check_for_updates() override;
+  boost::asio::awaitable<outcome::std_result<bool>> check_for_update() override;
 
   outcome::std_result<void> set_appcast(const std::string &url) override;
   outcome::std_result<void> set_current_version(const std::string &version) override;

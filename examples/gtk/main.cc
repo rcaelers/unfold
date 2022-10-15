@@ -69,7 +69,7 @@ namespace
 unfold::coro::gtask<void>
 coro_check(Glib::RefPtr<Gtk::Application> app, std::shared_ptr<unfold::Unfold> updater)
 {
-  auto update_available = co_await updater->check_for_updates();
+  auto update_available = co_await updater->check_for_update();
   if (!update_available)
     {
       co_return;

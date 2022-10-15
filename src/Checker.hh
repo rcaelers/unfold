@@ -33,7 +33,7 @@ class Checker
 {
 public:
   virtual ~Checker() = default;
-  virtual boost::asio::awaitable<outcome::std_result<bool>> check_for_updates() = 0;
+  virtual boost::asio::awaitable<outcome::std_result<bool>> check_for_update() = 0;
   virtual outcome::std_result<void> set_appcast(const std::string &url) = 0;
   virtual outcome::std_result<void> set_current_version(const std::string &version) = 0;
   virtual outcome::std_result<void> set_allowed_channels(const std::vector<std::string> &channels) = 0;

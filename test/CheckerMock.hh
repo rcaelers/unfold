@@ -30,7 +30,7 @@
 class CheckerMock : public Checker
 {
 public:
-  MOCK_METHOD(boost::asio::awaitable<outcome::std_result<bool>>, check_for_updates, (), (override));
+  MOCK_METHOD(boost::asio::awaitable<outcome::std_result<bool>>, check_for_update, (), (override));
   MOCK_METHOD(outcome::std_result<void>, set_appcast, (const std::string &url), (override));
   MOCK_METHOD(outcome::std_result<void>, set_current_version, (const std::string &version), (override));
   MOCK_METHOD(outcome::std_result<void>, set_allowed_channels, (const std::vector<std::string> &channels), (override));

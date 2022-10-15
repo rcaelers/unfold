@@ -86,8 +86,13 @@ namespace unfold
 
     // TODO: custom version comparator API
 
-    virtual boost::asio::awaitable<outcome::std_result<bool>> check_for_updates() = 0;
+    virtual boost::asio::awaitable<outcome::std_result<bool>> check_for_update() = 0;
+    virtual boost::asio::awaitable<outcome::std_result<void>> check_for_update_and_notify() = 0;
     virtual boost::asio::awaitable<outcome::std_result<void>> install_update() = 0;
+
+    virtual void reset_skip_version() = 0;
+    virtual std::string get_skip_version() const = 0;
+
     virtual std::shared_ptr<unfold::UpdateInfo> get_update_info() const = 0;
     virtual std::shared_ptr<unfold::UnfoldHooks> get_hooks() const = 0;
   };

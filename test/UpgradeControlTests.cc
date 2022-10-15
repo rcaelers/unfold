@@ -147,7 +147,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_later)
     co_return unfold::UpdateResponse::Later;
   });
 
-  EXPECT_CALL(*checker, check_for_updates())
+  EXPECT_CALL(*checker, check_for_update())
     .Times(AtLeast(1))
     .WillRepeatedly(
       InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
@@ -179,7 +179,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_checker_failed)
     co_return unfold::UpdateResponse::Later;
   });
 
-  EXPECT_CALL(*checker, check_for_updates())
+  EXPECT_CALL(*checker, check_for_update())
     .Times(AtLeast(1))
     .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> {
       co_return outcome::failure(unfold::UnfoldErrc::AppcastDownloadFailed);
@@ -191,7 +191,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_checker_failed)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          auto rc = co_await control->check_for_updates_and_notify();
+          auto rc = co_await control->check_for_update_and_notify();
           BOOST_CHECK_EQUAL(rc.has_error(), true);
         }
       catch (std::exception &e)
@@ -217,7 +217,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_no_upgrade_available)
     co_return unfold::UpdateResponse::Later;
   });
 
-  EXPECT_CALL(*checker, check_for_updates())
+  EXPECT_CALL(*checker, check_for_update())
     .Times(AtLeast(1))
     .WillRepeatedly(
       InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(false); }));
@@ -228,7 +228,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_no_upgrade_available)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          auto rc = co_await control->check_for_updates_and_notify();
+          auto rc = co_await control->check_for_update_and_notify();
           BOOST_CHECK_EQUAL(rc.has_error(), false);
         }
       catch (std::exception &e)
@@ -254,7 +254,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_no_upgrade_info)
     co_return unfold::UpdateResponse::Later;
   });
 
-  EXPECT_CALL(*checker, check_for_updates())
+  EXPECT_CALL(*checker, check_for_update())
     .Times(AtLeast(1))
     .WillRepeatedly(
       InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
@@ -267,7 +267,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_no_upgrade_info)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          auto rc = co_await control->check_for_updates_and_notify();
+          auto rc = co_await control->check_for_update_and_notify();
           BOOST_CHECK_EQUAL(rc.has_error(), true);
         }
       catch (std::exception &e)
@@ -293,7 +293,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_skip_version)
     co_return unfold::UpdateResponse::Later;
   });
 
-  EXPECT_CALL(*checker, check_for_updates())
+  EXPECT_CALL(*checker, check_for_update())
     .Times(AtLeast(1))
     .WillRepeatedly(
       InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
@@ -320,7 +320,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_skip_version)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          auto rc = co_await control->check_for_updates_and_notify();
+          auto rc = co_await control->check_for_update_and_notify();
           BOOST_CHECK_EQUAL(rc.has_error(), false);
         }
       catch (std::exception &e)
@@ -338,7 +338,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_no_callback)
 {
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
 
-  EXPECT_CALL(*checker, check_for_updates())
+  EXPECT_CALL(*checker, check_for_update())
     .Times(AtLeast(1))
     .WillRepeatedly(
       InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
@@ -365,7 +365,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_no_callback)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          auto rc = co_await control->check_for_updates_and_notify();
+          auto rc = co_await control->check_for_update_and_notify();
           BOOST_CHECK_EQUAL(rc.has_error(), true);
         }
       catch (std::exception &e)
@@ -390,7 +390,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_callback_later)
     co_return unfold::UpdateResponse::Later;
   });
 
-  EXPECT_CALL(*checker, check_for_updates())
+  EXPECT_CALL(*checker, check_for_update())
     .Times(AtLeast(1))
     .WillRepeatedly(
       InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
@@ -417,7 +417,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_callback_later)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          auto rc = co_await control->check_for_updates_and_notify();
+          auto rc = co_await control->check_for_update_and_notify();
           BOOST_CHECK_EQUAL(rc.has_error(), false);
         }
       catch (std::exception &e)
@@ -443,7 +443,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_callback_skip)
     co_return unfold::UpdateResponse::Skip;
   });
 
-  EXPECT_CALL(*checker, check_for_updates())
+  EXPECT_CALL(*checker, check_for_update())
     .Times(AtLeast(1))
     .WillRepeatedly(
       InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
@@ -472,7 +472,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_callback_skip)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          auto rc = co_await control->check_for_updates_and_notify();
+          auto rc = co_await control->check_for_update_and_notify();
           BOOST_CHECK_EQUAL(rc.has_error(), false);
         }
       catch (std::exception &e)
@@ -498,7 +498,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_callback_install)
     co_return unfold::UpdateResponse::Install;
   });
 
-  EXPECT_CALL(*checker, check_for_updates())
+  EXPECT_CALL(*checker, check_for_update())
     .Times(AtLeast(1))
     .WillRepeatedly(
       InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
@@ -535,7 +535,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_callback_install)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          auto rc = co_await control->check_for_updates_and_notify();
+          auto rc = co_await control->check_for_update_and_notify();
           BOOST_CHECK_EQUAL(rc.has_error(), false);
         }
       catch (std::exception &e)
@@ -561,7 +561,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_callback_install_failed)
     co_return unfold::UpdateResponse::Install;
   });
 
-  EXPECT_CALL(*checker, check_for_updates())
+  EXPECT_CALL(*checker, check_for_update())
     .Times(AtLeast(1))
     .WillRepeatedly(
       InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
@@ -599,7 +599,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_callback_install_failed)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          auto rc = co_await control->check_for_updates_and_notify();
+          auto rc = co_await control->check_for_update_and_notify();
           BOOST_CHECK_EQUAL(rc.has_error(), true);
         }
       catch (std::exception &e)

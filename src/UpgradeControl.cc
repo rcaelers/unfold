@@ -180,17 +180,23 @@ UpgradeControl::update_last_update_check_time()
 }
 
 boost::asio::awaitable<outcome::std_result<bool>>
-UpgradeControl::check_for_updates()
+UpgradeControl::check_for_update()
 {
   update_last_update_check_time();
-  co_return co_await checker->check_for_updates();
+  co_return co_await checker->check_for_update();
 }
 
 boost::asio::awaitable<outcome::std_result<void>>
-UpgradeControl::check_for_updates_and_notify()
+UpgradeControl::check_for_update_and_notify()
+{
+  co_return co_await check_for_update_and_notify(true);
+}
+
+boost::asio::awaitable<outcome::std_result<void>>
+UpgradeControl::check_for_update_and_notify(bool ignore_skip_version)
 {
   logger->info("checking for updates");
-  auto rc = co_await check_for_updates();
+  auto rc = co_await check_for_update();
   if (!rc)
     {
       logger->error("failed to check for updates: {}", rc.error().message());
@@ -272,7 +278,7 @@ void
 UpgradeControl::init_periodic_update_check()
 {
   checker_timer.set_callback([this]() -> boost::asio::awaitable<void> {
-    auto rc = co_await check_for_updates_and_notify();
+    auto rc = co_await check_for_update_and_notify(false);
     if (!rc)
       {
         logger->error("failed to perform periodic check for updates: {}", rc.error().message());

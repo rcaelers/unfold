@@ -68,19 +68,19 @@ public:
   void set_download_progress_callback(download_progress_callback_t callback) override;
   std::optional<std::chrono::system_clock::time_point> get_last_update_check_time() override;
 
-  boost::asio::awaitable<outcome::std_result<bool>> check_for_updates() override;
+  boost::asio::awaitable<outcome::std_result<bool>> check_for_update() override;
+  boost::asio::awaitable<outcome::std_result<void>> check_for_update_and_notify() override;
   boost::asio::awaitable<outcome::std_result<void>> install_update() override;
   std::shared_ptr<unfold::UpdateInfo> get_update_info() const override;
   std::shared_ptr<unfold::UnfoldHooks> get_hooks() const override;
 
-  boost::asio::awaitable<outcome::std_result<void>> check_for_updates_and_notify();
-
-  void reset_skip_version();
-  std::string get_skip_version() const;
+  void reset_skip_version() override;
+  std::string get_skip_version() const override;
 
 private:
   void init_periodic_update_check();
   void update_last_update_check_time();
+  boost::asio::awaitable<outcome::std_result<void>> check_for_update_and_notify(bool ignore_skip_version);
 
 private:
   std::shared_ptr<Platform> platform;

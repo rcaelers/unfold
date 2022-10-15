@@ -89,7 +89,7 @@ UpgradeChecker::get_selected_update() const
 }
 
 boost::asio::awaitable<outcome::std_result<bool>>
-UpgradeChecker::check_for_updates()
+UpgradeChecker::check_for_update()
 {
   selected_item.reset();
   update_info.reset();

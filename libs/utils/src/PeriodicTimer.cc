@@ -73,9 +73,6 @@ PeriodicTimer::update()
         if (!ec)
           {
             call_callback();
-
-            std::scoped_lock lock(mutex);
-            update();
           }
       });
     }
@@ -94,6 +91,8 @@ PeriodicTimer::call_callback()
       try
         {
           co_await callback_();
+          std::scoped_lock lock(mutex);
+          update();
         }
       catch (std::exception &e)
         {

@@ -216,7 +216,7 @@ UpgradeControl::check_for_update_and_notify(bool ignore_skip_version)
       co_return outcome::failure(unfold::UnfoldErrc::InternalError);
     }
 
-  if (state->get_skip_version() == info->version)
+  if (!ignore_skip_version && state->get_skip_version() == info->version)
     {
       logger->info("skipping update to version {}", info->version);
       co_return outcome::success();

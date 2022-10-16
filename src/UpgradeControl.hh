@@ -77,10 +77,11 @@ public:
   void reset_skip_version() override;
   std::string get_skip_version() const override;
 
+  boost::asio::awaitable<outcome::std_result<void>> check_for_update_and_notify(bool ignore_skip_version);
+
 private:
   void init_periodic_update_check();
   void update_last_update_check_time();
-  boost::asio::awaitable<outcome::std_result<void>> check_for_update_and_notify(bool ignore_skip_version);
 
 private:
   std::shared_ptr<Platform> platform;
@@ -93,7 +94,7 @@ private:
   std::shared_ptr<Checker> checker;
 
   unfold::utils::PeriodicTimer checker_timer;
-  bool periodic_update_check_enabled { false };
+  bool periodic_update_check_enabled{false};
 
   update_available_callback_t update_available_callback;
 

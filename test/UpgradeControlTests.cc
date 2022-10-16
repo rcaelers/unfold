@@ -320,7 +320,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_skip_version)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          auto rc = co_await control->check_for_update_and_notify();
+          auto rc = co_await control->check_for_update_and_notify(false);
           BOOST_CHECK_EQUAL(rc.has_error(), false);
         }
       catch (std::exception &e)
@@ -334,6 +334,55 @@ BOOST_AUTO_TEST_CASE(upgrade_control_skip_version)
   BOOST_CHECK_EQUAL(available, false);
 }
 
+BOOST_AUTO_TEST_CASE(upgrade_control_skip_version_ignore)
+{
+  EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
+
+  bool available{false};
+  control->set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
+    spdlog::info("Update available");
+    io_context.stop();
+    available = true;
+    co_return unfold::UpdateResponse::Later;
+  });
+
+  EXPECT_CALL(*checker, check_for_update())
+    .Times(AtLeast(1))
+    .WillRepeatedly(
+      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
+
+  EXPECT_CALL(*checker, get_update_info())
+    .Times(AtLeast(1))
+    .WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
+      auto info = std::make_shared<unfold::UpdateInfo>();
+      info->current_version = "1.10.45";
+      info->version = "1.11.0-alpha.1";
+      info->title = "Workrave";
+      auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
+      info->release_notes.push_back(r);
+      return info;
+    }));
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await control->check_for_update_and_notify();
+          BOOST_CHECK_EQUAL(rc.has_error(), false);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+  BOOST_CHECK_EQUAL(available, true);
+}
+
 BOOST_AUTO_TEST_CASE(upgrade_control_no_callback)
 {
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
@@ -342,10 +391,6 @@ BOOST_AUTO_TEST_CASE(upgrade_control_no_callback)
     .Times(AtLeast(1))
     .WillRepeatedly(
       InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
-
-  EXPECT_CALL(*storage, get_value("SkipVersion", SettingType::String))
-    .Times(AtLeast(1))
-    .WillRepeatedly(Return(outcome::success("1.11.0-alpha.0")));
 
   EXPECT_CALL(*checker, get_update_info())
     .Times(AtLeast(1))
@@ -394,10 +439,6 @@ BOOST_AUTO_TEST_CASE(upgrade_control_callback_later)
     .Times(AtLeast(1))
     .WillRepeatedly(
       InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
-
-  EXPECT_CALL(*storage, get_value("SkipVersion", SettingType::String))
-    .Times(AtLeast(1))
-    .WillRepeatedly(Return(outcome::success("1.11.0-alpha.0")));
 
   EXPECT_CALL(*checker, get_update_info())
     .Times(AtLeast(1))
@@ -472,7 +513,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_callback_skip)
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          auto rc = co_await control->check_for_update_and_notify();
+          auto rc = co_await control->check_for_update_and_notify(false);
           BOOST_CHECK_EQUAL(rc.has_error(), false);
         }
       catch (std::exception &e)
@@ -502,10 +543,6 @@ BOOST_AUTO_TEST_CASE(upgrade_control_callback_install)
     .Times(AtLeast(1))
     .WillRepeatedly(
       InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
-
-  EXPECT_CALL(*storage, get_value("SkipVersion", SettingType::String))
-    .Times(AtLeast(1))
-    .WillRepeatedly(Return(outcome::success("1.11.0-alpha.0")));
 
   EXPECT_CALL(*checker, get_update_info())
     .Times(AtLeast(1))
@@ -565,10 +602,6 @@ BOOST_AUTO_TEST_CASE(upgrade_control_callback_install_failed)
     .Times(AtLeast(1))
     .WillRepeatedly(
       InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
-
-  EXPECT_CALL(*storage, get_value("SkipVersion", SettingType::String))
-    .Times(AtLeast(1))
-    .WillRepeatedly(Return(outcome::success("1.11.0-alpha.0")));
 
   EXPECT_CALL(*checker, get_update_info())
     .Times(AtLeast(1))

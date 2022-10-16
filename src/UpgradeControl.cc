@@ -136,6 +136,7 @@ UpgradeControl::set_certificate(const std::string &cert)
 void
 UpgradeControl::set_periodic_update_check_enabled(bool enabled)
 {
+  periodic_update_check_enabled = enabled;
   checker_timer.set_enabled(enabled);
 }
 
@@ -196,6 +197,8 @@ boost::asio::awaitable<outcome::std_result<void>>
 UpgradeControl::check_for_update_and_notify(bool ignore_skip_version)
 {
   logger->info("checking for updates");
+  checker_timer.set_enabled(false);
+
   auto rc = co_await check_for_update();
   if (!rc)
     {
@@ -239,6 +242,8 @@ UpgradeControl::check_for_update_and_notify(bool ignore_skip_version)
       state->set_skip_version(info->version);
       break;
     }
+
+  checker_timer.set_enabled(periodic_update_check_enabled);
 
   co_return outcome::success();
 }

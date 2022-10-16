@@ -93,6 +93,7 @@ private:
   std::shared_ptr<Checker> checker;
 
   unfold::utils::PeriodicTimer checker_timer;
+  bool periodic_update_check_enabled { false };
 
   update_available_callback_t update_available_callback;
 

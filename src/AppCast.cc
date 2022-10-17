@@ -145,7 +145,7 @@ AppcastReader::parse_enclosure(boost::property_tree::ptree enclosure_pt)
   enclosure->url = enclosure_pt.get<std::string>("<xmlattr>.url", "");
   enclosure->signature = enclosure_pt.get<std::string>("<xmlattr>.sparkle:edSignature", "");
   enclosure->mime_type = enclosure_pt.get<std::string>("<xmlattr>.type", "");
-  enclosure->installer_arguments = enclosure_pt.get<std::string>("<xmlattr>.installerArguments", "");
+  enclosure->installer_arguments = enclosure_pt.get<std::string>("<xmlattr>.sparkle:installerArguments", "");
   enclosure->os = enclosure_pt.get<std::string>("<xmlattr>.os", "");
   enclosure->length = enclosure_pt.get<uint64_t>("<xmlattr>.length", 0);
 

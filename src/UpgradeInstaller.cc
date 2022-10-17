@@ -26,6 +26,7 @@
 #include <utility>
 #include <fstream>
 #include <spdlog/fmt/ostr.h>
+#include <vector>
 
 #include <boost/outcome/try.hpp>
 #include <boost/url/url.hpp>
@@ -181,7 +182,10 @@ UpgradeInstaller::run_installer()
 
   try
     {
-      boost::process::spawn(installer_path.string());
+      logger->info("running installer {} (args-{})", installer_path.string(), item->enclosure->installer_arguments);
+      std::vector<std::string> args;
+      boost::split(args, item->enclosure->installer_arguments, boost::is_any_of(" "));
+      boost::process::spawn(installer_path.string(), args);
       logger->info("installer finished");
     }
   catch (std::exception &e)

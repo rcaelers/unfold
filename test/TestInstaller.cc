@@ -25,6 +25,10 @@ int
 main(int argc, char **argv)
 {
   std::ofstream output("installer.log");
-  output << "Hello world!";
+  output << "Hello world!\n";
+  for (int i = 0; i < argc; i++)
+    {
+      output << argv[i] << "\n";
+    }
   return 0;
 }

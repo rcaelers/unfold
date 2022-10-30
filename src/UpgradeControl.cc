@@ -43,7 +43,6 @@
 
 #include "crypto/SignatureVerifier.hh"
 #include "http/HttpClient.hh"
-#include "utils/PeriodicTimer.hh"
 #include "utils/TempDirectory.hh"
 
 // TODO: move to different file
@@ -66,7 +65,7 @@ UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform, unfold::coro:
   , state(std::make_shared<Settings>(storage))
   , installer(std::make_shared<UpgradeInstaller>(platform, http, verifier, hooks))
   , checker(std::make_shared<UpgradeChecker>(platform, http, hooks))
-  , checker_timer(io_context.get_io_context())
+  , check_timer(io_context.get_io_context())
 {
   init_periodic_update_check();
 }
@@ -86,7 +85,7 @@ UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform,
   , state(std::make_shared<Settings>(storage))
   , installer(installer)
   , checker(checker)
-  , checker_timer(io_context.get_io_context())
+  , check_timer(io_context.get_io_context())
 {
   init_periodic_update_check();
 }
@@ -136,14 +135,17 @@ UpgradeControl::set_certificate(const std::string &cert)
 void
 UpgradeControl::set_periodic_update_check_enabled(bool enabled)
 {
-  periodic_update_check_enabled = enabled;
-  checker_timer.set_enabled(enabled);
+  if (periodic_update_check_enabled != enabled)
+    {
+      periodic_update_check_enabled = enabled;
+      update_check_timer();
+    }
 }
 
 void
 UpgradeControl::set_periodic_update_check_interval(std::chrono::seconds interval)
 {
-  checker_timer.set_interval(interval);
+  periodic_update_check_interval = interval;
 }
 
 void
@@ -197,7 +199,7 @@ boost::asio::awaitable<outcome::std_result<void>>
 UpgradeControl::check_for_update_and_notify(bool ignore_skip_version)
 {
   logger->info("checking for updates");
-  checker_timer.set_enabled(false);
+  check_timer.cancel();
 
   auto rc = co_await check_for_update();
   if (!rc)
@@ -243,7 +245,7 @@ UpgradeControl::check_for_update_and_notify(bool ignore_skip_version)
       break;
     }
 
-  checker_timer.set_enabled(periodic_update_check_enabled);
+  update_check_timer();
 
   co_return outcome::success();
 }
@@ -280,13 +282,45 @@ UpgradeControl::reset_skip_version()
 }
 
 void
+UpgradeControl::update_check_timer()
+{
+  if (!periodic_update_check_enabled)
+    {
+      check_timer.cancel();
+      return;
+    }
+
+  auto now = std::chrono::system_clock::now();
+  auto last_check = get_last_update_check_time();
+  if (!last_check || *last_check > now)
+    {
+      last_check = now;
+    }
+
+  auto next_check = *last_check + periodic_update_check_interval;
+  if (next_check > now)
+    {
+      auto delay = next_check - now;
+      logger->info("scheduling next update check in {} seconds", std::chrono::duration_cast<std::chrono::seconds>(delay).count());
+      check_timer.schedule(delay);
+    }
+  else
+    {
+      logger->info("scheduling next update check immediately");
+      check_timer.schedule(std::chrono::seconds(1));
+    }
+}
+
+void
 UpgradeControl::init_periodic_update_check()
 {
-  checker_timer.set_callback([this]() -> boost::asio::awaitable<void> {
+  check_timer.set_callback([this]() -> boost::asio::awaitable<void> {
+    logger->info("periodic update check triggered");
     auto rc = co_await check_for_update_and_notify(false);
     if (!rc)
       {
         logger->error("failed to perform periodic check for updates: {}", rc.error().message());
       }
+    update_check_timer();
   });
 }

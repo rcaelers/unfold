@@ -6,6 +6,7 @@ target_sources(unfold-utils PRIVATE
   src/Logging.cc
   src/TempDirectory.cc
   src/PeriodicTimer.cc
+  src/OneShotTimer.cc
 )
 
 if(WIN32)

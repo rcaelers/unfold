@@ -133,11 +133,15 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_later)
   control->set_configuration_prefix("some\\prefix");
   control->set_configuration_prefix("some\\wrong\\prefix");
 
+  EXPECT_CALL(*storage, get_value("LastUpdateCheckTime", SettingType::Int64))
+    .Times(AtLeast(1))
+    .WillRepeatedly(Return(outcome::success(32LL)));
+
+  EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*storage, get_value("SkipVersion", SettingType::String))
     .Times(AtLeast(1))
     .WillRepeatedly(Return(outcome::success("")));
   EXPECT_CALL(*storage, set_value("SkipVersion", SettingValue{""})).Times(1).WillOnce(Return(outcome::success()));
-  EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
 
   control->reset_skip_version();
   control->set_periodic_update_check_interval(std::chrono::seconds{1});

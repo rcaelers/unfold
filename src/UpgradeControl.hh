@@ -33,7 +33,7 @@
 #include "http/HttpClient.hh"
 #include "utils/Logging.hh"
 #include "unfold/coro/IOContext.hh"
-#include "utils/PeriodicTimer.hh"
+#include "utils/OneShotTimer.hh"
 
 #include "Platform.hh"
 #include "UpgradeInstaller.hh"
@@ -82,6 +82,7 @@ public:
 private:
   void init_periodic_update_check();
   void update_last_update_check_time();
+  void update_check_timer();
 
 private:
   std::shared_ptr<Platform> platform;
@@ -93,7 +94,8 @@ private:
   std::shared_ptr<Installer> installer;
   std::shared_ptr<Checker> checker;
 
-  unfold::utils::PeriodicTimer checker_timer;
+  unfold::utils::OneShotTimer check_timer;
+  std::chrono::seconds periodic_update_check_interval{60 * 60 * 24};
   bool periodic_update_check_enabled{false};
 
   update_available_callback_t update_available_callback;

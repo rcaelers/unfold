@@ -133,7 +133,7 @@ struct Fixture
 
   GMainContext *context = nullptr;
   GMainLoop *loop = nullptr;
-  unfold::coro::IOContext io_context{1};
+  unfold::coro::IOContext io_context;
   unfold::coro::glib::scheduler scheduler;
   std::shared_ptr<spdlog::logger> logger{Logging::create("test")};
 };

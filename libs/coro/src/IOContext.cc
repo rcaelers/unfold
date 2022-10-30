@@ -24,7 +24,7 @@
 
 using namespace unfold::coro;
 
-IOContext::IOContext(int num_threads)
+IOContext::IOContext()
   : ioc_(num_threads)
   , sync_(num_threads)
   , guard_(boost::asio::make_work_guard(ioc_))

@@ -35,7 +35,7 @@ namespace unfold::coro
   class IOContext
   {
   public:
-    explicit IOContext(int num_threads);
+    IOContext();
     ~IOContext();
 
     boost::asio::io_context *get_io_context();
@@ -48,6 +48,7 @@ namespace unfold::coro
     IOContext &operator=(IOContext &&) = delete;
 
   private:
+    static constexpr int num_threads{1};
     boost::asio::io_context ioc_;
     std::latch sync_;
     boost::asio::executor_work_guard<boost::asio::io_context::executor_type> guard_;

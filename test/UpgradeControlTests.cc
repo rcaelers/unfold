@@ -89,7 +89,7 @@ struct MockedTestFixture
     control = std::make_shared<UpgradeControl>(platform, http, verifier, storage, installer, checker, io_context);
   }
 
-  unfold::coro::IOContext io_context{1};
+  unfold::coro::IOContext io_context;
   std::shared_ptr<unfold::http::HttpClient> http;
   std::shared_ptr<SignatureVerifierMock> verifier;
   std::shared_ptr<SettingsStorageMock> storage;

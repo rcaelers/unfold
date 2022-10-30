@@ -108,7 +108,7 @@ main(int argc, char *argv[])
   server.add_file("/installer.sh", "../../test/installer.sh");
   server.run();
 
-  unfold::coro::IOContext io_context{1};
+  unfold::coro::IOContext io_context;
   auto updater = unfold::Unfold::create(io_context);
 
   auto rc = updater->set_appcast("https://127.0.0.1:1337/appcast.xml");

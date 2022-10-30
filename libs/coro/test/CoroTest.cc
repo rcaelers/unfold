@@ -133,7 +133,7 @@ main(int argc, char **argv)
   context = g_main_context_new();
   loop = g_main_loop_new(context, TRUE);
 
-  unfold::coro::IOContext io_context{1};
+  unfold::coro::IOContext io_context;
 
   unfold::coro::gtask<void> task = main_task();
   unfold::coro::glib::scheduler s{context, io_context.get_io_context()};

@@ -13,58 +13,69 @@ name: "CodeQL"
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - main
   pull_request:
-    # The branches below must be a subset of the branches above
-    branches: ["main"]
+    branches:
+      - main
   schedule:
     - cron: "34 13 * * 6"
 
 jobs:
   analyze:
     name: Analyze
-    runs-on: ubuntu-latest
-    if: ${{ false }}
+    runs-on: windows-latest
     permissions:
       actions: read
       contents: read
       security-events: write
-
     strategy:
-      fail-fast: false
       matrix:
-        language: ["cpp"]
+        configuration: [Debug, Release]
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
-      # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v2
         with:
-          languages: ${{ matrix.language }}
-          # If you wish to specify custom queries, you can do so here or in a config file.
-          # By default, queries listed here will override any specified in a config file.
-          # Prefix the list here with "+" to use these queries and those in the config file.
+          languages: cpp
 
-          # Details on CodeQL's query packs refer to : https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
-          # queries: security-extended,security-and-quality
+      - uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          msystem: clang64
+          install: >-
+            git
+            mingw-w64-clang-x86_64-boost
+            mingw-w64-clang-x86_64-clang
+            mingw-w64-clang-x86_64-cmake
+            mingw-w64-clang-x86_64-compiler-rt
+            mingw-w64-clang-x86_64-glib2
+            mingw-w64-clang-x86_64-gtkmm3
+            mingw-w64-clang-x86_64-lld
+            mingw-w64-clang-x86_64-ninja
+            mingw-w64-clang-x86_64-openssl
+            mingw-w64-clang-x86_64-python
+            mingw-w64-clang-x86_64-python-pip
+            mingw-w64-clang-x86_64-spdlog
+            tar
+            xz
 
-      # Autobuild attempts to build any compiled languages  (C/C++, C#, or Java).
-      # If this step fails, then you should remove it and run the build manually (see below)
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: 3.9
 
-      # ℹ️ Command-line programs to run using the OS shell.
-      # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
-
-      #   If the Autobuild fails above, remove it and uncomment the following three lines.
-      #   modify them (or add more) to build your code if your project, please refer to the EXAMPLE below for guidance.
-
-      # - run: |
-      #   echo "Run, Build Application using script"
-      #   ./location_of_script_within_repo/buildscript.sh
+      - shell: msys2 {0}
+        run: |
+          mkdir _build _deploy
+          export MINGW_ROOT=/c/msys64
+          export MSYSTEM=CLANG64
+          cmake -GNinja -B_build -H. -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/msys2.cmake -DCMAKE_INSTALL_PREFIX=_deploy -DUNFOLD_WITH_TESTS=ON -DCMAKE_BUILD_TYPE=${{ matrix.configuration }}
+          ninja -C _build -v
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2

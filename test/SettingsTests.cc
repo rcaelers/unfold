@@ -52,7 +52,7 @@ BOOST_AUTO_TEST_CASE(settings_get_last_update_check_time)
   Settings settings(storage);
   auto rc = settings.get_last_update_check_time();
   BOOST_CHECK(rc.has_value());
-  BOOST_CHECK_EQUAL(rc.value().time_since_epoch().count(), 32000000);
+  BOOST_CHECK_EQUAL(rc.value().time_since_epoch().count(), 32);
   rc = settings.get_last_update_check_time();
   BOOST_CHECK(!rc.has_value());
 }

@@ -186,7 +186,9 @@ boost::asio::awaitable<outcome::std_result<bool>>
 UpgradeControl::check_for_update()
 {
   update_last_update_check_time();
-  co_return co_await checker->check_for_update();
+  auto rc = co_await checker->check_for_update();
+  update_check_timer();
+  co_return rc;
 }
 
 boost::asio::awaitable<outcome::std_result<void>>
@@ -237,6 +239,7 @@ UpgradeControl::check_for_update_and_notify(bool ignore_skip_version)
   switch (resp)
     {
     case unfold::UpdateResponse::Install:
+      update_check_timer();
       co_return co_await install_update();
     case unfold::UpdateResponse::Later:
       break;
@@ -246,7 +249,6 @@ UpgradeControl::check_for_update_and_notify(bool ignore_skip_version)
     }
 
   update_check_timer();
-
   co_return outcome::success();
 }
 

@@ -45,7 +45,7 @@ Settings::get_last_update_check_time() const
   auto l = storage->get_value(last_update_check_time, SettingType::Int64);
   if (l)
     {
-      return std::chrono::system_clock::time_point(std::chrono::seconds(std::get<int64_t>(l.value())));
+      return std::chrono::system_clock::time_point(std::chrono::microseconds(std::get<int64_t>(l.value())));
     }
   return {};
 }
@@ -53,7 +53,9 @@ Settings::get_last_update_check_time() const
 void
 Settings::set_last_update_check_time(std::chrono::system_clock::time_point t)
 {
-  auto rc = storage->set_value(last_update_check_time, static_cast<int64_t>(t.time_since_epoch().count()));
+  auto rc = storage->set_value(last_update_check_time,
+                               static_cast<int64_t>(
+                                 std::chrono::duration_cast<std::chrono::microseconds>(t.time_since_epoch()).count()));
   if (!rc)
     {
       spdlog::error("Failed to set last update check time");

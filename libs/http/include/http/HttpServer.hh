@@ -28,6 +28,7 @@
 #include <boost/beast/version.hpp>
 #include <boost/asio/spawn.hpp>
 #include <boost/config.hpp>
+#include <string_view>
 
 #include <spdlog/spdlog.h>
 
@@ -70,14 +71,14 @@ namespace unfold::http
         return eof;
       }
 
-      boost::beast::string_view mime_type(boost::beast::string_view path);
+      std::string_view mime_type(std::string_view path);
 
       void send_error(boost::beast::http::status status,
                       const std::string &text,
                       boost::beast::error_code &ec,
                       boost::asio::yield_context yield);
-      void send_bad_request(boost::beast::string_view why, boost::beast::error_code &ec, boost::asio::yield_context yield);
-      void send_not_found(boost::beast::string_view target, boost::beast::error_code &ec, boost::asio::yield_context yield);
+      void send_bad_request(std::string_view why, boost::beast::error_code &ec, boost::asio::yield_context yield);
+      void send_not_found(std::string_view target, boost::beast::error_code &ec, boost::asio::yield_context yield);
       bool handle_request(boost::beast::error_code &ec, boost::asio::yield_context yield);
 
     private:

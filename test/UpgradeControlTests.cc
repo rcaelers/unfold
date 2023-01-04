@@ -141,7 +141,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_later)
   EXPECT_CALL(*storage, get_value("SkipVersion", SettingType::String))
     .Times(AtLeast(1))
     .WillRepeatedly(Return(outcome::success("")));
-  EXPECT_CALL(*storage, set_value("SkipVersion", SettingValue{""})).Times(1).WillOnce(Return(outcome::success()));
+  EXPECT_CALL(*storage, set_value("SkipVersion", SettingValue{""})).Times(2).WillOnce(Return(outcome::success()));
 
   control->reset_skip_version();
   control->set_periodic_update_check_interval(std::chrono::seconds{1});
@@ -350,6 +350,8 @@ BOOST_AUTO_TEST_CASE(upgrade_control_skip_version_ignore)
     co_return unfold::UpdateResponse::Later;
   });
 
+  EXPECT_CALL(*storage, set_value("SkipVersion", SettingValue{""})).Times(1).WillOnce(Return(outcome::success()));
+
   EXPECT_CALL(*checker, check_for_update())
     .Times(AtLeast(1))
     .WillRepeatedly(
@@ -429,6 +431,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_no_callback)
 
 BOOST_AUTO_TEST_CASE(upgrade_control_callback_later)
 {
+  EXPECT_CALL(*storage, set_value("SkipVersion", SettingValue{""})).Times(1).WillOnce(Return(outcome::success()));
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
 
   bool available{false};

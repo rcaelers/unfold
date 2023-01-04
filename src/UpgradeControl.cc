@@ -242,6 +242,7 @@ UpgradeControl::check_for_update_and_notify(bool ignore_skip_version)
       update_check_timer();
       co_return co_await install_update();
     case unfold::UpdateResponse::Later:
+      reset_skip_version();
       break;
     case unfold::UpdateResponse::Skip:
       state->set_skip_version(info->version);

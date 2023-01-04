@@ -58,7 +58,7 @@ namespace unfold::utils
   private:
     boost::asio::io_context *ioc_;
     timer_callback_t callback_;
-    boost::asio::steady_timer timer_;
+    boost::asio::system_timer timer_;
   };
 } // namespace unfold::utils
 

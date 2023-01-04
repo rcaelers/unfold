@@ -19,6 +19,7 @@
 // THE SOFTWARE.
 
 #include <cassert>
+#include <chrono>
 #include <utility>
 
 #include "utils/OneShotTimer.hh"
@@ -48,12 +49,10 @@ OneShotTimer::set_callback(timer_callback_t callback)
 void
 OneShotTimer::schedule(std::chrono::seconds delay)
 {
-  spdlog::info("OneShotTimer::schedule: delay={}", delay.count());
-  timer_.expires_from_now(delay);
+  timer_.expires_at(std::chrono::system_clock::now() + delay);
   timer_.async_wait([this](const boost::system::error_code &ec) {
     if (!ec)
       {
-        spdlog::info("OneShotTimer::schedule: callback");
         call_callback();
       }
   });
@@ -73,7 +72,6 @@ OneShotTimer::call_callback()
     [&]() -> boost::asio::awaitable<void> {
       try
         {
-          spdlog::info("OneShotTimer::call_callback: before callback");
           co_await callback_();
         }
       catch (std::exception &e)

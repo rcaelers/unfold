@@ -28,6 +28,7 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
 
+#include <boost/url/parse.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/version.hpp>
 #include <boost/asio/experimental/as_tuple.hpp>
@@ -250,7 +251,7 @@ Connection::parse_url(const std::string &u)
 {
   auto r = boost::urls::parse_uri(u);
 
-  if (r.has_value())
+  if (r)
     {
       url = r.value();
     }

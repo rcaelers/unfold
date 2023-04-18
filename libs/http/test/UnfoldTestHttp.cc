@@ -232,7 +232,7 @@ BOOST_AUTO_TEST_CASE(http_client_invalid_url)
   auto carc = d.add_ca_cert(cert);
   BOOST_CHECK_EQUAL(carc.has_error(), false);
 
-  auto rc = get_sync(d, "https://300.1.1.1:1337:foo:/bar");
+  auto rc = get_sync(d, "//300.1.1.1:1337:foo:/bar");
   BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::MalformedURL);
 }
 
@@ -244,7 +244,7 @@ BOOST_AUTO_TEST_CASE(http_client_get_file_invalid_url)
 
   std::ofstream out_file("foo.txt", std::ofstream::binary);
 
-  auto rc = get_sync(d, "https://127.0.0.1:1337:1337/foo", out_file, [&](double progress) { BOOST_CHECK(false); });
+  auto rc = get_sync(d, "//127.0.0.1:1337:1337/foo", out_file, [&](double progress) { BOOST_CHECK(false); });
   BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::MalformedURL);
 }
 

@@ -30,6 +30,7 @@
 
 #include <boost/outcome/try.hpp>
 #include <boost/url/url.hpp>
+#include <boost/url/parse.hpp>
 #include <boost/process.hpp>
 
 #include "UnfoldErrors.hh"
@@ -79,7 +80,7 @@ UpgradeInstaller::get_installer_filename()
   auto r = boost::urls::parse_uri(item->enclosure->url);
   if (r.has_value())
     {
-      std::string path = r.value().encoded_path();
+      std::string_view path = r.value().encoded_path();
       std::filesystem::path p{path};
       return outcome::success(p.filename());
     }

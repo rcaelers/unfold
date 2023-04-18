@@ -27,6 +27,7 @@
 #include <boost/beast/core.hpp>
 #include <boost/beast/ssl.hpp>
 #include <boost/url/url.hpp>
+#include <boost/url/url_view.hpp>
 #include <boost/outcome/std_result.hpp>
 
 #include "utils/Logging.hh"

@@ -74,7 +74,7 @@ find_package(OpenSSL REQUIRED)
 # Boost
 
 set(Boost_NO_BOOST_CMAKE TRUE)
-set(BOOST_COMPONENTS coroutine filesystem)
+set(BOOST_COMPONENTS coroutine filesystem url)
 set(Boost_DEBUG OFF)
 
 if (WIN32)
@@ -89,7 +89,7 @@ if (HAVE_TESTS)
   set(BOOST_COMPONENTS ${BOOST_COMPONENTS} test_exec_monitor)
 endif()
 
-find_package(Boost 1.78.0 REQUIRED COMPONENTS ${BOOST_COMPONENTS})
+find_package(Boost 1.81.0 REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
 include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIR})
@@ -112,16 +112,6 @@ if(NOT ${spdlog_FOUND})
 endif()
 # TODO: remove workaround
 add_compile_definitions(FMT_DEPRECATED_OSTREAM)
-
-#----------------------------------------------------------------------------------------------------
-# Boost URL
-
-FetchContent_Declare(
-  boosturl
-  GIT_REPOSITORY https://github.com/CPPAlliance/url
-  GIT_TAG ef2db3c1e52474b881812da92ae495cd936ed150
-)
-FetchContent_Populate(boosturl)
 
 #----------------------------------------------------------------------------------------------------
 # Semver

@@ -2,7 +2,7 @@ if(WIN32)
   FetchContent_Declare(
     cmark
     GIT_REPOSITORY https://github.com/commonmark/cmark.git
-    GIT_TAG        0.30.2
+    GIT_TAG        0.30.3
     GIT_SHALLOW    TRUE
     CMAKE_ARGS CMARK_TESTS=OFF
     )

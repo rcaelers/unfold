@@ -119,7 +119,7 @@ add_compile_definitions(FMT_DEPRECATED_OSTREAM)
 FetchContent_Declare(
   semver
   GIT_REPOSITORY https://github.com/Neargye/semver
-  GIT_TAG d3645f7b7d9c0d2d91c9a1e817c4d47ea4ccf514
+  GIT_TAG 492ba1beb1da6a4f150b8ca45985290f152396ed
 )
 FetchContent_MakeAvailable(semver)
 
@@ -131,7 +131,7 @@ if (UNFOLD_WITH_TESTS)
     googletest
     GIT_REPOSITORY https://github.com/google/googletest.git
     GIT_SHALLOW TRUE
-    GIT_TAG release-1.12.1
+    GIT_TAG v1.13.0
   )
   # For Windows: Prevent overriding the parent project's compiler/linker settings
   set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)

@@ -22,7 +22,11 @@
 #define UTILS_LOGGING_HH
 
 #include <string>
+#include <sstream>
 #include <spdlog/spdlog.h>
+#include <fmt/core.h>
+#include <fmt/format.h>
+#include <boost/system/error_code.hpp>
 
 namespace unfold::utils
 {
@@ -32,5 +36,17 @@ namespace unfold::utils
     static std::shared_ptr<spdlog::logger> create(std::string domain);
   };
 } // namespace unfold::utils
+
+template<>
+struct fmt::formatter<boost::system::error_code> : fmt::formatter<std::string>
+{
+  auto format(boost::system::error_code e, format_context &ctx) const
+  {
+    std::ostringstream ss;
+    ss << e;
+    auto s = ss.str();
+    return fmt::formatter<std::string>::format(s, ctx);
+  }
+};
 
 #endif // UTILS_WORKAVE_LIBS_UTILS_LOGGING_HH

@@ -27,6 +27,7 @@
 
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
+#include <fmt/std.h>
 
 #include <boost/url/parse.hpp>
 #include <boost/beast/http.hpp>

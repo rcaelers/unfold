@@ -110,8 +110,6 @@ if(NOT ${spdlog_FOUND})
   FetchContent_MakeAvailable(spdlog)
   install(TARGETS spdlog)
 endif()
-# TODO: remove workaround
-add_compile_definitions(FMT_DEPRECATED_OSTREAM)
 
 #----------------------------------------------------------------------------------------------------
 # Semver

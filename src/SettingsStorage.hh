@@ -28,12 +28,23 @@
 #include <boost/outcome/std_result.hpp>
 namespace outcome = boost::outcome_v2;
 
+#include "utils/Enum.hh"
+
 enum class SettingType
 {
   Boolean,
   Int32,
   Int64,
   String,
+};
+
+template<>
+struct unfold::utils::enum_traits<SettingType>
+{
+  static constexpr std::array<std::pair<std::string_view, SettingType>, 4> names{{{"Boolean", SettingType::Boolean},
+                                                                                  {"Int32", SettingType::Int32},
+                                                                                  {"Int64", SettingType::Int64},
+                                                                                  {"String", SettingType::String}}};
 };
 
 using SettingValue = std::variant<bool, int32_t, int64_t, std::string>;

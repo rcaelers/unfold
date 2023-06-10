@@ -22,6 +22,7 @@
 
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
+#include <fmt/os.h>
 
 #include <gtkmm.h>
 
@@ -70,7 +71,7 @@ UpdateDialog::UpdateDialog(std::shared_ptr<unfold::UpdateInfo> info)
     }
   catch (const Glib::Exception &e)
     {
-      spdlog::info("error loading image {}", e.what());
+      spdlog::info("error loading image {}", std::string(e.what()));
     }
 
   auto *vbox = Gtk::manage(new Gtk::Box(Gtk::ORIENTATION_VERTICAL));

@@ -27,6 +27,7 @@
 #include <fstream>
 #include <spdlog/fmt/ostr.h>
 #include <fmt/os.h>
+#include <fmt/std.h>
 #include <vector>
 
 #include <boost/outcome/try.hpp>

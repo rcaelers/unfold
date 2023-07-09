@@ -59,9 +59,9 @@ BOOST_AUTO_TEST_CASE(checker_appcast_not_found)
   server.add_file("/appcast.xml", "appcast.xml");
   server.run();
 
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   auto hooks = std::make_shared<Hooks>();
 
@@ -101,9 +101,9 @@ BOOST_AUTO_TEST_CASE(checker_invalid_host)
   server.add_file("/appcast.xml", "appcast.xml");
   server.run();
 
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   auto hooks = std::make_shared<Hooks>();
 
@@ -139,9 +139,9 @@ BOOST_AUTO_TEST_CASE(checker_invalid_host)
 
 BOOST_AUTO_TEST_CASE(checker_invalid_version)
 {
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   auto hooks = std::make_shared<Hooks>();
 
@@ -157,9 +157,9 @@ BOOST_AUTO_TEST_CASE(checker_invalid_appcast)
   server.add_file("/appcast.xml", "invalidappcast.xml");
   server.run();
 
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   auto hooks = std::make_shared<Hooks>();
 
@@ -199,9 +199,9 @@ BOOST_AUTO_TEST_CASE(checker_empty_appcast)
   server.add("/appcast.xml", "");
   server.run();
 
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   auto hooks = std::make_shared<Hooks>();
 
@@ -295,9 +295,9 @@ BOOST_AUTO_TEST_CASE(checker_invalid_items_in_appcast)
   server.add("/appcast.xml", appcast_str);
   server.run();
 
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   auto hooks = std::make_shared<Hooks>();
 
@@ -346,9 +346,9 @@ BOOST_AUTO_TEST_CASE(checker_no_upgrade)
   server.add_file("/appcast.xml", "appcast.xml");
   server.run();
 
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   auto hooks = std::make_shared<Hooks>();
 
@@ -393,9 +393,9 @@ BOOST_AUTO_TEST_CASE(checker_has_upgrade)
   server.add_file("/appcast.xml", "appcast.xml");
   server.run();
 
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   auto hooks = std::make_shared<Hooks>();
 
@@ -449,9 +449,9 @@ BOOST_AUTO_TEST_CASE(checker_channels_allowed_none)
   server.add_file("/appcast.xml", "appcast-channels.xml");
   server.run();
 
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   auto hooks = std::make_shared<Hooks>();
 
@@ -505,9 +505,9 @@ BOOST_AUTO_TEST_CASE(checker_channels_allowed_alpha)
   server.add_file("/appcast.xml", "appcast-channels.xml");
   server.run();
 
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   auto hooks = std::make_shared<Hooks>();
 
@@ -564,9 +564,9 @@ BOOST_AUTO_TEST_CASE(checker_channels_allowed_release)
   server.add_file("/appcast.xml", "appcast-channels.xml");
   server.run();
 
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   auto hooks = std::make_shared<Hooks>();
 
@@ -623,9 +623,9 @@ BOOST_AUTO_TEST_CASE(checker_channels_allowed_empty)
   server.add_file("/appcast.xml", "appcast-channels.xml");
   server.run();
 
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   auto hooks = std::make_shared<Hooks>();
 

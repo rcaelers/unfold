@@ -49,8 +49,8 @@
 
 using namespace unfold::http;
 
-HttpStream::HttpStream(Options options)
-  : options(std::move(options))
+HttpStream::HttpStream(Options options_)
+  : options(std::move(options_))
 {
 #if defined(WIN32)
   add_windows_root_certs(ctx);
@@ -61,11 +61,11 @@ HttpStream::HttpStream(Options options)
 }
 
 boost::asio::awaitable<outcome::std_result<Response>>
-HttpStream::get(std::string url)
+HttpStream::execute(std::string url)
 {
   std::stringstream ss;
 
-  auto rc = co_await get(url, ss, [](double) {});
+  auto rc = co_await execute(url, ss, [](double) {});
   if (!rc)
     {
       co_return rc;
@@ -78,7 +78,7 @@ HttpStream::get(std::string url)
 }
 
 boost::asio::awaitable<outcome::std_result<Response>>
-HttpStream::get(std::string url, std::ostream &file, ProgressCallback cb)
+HttpStream::execute(std::string url, std::ostream &file, ProgressCallback cb)
 {
   outcome::std_result<void> rc{outcome::failure(HttpClientErrc::InternalError)};
 
@@ -204,7 +204,7 @@ HttpStream::receive_response(std::ostream &out, ProgressCallback cb)
           logger->error("no Location header in redirect response from {}", url.host());
           co_return HttpClientErrc::CommunicationError;
         }
-      co_return co_await get(redirect_url);
+      co_return co_await execute(redirect_url);
     }
 
   if (!is_ok(parser.get().result()))
@@ -304,7 +304,7 @@ HttpStream::init_certificates()
       if (ec)
         {
           logger->error("add_certificate_authority failed ({})", ec.message());
-          // return outcome::failure(unfold::http::HttpClientErrc::InvalidCertificate);
+          return outcome::failure(unfold::http::HttpClientErrc::InvalidCertificate);
         }
     }
   return outcome::success();

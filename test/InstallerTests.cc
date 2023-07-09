@@ -89,9 +89,9 @@ BOOST_AUTO_TEST_CASE(installer_missing_url)
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
   auto appcast = reader->load_from_string(appcast_str);
 
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   auto hooks = std::make_shared<Hooks>();
 
@@ -148,9 +148,9 @@ BOOST_AUTO_TEST_CASE(installer_missing_length)
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
   auto appcast = reader->load_from_string(appcast_str);
 
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   auto hooks = std::make_shared<Hooks>();
 
@@ -209,9 +209,9 @@ BOOST_AUTO_TEST_CASE(installer_incorrect_length)
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
   auto appcast = reader->load_from_string(appcast_str);
 
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   auto hooks = std::make_shared<Hooks>();
 
@@ -249,9 +249,9 @@ BOOST_AUTO_TEST_CASE(installer_not_found)
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
   auto appcast = reader->load_from_file("appcast.xml");
 
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   auto hooks = std::make_shared<Hooks>();
 
@@ -309,9 +309,9 @@ BOOST_AUTO_TEST_CASE(installer_invalid_host)
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
   auto appcast = reader->load_from_string(appcast_str);
 
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   auto hooks = std::make_shared<Hooks>();
 
@@ -354,9 +354,9 @@ BOOST_AUTO_TEST_CASE(installer_invalid_signature)
   auto appcast = reader->load_from_file("appcast.xml");
   appcast->items.front()->enclosure->length = size;
 
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   auto hooks = std::make_shared<Hooks>();
 
@@ -405,9 +405,9 @@ BOOST_AUTO_TEST_CASE(installer_failed_to_install)
   auto appcast = reader->load_from_file("appcast.xml");
   appcast->items.front()->enclosure->length = size;
 
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   auto hooks = std::make_shared<Hooks>();
 
@@ -499,9 +499,9 @@ BOOST_DATA_TEST_CASE(installer_started_installer,
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
   auto appcast = reader->load_from_string(appcast_str);
 
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   auto hooks = std::make_shared<Hooks>();
 
@@ -592,9 +592,9 @@ BOOST_AUTO_TEST_CASE(installer_started_installer_with_args)
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
   auto appcast = reader->load_from_string(appcast_str);
 
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   auto hooks = std::make_shared<Hooks>();
 

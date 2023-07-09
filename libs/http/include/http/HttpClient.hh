@@ -45,7 +45,12 @@ namespace unfold::http
   class HttpClient
   {
   public:
-    explicit HttpClient(unfold::http::Options options = unfold::http::Options());
+    HttpClient() = default;
+
+    Options &options()
+    {
+      return options_;
+    }
 
     boost::asio::awaitable<outcome::std_result<unfold::http::Response>> get(std::string url);
     boost::asio::awaitable<outcome::std_result<unfold::http::Response>> get(std::string url,
@@ -53,7 +58,7 @@ namespace unfold::http
                                                                             unfold::http::ProgressCallback cb);
 
   private:
-    unfold::http::Options options;
+    unfold::http::Options options_;
   };
 } // namespace unfold::http
 #endif // NET_HTTP_HTTPCLIENT_HH

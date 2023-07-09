@@ -109,8 +109,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_later)
   auto rc = control->set_appcast("https://127.0.0.1:1337/appcast.xml");
   BOOST_CHECK_EQUAL(rc.has_error(), false);
 
-  rc = control->set_certificate(cert);
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  control->set_certificate(cert);
 
   EXPECT_CALL(*verifier,
               set_key(unfold::crypto::SignatureAlgorithmType::ECDSA,

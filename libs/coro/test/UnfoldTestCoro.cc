@@ -186,10 +186,9 @@ BOOST_FIXTURE_TEST_SUITE(unfold_coro_test, Fixture)
 boost::asio::awaitable<outcome::std_result<std::string>>
 download_appcast()
 {
-  Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   auto rc = co_await http->get("https://127.0.0.1:1337/foo");
 

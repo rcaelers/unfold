@@ -60,7 +60,7 @@ public:
   outcome::std_result<void> set_current_version(const std::string &version) override;
   outcome::std_result<void> set_allowed_channels(const std::vector<std::string> &channels) override;
   outcome::std_result<void> set_signature_verification_key(const std::string &key) override;
-  outcome::std_result<void> set_certificate(const std::string &cert) override;
+  void set_certificate(const std::string &cert) override;
   void set_periodic_update_check_enabled(bool enabled) override;
   void set_periodic_update_check_interval(std::chrono::seconds interval) override;
   void set_configuration_prefix(const std::string &prefix) override;
@@ -85,7 +85,6 @@ private:
   void update_check_timer();
 
 private:
-  unfold::http::Options http_options;
   std::shared_ptr<Platform> platform;
   std::shared_ptr<unfold::http::HttpClient> http;
   std::shared_ptr<unfold::crypto::SignatureVerifier> verifier;

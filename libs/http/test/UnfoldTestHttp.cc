@@ -157,10 +157,9 @@ BOOST_AUTO_TEST_CASE(http_client_get)
   server.add("/foo", "foo\n");
   server.run();
 
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   auto rc = get_sync(http, "https://127.0.0.1:1337/foo");
 
@@ -182,9 +181,9 @@ BOOST_AUTO_TEST_CASE(http_client_not_found)
   server.add("/foo", "foo\n");
   server.run();
 
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   auto rc = get_sync(http, "https://127.0.0.1:1337/bar");
 
@@ -200,9 +199,9 @@ BOOST_AUTO_TEST_CASE(http_client_not_found)
 
 BOOST_AUTO_TEST_CASE(http_client_host_not_found)
 {
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   auto rc = get_sync(http, "https://does-not-exist:1337/bar");
   BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::NameResolutionFailed);
@@ -210,9 +209,9 @@ BOOST_AUTO_TEST_CASE(http_client_host_not_found)
 
 BOOST_AUTO_TEST_CASE(http_client_connection_refused)
 {
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   auto rc = get_sync(http, "https://127.0.0.1:1338/bar");
   BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::ConnectionRefused);
@@ -220,9 +219,9 @@ BOOST_AUTO_TEST_CASE(http_client_connection_refused)
 
 BOOST_AUTO_TEST_CASE(http_client_get_file_connection_refused)
 {
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   std::ofstream out_file("foo.txt", std::ofstream::binary);
 
@@ -232,9 +231,9 @@ BOOST_AUTO_TEST_CASE(http_client_get_file_connection_refused)
 
 BOOST_AUTO_TEST_CASE(http_client_invalid_ip_in_url)
 {
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   auto rc = get_sync(http, "https://300.1.1.1:1337/bar");
   BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::NameResolutionFailed);
@@ -242,9 +241,9 @@ BOOST_AUTO_TEST_CASE(http_client_invalid_ip_in_url)
 
 BOOST_AUTO_TEST_CASE(http_client_invalid_url)
 {
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   auto rc = get_sync(http, "//300.1.1.1:1337:foo:/bar");
   BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::MalformedURL);
@@ -252,9 +251,9 @@ BOOST_AUTO_TEST_CASE(http_client_invalid_url)
 
 BOOST_AUTO_TEST_CASE(http_client_get_file_invalid_url)
 {
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   std::ofstream out_file("foo.txt", std::ofstream::binary);
 
@@ -271,9 +270,9 @@ BOOST_AUTO_TEST_CASE(http_client_get_file)
   server.add("/foo", body);
   server.run();
 
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   std::ofstream out_file("foo.txt", std::ofstream::binary);
 
@@ -305,9 +304,9 @@ BOOST_AUTO_TEST_CASE(http_client_get_file_not_found)
   server.add("/foo", body);
   server.run();
 
-  unfold::http::Options options;
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
   options.add_ca_cert(cert);
-  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   std::ofstream out_file("foo.txt", std::ofstream::binary);
 
@@ -340,9 +339,9 @@ BOOST_AUTO_TEST_CASE(http_client_get_file_not_found)
 //   server.add_redirect("/foo", "https://127.0.0.1:1337/bar");
 //   server.run();
 
-// unfold::http::Options options;
-// options.add_ca_cert(cert);
-// auto http = std::make_shared<unfold::http::HttpClient>(options);
+//   auto http = std::make_shared<unfold::http::HttpClient>();
+//   auto &options = http->options();
+//   options.add_ca_cert(cert);
 
 //   std::ofstream out_file("foo.txt", std::ofstream::binary);
 

@@ -39,7 +39,6 @@
 
 #include "http/HttpClientErrors.hh"
 #include "http/HttpStream.hh"
-#include "http/Options.hh"
 
 #include <boost/outcome/result.hpp>
 #include <utility>
@@ -49,11 +48,6 @@
 #endif
 
 using namespace unfold::http;
-
-HttpClient::HttpClient(Options options)
-  : options(std::move(options))
-{
-}
 
 boost::asio::awaitable<outcome::std_result<Response>>
 HttpClient::get(std::string url)
@@ -75,6 +69,6 @@ HttpClient::get(std::string url)
 boost::asio::awaitable<outcome::std_result<Response>>
 HttpClient::get(std::string url, std::ostream &file, ProgressCallback cb)
 {
-  HttpStream s(options);
-  co_return co_await s.get(url, file, cb);
+  HttpStream s(options_);
+  co_return co_await s.execute(url, file, cb);
 }

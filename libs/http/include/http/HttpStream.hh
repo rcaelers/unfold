@@ -43,12 +43,12 @@ namespace unfold::http
   class HttpStream
   {
   public:
-    explicit HttpStream(unfold::http::Options options = unfold::http::Options());
+    explicit HttpStream(unfold::http::Options options);
 
-    boost::asio::awaitable<outcome::std_result<unfold::http::Response>> get(std::string url);
-    boost::asio::awaitable<outcome::std_result<unfold::http::Response>> get(std::string url,
-                                                                            std::ostream &file,
-                                                                            unfold::http::ProgressCallback cb);
+    boost::asio::awaitable<outcome::std_result<unfold::http::Response>> execute(std::string url);
+    boost::asio::awaitable<outcome::std_result<unfold::http::Response>> execute(std::string url,
+                                                                                std::ostream &file,
+                                                                                unfold::http::ProgressCallback cb);
 
   private:
     bool is_redirect(auto code);

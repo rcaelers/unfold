@@ -120,12 +120,10 @@ UpgradeControl::set_signature_verification_key(const std::string &key)
   return outcome::success();
 }
 
-outcome::std_result<void>
+void
 UpgradeControl::set_certificate(const std::string &cert)
 {
-  http_options.add_ca_cert(cert);
-
-  return outcome::success();
+  http->options().add_ca_cert(cert);
 }
 
 void

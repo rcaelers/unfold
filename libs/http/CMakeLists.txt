@@ -2,9 +2,10 @@ add_library(unfold-http OBJECT)
 
 target_sources(unfold-http PRIVATE
   src/HttpClient.cc
+  src/HttpStream.cc
   src/HttpClientErrors.cc
   src/HttpServer.cc
-  src/Connection.cc
+  src/Options.cc
 )
 
 target_code_coverage(unfold-http ALL AUTO)

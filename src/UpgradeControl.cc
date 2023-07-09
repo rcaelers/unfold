@@ -123,12 +123,8 @@ UpgradeControl::set_signature_verification_key(const std::string &key)
 outcome::std_result<void>
 UpgradeControl::set_certificate(const std::string &cert)
 {
-  auto result = http->add_ca_cert(cert);
-  if (!result)
-    {
-      logger->error("invalid ca certificate ({})", result.error().message());
-      return outcome::failure(unfold::UnfoldErrc::InvalidArgument);
-    }
+  http_options.add_ca_cert(cert);
+
   return outcome::success();
 }
 

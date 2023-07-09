@@ -26,6 +26,7 @@
 #include <string>
 #include <fstream>
 #include <streambuf>
+#include <utility>
 
 using namespace unfold::http;
 using namespace unfold::http::detail;
@@ -95,15 +96,17 @@ namespace
 
 } // namespace
 
-Session::Session(boost::beast::ssl_stream<boost::beast::tcp_stream> stream, Documents &documents)
+Session::Session(boost::beast::ssl_stream<boost::beast::tcp_stream> stream, Documents documents, Redirects redirects)
   : stream(std::move(stream))
-  , documents(documents)
+  , documents(std::move(documents))
+  , redirects(std::move(redirects))
 {
 }
 
-Session::Session(boost::asio::ip::tcp::socket socket, boost::asio::ssl::context &ctx, Documents &documents)
+Session::Session(boost::asio::ip::tcp::socket socket, boost::asio::ssl::context &ctx, Documents documents, Redirects redirects)
   : stream(std::move(socket), ctx)
-  , documents(documents)
+  , documents(std::move(documents))
+  , redirects(std::move(redirects))
 {
 }
 
@@ -151,12 +154,32 @@ Session::send_not_found(std::string_view target, boost::beast::error_code &ec, b
   send_error(boost::beast::http::status::not_found, "The resource '" + std::string(target) + "' was not found.", ec, yield);
 }
 
+void
+Session::send_redirect(const std::string_view location, boost::beast::error_code &ec, boost::asio::yield_context yield)
+{
+  logger->error("sending http redirect response: ({})", location);
+
+  boost::beast::http::response<boost::beast::http::string_body> res{boost::beast::http::status::found, req.version()};
+  res.set(boost::beast::http::field::server, BOOST_BEAST_VERSION_STRING);
+  res.set(boost::beast::http::field::location, location);
+  res.keep_alive(req.keep_alive());
+  res.prepare_payload();
+  send(std::move(res), ec, yield);
+}
+
 bool
 Session::handle_request(boost::beast::error_code &ec, boost::asio::yield_context yield)
 {
   if (req.method() != boost::beast::http::verb::get)
     {
       send_bad_request("Unknown HTTP method", ec, yield);
+      return false;
+    }
+
+  if (redirects.exists(req.target()))
+    {
+      auto location = redirects.get(req.target());
+      send_redirect(location, ec, yield);
       return false;
     }
 
@@ -279,7 +302,7 @@ HttpServer::do_listen(boost::asio::ip::tcp::endpoint endpoint, boost::asio::yiel
 
       boost::asio::spawn(acceptor.get_executor(), [this, &socket](boost::asio::yield_context yield) {
         // auto stream = boost::beast::ssl_stream<boost::beast::tcp_stream>(std::move(socket), ctx);
-        Session session(std::move(socket), ctx, documents);
+        Session session(std::move(socket), ctx, documents, redirects);
         session.run(yield);
       });
     }
@@ -340,6 +363,12 @@ HttpServer::add_file(std::string_view file, const std::string &filename)
 }
 
 void
+HttpServer::add_redirect(std::string_view from, std::string_view to)
+{
+  redirects.add(from, to);
+}
+
+void
 Documents::add(std::string_view file, const std::string &body)
 {
   content[file] = body;
@@ -355,4 +384,22 @@ std::string
 Documents::get(std::string_view file) const
 {
   return content.at(file);
+}
+
+void
+Redirects::add(std::string_view from, const std::string_view to)
+{
+  redirects[from] = to;
+}
+
+bool
+Redirects::exists(std::string_view from) const
+{
+  return redirects.contains(std::string(from));
+}
+
+std::string_view
+Redirects::get(std::string_view from) const
+{
+  return redirects.at(from);
 }

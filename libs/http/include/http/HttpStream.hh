@@ -18,8 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef NET_HTTP_HTTPCLIENT_HH
-#define NET_HTTP_HTTPCLIENT_HH
+#ifndef NET_HTTP_HTTPSTREAM_HH
+#define NET_HTTP_HTTPSTREAM_HH
 
 #include <string>
 
@@ -33,19 +33,17 @@
 #include "utils/Logging.hh"
 
 #include "http/Options.hh"
+#include "http/HttpClient.hh"
 #include "http/HttpClientErrors.hh"
 
 namespace outcome = boost::outcome_v2;
 
 namespace unfold::http
 {
-  using Response = std::pair<int, std::string>;
-  using ProgressCallback = std::function<void(double progress)>;
-
-  class HttpClient
+  class HttpStream
   {
   public:
-    explicit HttpClient(unfold::http::Options options = unfold::http::Options());
+    explicit HttpStream(unfold::http::Options options = unfold::http::Options());
 
     boost::asio::awaitable<outcome::std_result<unfold::http::Response>> get(std::string url);
     boost::asio::awaitable<outcome::std_result<unfold::http::Response>> get(std::string url,
@@ -53,7 +51,32 @@ namespace unfold::http
                                                                             unfold::http::ProgressCallback cb);
 
   private:
+    bool is_redirect(auto code);
+    bool is_ok(auto code);
+
+    outcome::std_result<void> init_certificates();
+
+    boost::asio::awaitable<outcome::std_result<void>> send_request();
+    boost::asio::awaitable<outcome::std_result<unfold::http::Response>> receive_response(std::ostream &out,
+                                                                                         unfold::http::ProgressCallback cb);
+    boost::asio::awaitable<void> shutdown();
+    outcome::std_result<void> parse_url(const std::string &u);
+
+#if defined(WIN32)
+    void add_windows_root_certs(boost::asio::ssl::context &ctx);
+#endif
+
+  private:
+    static constexpr int BUFFER_SIZE = 1024;
+    static constexpr std::chrono::seconds TIMEOUT{30};
+
+    boost::asio::ssl::context ctx{boost::asio::ssl::context::tlsv12_client};
+    std::shared_ptr<boost::beast::ssl_stream<boost::beast::tcp_stream>> stream;
     unfold::http::Options options;
+    std::list<std::string> ca_certs;
+    boost::urls::url_view url;
+    std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold::http:connection")};
   };
 } // namespace unfold::http
-#endif // NET_HTTP_HTTPCLIENT_HH
+
+#endif // NET_HTTP_HTTPSTREAM_HH

@@ -18,6 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include "http/Options.hh"
 #include <exception>
 #include <memory>
 #include <fstream>
@@ -185,9 +186,10 @@ BOOST_FIXTURE_TEST_SUITE(unfold_coro_test, Fixture)
 boost::asio::awaitable<outcome::std_result<std::string>>
 download_appcast()
 {
-  auto http = std::make_shared<unfold::http::HttpClient>();
-  auto carc = http->add_ca_cert(cert);
-  BOOST_CHECK_EQUAL(carc.has_error(), false);
+  Options options;
+  options.add_ca_cert(cert);
+
+  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   auto rc = co_await http->get("https://127.0.0.1:1337/foo");
 

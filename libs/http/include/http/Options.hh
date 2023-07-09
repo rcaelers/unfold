@@ -18,42 +18,45 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef NET_HTTP_HTTPCLIENT_HH
-#define NET_HTTP_HTTPCLIENT_HH
+#ifndef NET_HTTP_OPTIONS_HH
+#define NET_HTTP_OPTIONS_HH
 
+#include <list>
 #include <string>
 
-#include <boost/asio.hpp>
-#include <boost/beast/core.hpp>
-#include <boost/beast/ssl.hpp>
-#include <boost/url/url.hpp>
-#include <boost/url/url_view.hpp>
 #include <boost/outcome/std_result.hpp>
 
 #include "utils/Logging.hh"
 
-#include "http/Options.hh"
-#include "http/HttpClientErrors.hh"
-
-namespace outcome = boost::outcome_v2;
-
 namespace unfold::http
 {
-  using Response = std::pair<int, std::string>;
-  using ProgressCallback = std::function<void(double progress)>;
+  namespace outcome = boost::outcome_v2;
 
-  class HttpClient
+  class Options
   {
   public:
-    explicit HttpClient(unfold::http::Options options = unfold::http::Options());
+    Options() = default;
 
-    boost::asio::awaitable<outcome::std_result<unfold::http::Response>> get(std::string url);
-    boost::asio::awaitable<outcome::std_result<unfold::http::Response>> get(std::string url,
-                                                                            std::ostream &file,
-                                                                            unfold::http::ProgressCallback cb);
+    void add_ca_cert(const std::string &cert);
+    void set_keep_alive(bool keep_alive);
+    void set_follow_redirects(bool follow_redirects);
+    void set_max_redirects(int max_redirects);
+    void set_timeout(std::chrono::seconds timeout);
+
+    std::list<std::string> get_ca_certs() const;
+    bool get_keep_alive() const;
+    bool get_follow_redirects() const;
+    int get_max_redirects() const;
+    std::chrono::seconds get_timeout() const;
 
   private:
-    unfold::http::Options options;
+    std::list<std::string> ca_certs;
+    bool keep_alive = true;
+    bool follow_redirects = true;
+    int max_redirects = 5;
+    std::chrono::seconds timeout = std::chrono::seconds(10);
+    std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:http")};
   };
 } // namespace unfold::http
-#endif // NET_HTTP_HTTPCLIENT_HH
+
+#endif // NET_HTTP_OPTIONS_HH

@@ -51,11 +51,27 @@ namespace unfold::http
       std::map<std::string_view, std::string> content;
     };
 
+    class Redirects
+    {
+    public:
+      Redirects() = default;
+
+      void add(std::string_view from, std::string_view to);
+      bool exists(std::string_view from) const;
+      std::string_view get(std::string_view from) const;
+
+    private:
+      std::map<std::string_view, std::string_view> redirects;
+    };
+
     class Session
     {
     public:
-      Session(boost::beast::ssl_stream<boost::beast::tcp_stream> stream, Documents &documents);
-      Session(boost::asio::ip::tcp::socket socket, boost::asio::ssl::context &ctx, Documents &documents);
+      Session(boost::beast::ssl_stream<boost::beast::tcp_stream> stream, Documents documents, detail::Redirects redirects);
+      Session(boost::asio::ip::tcp::socket socket,
+              boost::asio::ssl::context &ctx,
+              Documents documents,
+              detail::Redirects redirects);
 
       void run(boost::asio::yield_context yield);
 
@@ -79,11 +95,13 @@ namespace unfold::http
                       boost::asio::yield_context yield);
       void send_bad_request(std::string_view why, boost::beast::error_code &ec, boost::asio::yield_context yield);
       void send_not_found(std::string_view target, boost::beast::error_code &ec, boost::asio::yield_context yield);
+      void send_redirect(std::string_view location, boost::beast::error_code &ec, boost::asio::yield_context yield);
       bool handle_request(boost::beast::error_code &ec, boost::asio::yield_context yield);
 
     private:
       boost::beast::ssl_stream<boost::beast::tcp_stream> stream;
-      Documents &documents;
+      Documents documents;
+      Redirects redirects;
       boost::beast::http::request<boost::beast::http::string_body> req;
       std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("test:server:session")};
     };
@@ -98,12 +116,14 @@ namespace unfold::http
 
     void add(std::string_view file, const std::string &body);
     void add_file(std::string_view file, const std::string &filename);
+    void add_redirect(std::string_view from, std::string_view to);
 
   private:
     void do_listen(boost::asio::ip::tcp::endpoint endpoint, boost::asio::yield_context yield);
 
   private:
     detail::Documents documents;
+    detail::Redirects redirects;
     static constexpr int threads{4};
     boost::asio::io_context ioc{threads};
     boost::asio::ssl::context ctx{boost::asio::ssl::context::tlsv12};

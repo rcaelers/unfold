@@ -18,6 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include "http/Options.hh"
 #include <boost/test/tools/old/interface.hpp>
 #include <memory>
 #include <fstream>
@@ -109,27 +110,33 @@ struct Fixture
   Fixture(Fixture &&) = delete;
   Fixture &operator=(Fixture &&) = delete;
 
-  outcome::std_result<Response> get_sync(HttpClient &http, const std::string &url, std::ostream &file, ProgressCallback cb)
+  outcome::std_result<Response> get_sync(std::shared_ptr<HttpClient> http,
+                                         std::string url,
+                                         std::ostream &file,
+                                         ProgressCallback cb)
   {
     boost::asio::io_context ioc;
     outcome::std_result<Response> ret = outcome::failure(HttpClientErrc::InternalError);
     boost::asio::co_spawn(
       ioc,
-      [&]() -> boost::asio::awaitable<void> { ret = co_await http.get(url, file, cb); },
+      [&]() -> boost::asio::awaitable<void> { ret = co_await http->get(url, file, cb); },
       boost::asio::detached);
     ioc.run();
     ioc.restart();
     return ret;
   }
 
-  outcome::std_result<Response> get_sync(HttpClient &http, const std::string &url)
+  outcome::std_result<Response> get_sync(std::shared_ptr<HttpClient> http, std::string url)
   {
     boost::asio::io_context ioc;
     outcome::std_result<Response> ret = outcome::failure(HttpClientErrc::InternalError);
 
     boost::asio::co_spawn(
       ioc,
-      [&]() -> boost::asio::awaitable<void> { ret = co_await http.get(url); },
+      [&]() -> boost::asio::awaitable<void> {
+        ret = co_await http->get(url);
+        co_return;
+      },
       boost::asio::detached);
     ioc.run();
     ioc.restart();
@@ -150,17 +157,21 @@ BOOST_AUTO_TEST_CASE(http_client_get)
   server.add("/foo", "foo\n");
   server.run();
 
-  HttpClient d;
-  auto carc = d.add_ca_cert(cert);
-  BOOST_CHECK_EQUAL(carc.has_error(), false);
+  unfold::http::Options options;
+  options.add_ca_cert(cert);
 
-  auto rc = get_sync(d, "https://127.0.0.1:1337/foo");
+  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
-  auto [result, content] = rc.value();
+  auto rc = get_sync(http, "https://127.0.0.1:1337/foo");
 
   BOOST_CHECK_EQUAL(rc.has_error(), false);
-  BOOST_CHECK_EQUAL(result, 200);
-  BOOST_CHECK_EQUAL(content, "foo\n");
+
+  if (!rc.has_error())
+    {
+      auto [result, content] = rc.value();
+      BOOST_CHECK_EQUAL(result, 200);
+      BOOST_CHECK_EQUAL(content, "foo\n");
+    }
 
   server.stop();
 }
@@ -171,80 +182,83 @@ BOOST_AUTO_TEST_CASE(http_client_not_found)
   server.add("/foo", "foo\n");
   server.run();
 
-  HttpClient d;
-  auto carc = d.add_ca_cert(cert);
-  BOOST_CHECK_EQUAL(carc.has_error(), false);
+  unfold::http::Options options;
+  options.add_ca_cert(cert);
+  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
-  auto rc = get_sync(d, "https://127.0.0.1:1337/bar");
-  auto [result, content] = rc.value();
+  auto rc = get_sync(http, "https://127.0.0.1:1337/bar");
 
-  BOOST_CHECK_EQUAL(result, 404);
-  BOOST_CHECK_EQUAL(content, "The resource '/bar' was not found.");
-
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  if (!rc.has_error())
+    {
+      auto [result, content] = rc.value();
+      BOOST_CHECK_EQUAL(result, 404);
+      BOOST_CHECK_EQUAL(content, "The resource '/bar' was not found.");
+    }
   server.stop();
 }
 
 BOOST_AUTO_TEST_CASE(http_client_host_not_found)
 {
-  HttpClient d;
-  auto carc = d.add_ca_cert(cert);
-  BOOST_CHECK_EQUAL(carc.has_error(), false);
+  unfold::http::Options options;
+  options.add_ca_cert(cert);
+  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
-  auto rc = get_sync(d, "https://does-not-exist:1337/bar");
+  auto rc = get_sync(http, "https://does-not-exist:1337/bar");
   BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::NameResolutionFailed);
 }
 
 BOOST_AUTO_TEST_CASE(http_client_connection_refused)
 {
-  HttpClient d;
-  auto carc = d.add_ca_cert(cert);
-  BOOST_CHECK_EQUAL(carc.has_error(), false);
+  unfold::http::Options options;
+  options.add_ca_cert(cert);
+  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
-  auto rc = get_sync(d, "https://127.0.0.1:1338/bar");
+  auto rc = get_sync(http, "https://127.0.0.1:1338/bar");
   BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::ConnectionRefused);
 }
 
 BOOST_AUTO_TEST_CASE(http_client_get_file_connection_refused)
 {
-  HttpClient d;
-  auto carc = d.add_ca_cert(cert);
-  BOOST_CHECK_EQUAL(carc.has_error(), false);
+  unfold::http::Options options;
+  options.add_ca_cert(cert);
+  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   std::ofstream out_file("foo.txt", std::ofstream::binary);
 
-  auto rc = get_sync(d, "https://127.0.0.1:1338/foo", out_file, [&](double progress) { BOOST_CHECK(false); });
+  auto rc = get_sync(http, "https://127.0.0.1:1338/foo", out_file, [&](double progress) { BOOST_CHECK(false); });
   BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::ConnectionRefused);
 }
 
 BOOST_AUTO_TEST_CASE(http_client_invalid_ip_in_url)
 {
-  HttpClient d;
-  auto carc = d.add_ca_cert(cert);
-  BOOST_CHECK_EQUAL(carc.has_error(), false);
+  unfold::http::Options options;
+  options.add_ca_cert(cert);
+  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
-  auto rc = get_sync(d, "https://300.1.1.1:1337/bar");
+  auto rc = get_sync(http, "https://300.1.1.1:1337/bar");
   BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::NameResolutionFailed);
 }
 
 BOOST_AUTO_TEST_CASE(http_client_invalid_url)
 {
-  HttpClient d;
-  auto carc = d.add_ca_cert(cert);
-  BOOST_CHECK_EQUAL(carc.has_error(), false);
+  unfold::http::Options options;
+  options.add_ca_cert(cert);
+  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
-  auto rc = get_sync(d, "//300.1.1.1:1337:foo:/bar");
+  auto rc = get_sync(http, "//300.1.1.1:1337:foo:/bar");
   BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::MalformedURL);
 }
 
 BOOST_AUTO_TEST_CASE(http_client_get_file_invalid_url)
 {
-  HttpClient d;
-  auto carc = d.add_ca_cert(cert);
-  BOOST_CHECK_EQUAL(carc.has_error(), false);
+  unfold::http::Options options;
+  options.add_ca_cert(cert);
+  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   std::ofstream out_file("foo.txt", std::ofstream::binary);
 
-  auto rc = get_sync(d, "//127.0.0.1:1337:1337/foo", out_file, [&](double progress) { BOOST_CHECK(false); });
+  auto rc = get_sync(http, "//127.0.0.1:1337:1337/foo", out_file, [&](double progress) { BOOST_CHECK(false); });
   BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::MalformedURL);
 }
 
@@ -257,24 +271,28 @@ BOOST_AUTO_TEST_CASE(http_client_get_file)
   server.add("/foo", body);
   server.run();
 
-  HttpClient d;
-  auto carc = d.add_ca_cert(cert);
-  BOOST_CHECK_EQUAL(carc.has_error(), false);
+  unfold::http::Options options;
+  options.add_ca_cert(cert);
+  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   std::ofstream out_file("foo.txt", std::ofstream::binary);
 
   double previous_progress = 0.0;
-  auto rc = get_sync(d, "https://127.0.0.1:1337/foo", out_file, [&](double progress) {
+  auto rc = get_sync(http, "https://127.0.0.1:1337/foo", out_file, [&](double progress) {
     BOOST_CHECK_GE(progress, previous_progress);
     previous_progress = progress;
   });
-  auto [result, content] = rc.value();
 
-  out_file.close();
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  if (!rc.has_error())
+    {
+      auto [result, content] = rc.value();
 
-  BOOST_CHECK_EQUAL(result, 200);
-  BOOST_CHECK_GE(previous_progress + 0.0001, 1.0);
+      out_file.close();
 
+      BOOST_CHECK_EQUAL(result, 200);
+      BOOST_CHECK_GE(previous_progress + 0.0001, 1.0);
+    }
   server.stop();
 }
 
@@ -287,25 +305,60 @@ BOOST_AUTO_TEST_CASE(http_client_get_file_not_found)
   server.add("/foo", body);
   server.run();
 
-  HttpClient d;
-  auto carc = d.add_ca_cert(cert);
-  BOOST_CHECK_EQUAL(carc.has_error(), false);
+  unfold::http::Options options;
+  options.add_ca_cert(cert);
+  auto http = std::make_shared<unfold::http::HttpClient>(options);
 
   std::ofstream out_file("foo.txt", std::ofstream::binary);
 
   double previous_progress = 0.0;
-  auto rc = get_sync(d, "https://127.0.0.1:1337/bar", out_file, [&](double progress) {
+  auto rc = get_sync(http, "https://127.0.0.1:1337/bar", out_file, [&](double progress) {
     BOOST_CHECK_GE(progress, previous_progress);
     previous_progress = progress;
   });
-  auto [result, content] = rc.value();
 
-  out_file.close();
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  if (!rc.has_error())
+    {
+      auto [result, content] = rc.value();
 
-  BOOST_CHECK_EQUAL(result, 404);
-  BOOST_CHECK_LE(previous_progress, 0.0001);
+      out_file.close();
 
+      BOOST_CHECK_EQUAL(result, 404);
+      BOOST_CHECK_LE(previous_progress, 0.0001);
+    }
   server.stop();
 }
+
+// BOOST_AUTO_TEST_CASE(http_client_redirect)
+// {
+//   HttpServer server;
+
+//   std::string body(10000, 'x');
+
+//   server.add("/bar", body);
+//   server.add_redirect("/foo", "https://127.0.0.1:1337/bar");
+//   server.run();
+
+// unfold::http::Options options;
+// options.add_ca_cert(cert);
+// auto http = std::make_shared<unfold::http::HttpClient>(options);
+
+//   std::ofstream out_file("foo.txt", std::ofstream::binary);
+
+//   double previous_progress = 0.0;
+//   auto rc = get_sync(http, "https://127.0.0.1:1337/foo", out_file, [&](double progress) {
+//     BOOST_CHECK_GE(progress, previous_progress);
+//     previous_progress = progress;
+//   });
+//   auto [result, content] = rc.value();
+
+//   out_file.close();
+
+//   BOOST_CHECK_EQUAL(result, 200);
+//   BOOST_CHECK_GE(previous_progress + 0.0001, 1.0);
+
+//   server.stop();
+// }
 
 BOOST_AUTO_TEST_SUITE_END()

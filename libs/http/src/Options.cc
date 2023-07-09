@@ -18,63 +18,61 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "http/HttpClient.hh"
-
-#include <array>
-#include <exception>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <system_error>
+#include "http/Options.hh"
 
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
-#include <fmt/std.h>
 
-#include <boost/url/parse.hpp>
-#include <boost/beast/http.hpp>
-#include <boost/beast/version.hpp>
-#include <boost/asio/experimental/as_tuple.hpp>
-#include <boost/asio/spawn.hpp>
-
-#include "http/HttpClientErrors.hh"
-#include "http/HttpStream.hh"
-#include "http/Options.hh"
-
-#include <boost/outcome/result.hpp>
-#include <utility>
-
-#if defined(WIN32)
-#  include <wincrypt.h>
-#endif
+#include "boost/outcome/outcome.hpp"
+#include "boost/url/src.hpp"
 
 using namespace unfold::http;
 
-HttpClient::HttpClient(Options options)
-  : options(std::move(options))
+void
+Options::add_ca_cert(const std::string &cert)
 {
+  ca_certs.push_back(cert);
 }
 
-boost::asio::awaitable<outcome::std_result<Response>>
-HttpClient::get(std::string url)
+std::list<std::string>
+Options::get_ca_certs() const
 {
-  std::stringstream ss;
-
-  auto rc = co_await get(url, ss, [](double) {});
-  if (!rc)
-    {
-      co_return rc;
-    }
-  if (rc.value().first != 200)
-    {
-      co_return rc;
-    }
-  co_return std::make_pair(rc.value().first, ss.str());
+  return ca_certs;
 }
 
-boost::asio::awaitable<outcome::std_result<Response>>
-HttpClient::get(std::string url, std::ostream &file, ProgressCallback cb)
+void
+Options::set_timeout(std::chrono::seconds timeout)
 {
-  HttpStream s(options);
-  co_return co_await s.get(url, file, cb);
+  this->timeout = timeout;
 }
+
+std::chrono::seconds
+Options::get_timeout() const
+{
+  return timeout;
+}
+
+void
+Options::set_follow_redirects(bool follow_redirects)
+{
+  this->follow_redirects = follow_redirects;
+}
+
+bool
+Options::get_follow_redirects() const
+{
+  return follow_redirects;
+}
+
+void
+Options::set_max_redirects(int max_redirects)
+{
+  this->max_redirects = max_redirects;
+}
+
+int
+Options::get_max_redirects() const
+{
+  return max_redirects;
+}
+

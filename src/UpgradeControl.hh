@@ -85,6 +85,7 @@ private:
   void update_check_timer();
 
 private:
+  unfold::http::Options http_options;
   std::shared_ptr<Platform> platform;
   std::shared_ptr<unfold::http::HttpClient> http;
   std::shared_ptr<unfold::crypto::SignatureVerifier> verifier;

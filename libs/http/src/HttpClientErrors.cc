@@ -51,6 +51,8 @@ namespace
         return "connection error";
       case HttpClientErrc::InvalidCertificate:
         return "invalid certificate";
+      case HttpClientErrc::TooManyRedirects:
+        return "too many redirects";
       }
     return "(unknown)";
   }

@@ -34,6 +34,7 @@ namespace unfold::http
     InternalError,
     CommunicationError,
     InvalidCertificate,
+    TooManyRedirects
   };
 
   std::error_code make_error_code(HttpClientErrc ec);

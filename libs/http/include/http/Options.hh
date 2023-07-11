@@ -42,18 +42,23 @@ namespace unfold::http
     void set_follow_redirects(bool follow_redirects);
     void set_max_redirects(int max_redirects);
     void set_timeout(std::chrono::seconds timeout);
+    void set_proxy(const std::string &proxy);
+    void set_progress_callback(std::function<void(double progress)> progress_callback);
 
     std::list<std::string> get_ca_certs() const;
     bool get_keep_alive() const;
     bool get_follow_redirects() const;
     int get_max_redirects() const;
     std::chrono::seconds get_timeout() const;
+    std::string get_proxy() const;
+    std::function<void(double progress)> get_progress_callback() const;
 
   private:
     std::list<std::string> ca_certs;
     bool keep_alive = true;
     bool follow_redirects = true;
     int max_redirects = 5;
+    std::string proxy;
     std::chrono::seconds timeout = std::chrono::seconds(10);
     std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:http")};
   };

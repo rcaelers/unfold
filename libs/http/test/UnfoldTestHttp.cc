@@ -151,9 +151,33 @@ BOOST_TEST_GLOBAL_FIXTURE(GlobalFixture);
 
 BOOST_FIXTURE_TEST_SUITE(unfold_test, Fixture)
 
-BOOST_AUTO_TEST_CASE(http_client_get)
+BOOST_AUTO_TEST_CASE(http_client_get_secure)
 {
   HttpServer server;
+  server.add("/foo", "foo\n");
+  server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
+  options.add_ca_cert(cert);
+
+  auto rc = get_sync(http, "https://127.0.0.1:1337/foo");
+
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  if (!rc.has_error())
+    {
+      auto [result, content] = rc.value();
+      BOOST_CHECK_EQUAL(result, 200);
+      BOOST_CHECK_EQUAL(content, "foo\n");
+    }
+
+  server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(http_client_get_plain)
+{
+  HttpServer server(Protocol::Plain);
   server.add("/foo", "foo\n");
   server.run();
 

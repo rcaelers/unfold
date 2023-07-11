@@ -26,6 +26,7 @@
 #include <boost/asio.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/ssl.hpp>
+#include <boost/beast/http.hpp>
 #include <boost/url/url.hpp>
 #include <boost/url/url_view.hpp>
 #include <boost/outcome/std_result.hpp>
@@ -43,12 +44,14 @@ namespace unfold::http
   class HttpStream
   {
   public:
+    using request_t = boost::beast::http::request<boost::beast::http::string_body>;
+    using response_t = boost::beast::http::response<boost::beast::http::buffer_body>;
+    using secure_stream_t = boost::beast::ssl_stream<boost::beast::tcp_stream>;
+    using plain_stream_t = boost::beast::tcp_stream;
+
     explicit HttpStream(unfold::http::Options options);
 
-    boost::asio::awaitable<outcome::std_result<unfold::http::Response>> execute(std::string url);
-    boost::asio::awaitable<outcome::std_result<unfold::http::Response>> execute(std::string url,
-                                                                                std::ostream &file,
-                                                                                unfold::http::ProgressCallback cb);
+    boost::asio::awaitable<outcome::std_result<HttpStream::response_t>> execute(std::string url);
 
   private:
     bool is_redirect(auto code);
@@ -56,11 +59,19 @@ namespace unfold::http
 
     outcome::std_result<void> init_certificates();
 
-    boost::asio::awaitable<outcome::std_result<void>> send_request();
-    boost::asio::awaitable<outcome::std_result<unfold::http::Response>> receive_response(std::ostream &out,
-                                                                                         unfold::http::ProgressCallback cb);
-    boost::asio::awaitable<void> shutdown();
     outcome::std_result<void> parse_url(const std::string &u);
+    bool connect_required();
+    boost::asio::awaitable<outcome::std_result<void>> connect();
+    boost::asio::awaitable<outcome::std_result<HttpStream::response_t>> send_receive_request();
+    boost::beast::http::request<boost::beast::http::string_body> create_request();
+    outcome::std_result<bool> handle_redirect(response_t response);
+
+    template<typename StreamType>
+    boost::asio::awaitable<outcome::std_result<void>> send_request(StreamType stream, request_t request);
+    template<typename StreamType>
+    boost::asio::awaitable<outcome::std_result<HttpStream::response_t>> receive_response_body(StreamType stream);
+    template<typename StreamType>
+    boost::asio::awaitable<void> shutdown(StreamType stream);
 
 #if defined(WIN32)
     void add_windows_root_certs(boost::asio::ssl::context &ctx);
@@ -70,11 +81,13 @@ namespace unfold::http
     static constexpr int BUFFER_SIZE = 1024;
     static constexpr std::chrono::seconds TIMEOUT{30};
 
-    boost::asio::ssl::context ctx{boost::asio::ssl::context::tlsv12_client};
-    std::shared_ptr<boost::beast::ssl_stream<boost::beast::tcp_stream>> stream;
     unfold::http::Options options;
-    std::list<std::string> ca_certs;
-    boost::urls::url_view url;
+    boost::asio::ssl::context ctx{boost::asio::ssl::context::tlsv12_client};
+    std::shared_ptr<plain_stream_t> plain_stream;
+    std::shared_ptr<secure_stream_t> secure_stream;
+    int redirect_count{0};
+    boost::urls::url url;
+    std::optional<boost::urls::url> current_url;
     std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold::http:connection")};
   };
 } // namespace unfold::http

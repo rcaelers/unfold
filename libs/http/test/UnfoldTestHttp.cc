@@ -18,7 +18,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "http/Options.hh"
 #include <boost/test/tools/old/interface.hpp>
 #include <memory>
 #include <fstream>
@@ -37,6 +36,7 @@
 
 #include "http/HttpClient.hh"
 #include "http/HttpClientErrors.hh"
+#include "http/Options.hh"
 #include "utils/Logging.hh"
 
 #define BOOST_TEST_MODULE "unfold"

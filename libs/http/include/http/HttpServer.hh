@@ -26,6 +26,7 @@
 #include <boost/beast/http.hpp>
 #include <boost/beast/ssl.hpp>
 #include <boost/beast/version.hpp>
+#include <boost/asio.hpp>
 #include <boost/asio/spawn.hpp>
 #include <boost/config.hpp>
 #include <string_view>
@@ -77,14 +78,12 @@ namespace unfold::http
 
     private:
       template<bool isRequest, class Body, class Fields>
-      bool send(boost::beast::http::message<isRequest, Body, Fields> &&msg,
-                boost::beast::error_code &ec,
-                boost::asio::yield_context yield)
+      boost::asio::awaitable<bool> send(boost::beast::http::message<isRequest, Body, Fields> &&msg, boost::beast::error_code &ec)
       {
         auto eof = msg.need_eof();
         boost::beast::http::serializer<isRequest, Body, Fields> sr{msg};
-        boost::beast::http::async_write(stream, sr, yield[ec]);
-        return eof;
+        co_await boost::beast::http::async_write(stream, sr, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+        co_return eof;
       }
 
       std::string_view mime_type(std::string_view path)
@@ -101,10 +100,7 @@ namespace unfold::http
         return "application/octet-stream";
       }
 
-      void send_error(boost::beast::http::status status,
-                      const std::string &text,
-                      boost::beast::error_code &ec,
-                      boost::asio::yield_context yield)
+      boost::asio::awaitable<void> send_error(boost::beast::http::status status, std::string text, boost::beast::error_code &ec)
       {
         logger->error("sending http response: ({})", text);
 
@@ -114,20 +110,22 @@ namespace unfold::http
         res.keep_alive(req.keep_alive());
         res.body() = text;
         res.prepare_payload();
-        send(std::move(res), ec, yield);
+        co_await send(std::move(res), ec);
       }
 
-      void send_bad_request(std::string_view why, boost::beast::error_code &ec, boost::asio::yield_context yield)
+      boost::asio::awaitable<void> send_bad_request(std::string_view why, boost::beast::error_code &ec)
       {
-        send_error(boost::beast::http::status::bad_request, std::string(why), ec, yield);
+        co_await send_error(boost::beast::http::status::bad_request, std::string(why), ec);
       }
 
-      void send_not_found(std::string_view target, boost::beast::error_code &ec, boost::asio::yield_context yield)
+      boost::asio::awaitable<void> send_not_found(std::string_view target, boost::beast::error_code &ec)
       {
-        send_error(boost::beast::http::status::not_found, "The resource '" + std::string(target) + "' was not found.", ec, yield);
+        co_await send_error(boost::beast::http::status::not_found,
+                            "The resource '" + std::string(target) + "' was not found.",
+                            ec);
       }
 
-      void send_redirect(const std::string_view location, boost::beast::error_code &ec, boost::asio::yield_context yield)
+      boost::asio::awaitable<void> send_redirect(const std::string_view location, boost::beast::error_code &ec)
       {
         logger->error("sending http redirect response: ({})", location);
 
@@ -136,25 +134,25 @@ namespace unfold::http
         res.set(boost::beast::http::field::location, location);
         res.keep_alive(req.keep_alive());
         res.prepare_payload();
-        send(std::move(res), ec, yield);
+        co_await send(std::move(res), ec);
       }
 
     protected:
-      bool handle_request(boost::beast::error_code &ec, boost::asio::yield_context yield)
+      boost::asio::awaitable<bool> handle_request(boost::beast::error_code &ec)
       {
         if (req.method() != boost::beast::http::verb::get)
           {
             logger->error("unknown http method: ({})", req.method_string());
-            send_bad_request("Unknown HTTP method", ec, yield);
-            return false;
+            co_await send_bad_request("Unknown HTTP method", ec);
+            co_return false;
           }
 
         if (redirects.exists(req.target()))
           {
             auto location = redirects.get(req.target());
             logger->info("redirecting to: ({})", location);
-            send_redirect(location, ec, yield);
-            return false;
+            co_await send_redirect(location, ec);
+            co_return false;
           }
 
         if (documents.exists(req.target()))
@@ -170,12 +168,12 @@ namespace unfold::http
             res.set(boost::beast::http::field::content_type, mime_type(req.target()));
             res.content_length(length);
             res.keep_alive(req.keep_alive());
-            return send(std::move(res), ec, yield);
+            co_return co_await send(std::move(res), ec);
           }
 
         logger->info("sending not found: ({})", req.target());
-        send_not_found(req.target(), ec, yield);
-        return false;
+        co_await send_not_found(req.target(), ec);
+        co_return false;
       }
 
     protected:
@@ -196,7 +194,7 @@ namespace unfold::http
       {
       }
 
-      void run(boost::asio::yield_context yield);
+      boost::asio::awaitable<void> run();
 
     private:
       std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("test:server:plainsession")};
@@ -213,7 +211,7 @@ namespace unfold::http
       {
       }
 
-      void run(boost::asio::yield_context yield);
+      boost::asio::awaitable<void> run();
 
     private:
       std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("test:server:securesession")};
@@ -238,7 +236,7 @@ namespace unfold::http
     void add_redirect(std::string_view from, std::string_view to);
 
   private:
-    void do_listen(boost::asio::ip::tcp::endpoint endpoint, boost::asio::yield_context yield);
+    boost::asio::awaitable<void> do_listen(boost::asio::ip::tcp::endpoint endpoint);
 
   private:
     Protocol protocol;

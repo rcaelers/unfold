@@ -97,19 +97,20 @@ namespace
 
 } // namespace
 
-void
-SecureSession::run(boost::asio::yield_context yield)
+boost::asio::awaitable<void>
+SecureSession::run()
 {
   bool close = false;
   boost::beast::error_code ec;
 
   boost::beast::get_lowest_layer(stream).expires_after(std::chrono::seconds(30));
 
-  stream.async_handshake(boost::asio::ssl::stream_base::server, yield[ec]);
+  co_await stream.async_handshake(boost::asio::ssl::stream_base::server,
+                                  boost::asio::redirect_error(boost::asio::use_awaitable, ec));
   if (ec)
     {
       logger->error("session handshake failed ({})", ec.message());
-      return;
+      co_return;
     }
 
   boost::beast::flat_buffer buffer;
@@ -118,7 +119,7 @@ SecureSession::run(boost::asio::yield_context yield)
     {
       boost::beast::get_lowest_layer(stream).expires_after(std::chrono::seconds(30));
 
-      boost::beast::http::async_read(stream, buffer, req, yield[ec]);
+      co_await boost::beast::http::async_read(stream, buffer, req, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
       if (ec == boost::beast::http::error::end_of_stream)
         {
           break;
@@ -126,14 +127,14 @@ SecureSession::run(boost::asio::yield_context yield)
       if (ec)
         {
           logger->error("session read failed ({})", ec.message());
-          return;
+          co_return;
         }
 
-      close = handle_request(ec, yield);
+      close = co_await handle_request(ec);
       if (ec)
         {
           logger->error("session write failed ({})", ec.message());
-          return;
+          co_return;
         }
 
       if (close)
@@ -143,15 +144,15 @@ SecureSession::run(boost::asio::yield_context yield)
     }
 
   boost::beast::get_lowest_layer(stream).expires_after(std::chrono::seconds(30));
-  stream.async_shutdown(yield[ec]);
+  co_await stream.async_shutdown(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
   if (ec)
     {
       logger->error("session shutdown failed ({})", ec.message());
     }
 }
 
-void
-PlainSession::run(boost::asio::yield_context yield)
+boost::asio::awaitable<void>
+PlainSession::run()
 {
   bool close = false;
   boost::beast::error_code ec;
@@ -164,7 +165,7 @@ PlainSession::run(boost::asio::yield_context yield)
     {
       boost::beast::get_lowest_layer(stream).expires_after(std::chrono::seconds(30));
 
-      boost::beast::http::async_read(stream, buffer, req, yield[ec]);
+      co_await boost::beast::http::async_read(stream, buffer, req, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
       if (ec == boost::beast::http::error::end_of_stream)
         {
           break;
@@ -172,14 +173,14 @@ PlainSession::run(boost::asio::yield_context yield)
       if (ec)
         {
           logger->error("session read failed ({})", ec.message());
-          return;
+          co_return;
         }
 
-      close = handle_request(ec, yield);
+      close = co_await handle_request(ec);
       if (ec)
         {
           logger->error("session write failed ({})", ec.message());
-          return;
+          co_return;
         }
 
       if (close)
@@ -189,7 +190,7 @@ PlainSession::run(boost::asio::yield_context yield)
     }
 
   boost::beast::get_lowest_layer(stream).expires_after(std::chrono::seconds(30));
-  // boost::beast::get_lowest_layer(stream).async_shutdown(yield[ec]);
+  // boost::beast::get_lowest_layer(stream).async_shutdown(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
   if (ec)
     {
       logger->error("session shutdown failed ({})", ec.message());
@@ -202,8 +203,8 @@ HttpServer::HttpServer(Protocol protocol, unsigned short port)
 {
 }
 
-void
-HttpServer::do_listen(boost::asio::ip::tcp::endpoint endpoint, boost::asio::yield_context yield)
+boost::asio::awaitable<void>
+HttpServer::do_listen(boost::asio::ip::tcp::endpoint endpoint)
 {
   boost::beast::error_code ec;
 
@@ -212,53 +213,59 @@ HttpServer::do_listen(boost::asio::ip::tcp::endpoint endpoint, boost::asio::yiel
   if (ec)
     {
       logger->error("acceptor open failed ({})", ec.message());
-      return;
+      co_return;
     }
 
   acceptor.set_option(boost::asio::socket_base::reuse_address(true), ec);
   if (ec)
     {
       logger->error("acceptor set_option failed ({})", ec.message());
-      return;
+      co_return;
     }
 
   acceptor.bind(endpoint, ec);
   if (ec)
     {
       logger->error("acceptor bind failed ({})", ec.message());
-      return;
+      co_return;
     }
 
   acceptor.listen(boost::asio::socket_base::max_listen_connections, ec);
   if (ec)
     {
       logger->error("acceptor listen failed ({})", ec.message());
-      return;
+      co_return;
     }
 
   for (;;)
     {
       boost::asio::ip::tcp::socket socket(ioc);
-      acceptor.async_accept(socket, yield[ec]);
+      co_await acceptor.async_accept(socket, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
       if (ec)
         {
           logger->error("acceptor accept failed ({})", ec.message());
-          return;
+          co_return;
         }
 
       if (protocol == Protocol::Secure)
         {
-          boost::asio::spawn(acceptor.get_executor(), [this, &socket](boost::asio::yield_context yield) {
-            SecureSession session(std::move(socket), ctx, documents, redirects);
-            session.run(yield);
-          });
+          boost::asio::co_spawn(
+            ioc,
+            [this, &socket]() -> boost::asio::awaitable<void> {
+              SecureSession session(std::move(socket), ctx, documents, redirects);
+              co_await session.run();
+            },
+            boost::asio::detached);
         }
       else
         {
-          boost::asio::spawn(acceptor.get_executor(), [this, &socket](boost::asio::yield_context yield) {
-            PlainSession session(std::move(socket), documents, redirects);
-            session.run(yield);
-          });
+          boost::asio::co_spawn(
+            ioc,
+            [this, &socket]() -> boost::asio::awaitable<void> {
+              PlainSession session(std::move(socket), documents, redirects);
+              co_await session.run();
+            },
+            boost::asio::detached);
         }
     }
 }
@@ -275,10 +282,13 @@ HttpServer::run()
   ctx.use_private_key(boost::asio::buffer(key.data(), key.size()), boost::asio::ssl::context::file_format::pem);
   ctx.use_tmp_dh(boost::asio::buffer(dh.data(), dh.size()));
 
-  boost::asio::spawn(ioc, [=](boost::asio::yield_context yield) {
-    auto ep = boost::asio::ip::tcp::endpoint{address, port};
-    do_listen(ep, yield);
-  });
+  boost::asio::co_spawn(
+    ioc,
+    [=]() -> boost::asio::awaitable<void> {
+      auto ep = boost::asio::ip::tcp::endpoint{address, port};
+      co_await do_listen(ep);
+    },
+    boost::asio::detached);
 
   workers.reserve(threads);
   for (auto i = 0; i < threads; i++)

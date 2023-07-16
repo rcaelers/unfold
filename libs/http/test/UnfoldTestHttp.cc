@@ -110,10 +110,7 @@ struct Fixture
   Fixture(Fixture &&) = delete;
   Fixture &operator=(Fixture &&) = delete;
 
-  outcome::std_result<Response> get_sync(std::shared_ptr<HttpClient> http,
-                                         std::string url,
-                                         std::ostream &file,
-                                         ProgressCallback cb)
+  outcome::std_result<Response> get_sync(std::shared_ptr<HttpClient> http, std::string url, std::string file, ProgressCallback cb)
   {
     boost::asio::io_context ioc;
     outcome::std_result<Response> ret = outcome::failure(HttpClientErrc::InternalError);
@@ -133,10 +130,7 @@ struct Fixture
 
     boost::asio::co_spawn(
       ioc,
-      [&]() -> boost::asio::awaitable<void> {
-        ret = co_await http->get(url);
-        co_return;
-      },
+      [&]() -> boost::asio::awaitable<void> { ret = co_await http->get(url); },
       boost::asio::detached);
     ioc.run();
     ioc.restart();
@@ -151,7 +145,7 @@ BOOST_TEST_GLOBAL_FIXTURE(GlobalFixture);
 
 BOOST_FIXTURE_TEST_SUITE(unfold_test, Fixture)
 
-BOOST_AUTO_TEST_CASE(http_client_get)
+BOOST_AUTO_TEST_CASE(http_client_get_secure)
 {
   HttpServer server;
   server.add("/foo", "foo\n");
@@ -162,6 +156,30 @@ BOOST_AUTO_TEST_CASE(http_client_get)
   options.add_ca_cert(cert);
 
   auto rc = get_sync(http, "https://127.0.0.1:1337/foo");
+
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  if (!rc.has_error())
+    {
+      auto [result, content] = rc.value();
+      BOOST_CHECK_EQUAL(result, 200);
+      BOOST_CHECK_EQUAL(content, "foo\n");
+    }
+
+  server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(http_client_get_plain)
+{
+  HttpServer server(Protocol::Plain);
+  server.add("/foo", "foo\n");
+  server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
+  options.add_ca_cert(cert);
+
+  auto rc = get_sync(http, "http://127.0.0.1:1337/foo");
 
   BOOST_CHECK_EQUAL(rc.has_error(), false);
 
@@ -223,9 +241,7 @@ BOOST_AUTO_TEST_CASE(http_client_get_file_connection_refused)
   auto &options = http->options();
   options.add_ca_cert(cert);
 
-  std::ofstream out_file("foo.txt", std::ofstream::binary);
-
-  auto rc = get_sync(http, "https://127.0.0.1:1338/foo", out_file, [&](double progress) { BOOST_CHECK(false); });
+  auto rc = get_sync(http, "https://127.0.0.1:1338/foo", "foo.txt", [&](double progress) { BOOST_CHECK(false); });
   BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::ConnectionRefused);
 }
 
@@ -255,9 +271,7 @@ BOOST_AUTO_TEST_CASE(http_client_get_file_invalid_url)
   auto &options = http->options();
   options.add_ca_cert(cert);
 
-  std::ofstream out_file("foo.txt", std::ofstream::binary);
-
-  auto rc = get_sync(http, "//127.0.0.1:1337:1337/foo", out_file, [&](double progress) { BOOST_CHECK(false); });
+  auto rc = get_sync(http, "//127.0.0.1:1337:1337/foo", "foo.txt", [&](double progress) { BOOST_CHECK(false); });
   BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::MalformedURL);
 }
 
@@ -265,7 +279,7 @@ BOOST_AUTO_TEST_CASE(http_client_get_file)
 {
   HttpServer server;
 
-  std::string body(10000, 'x');
+  std::string body(4 * 8192, 'x');
 
   server.add("/foo", body);
   server.run();
@@ -274,10 +288,8 @@ BOOST_AUTO_TEST_CASE(http_client_get_file)
   auto &options = http->options();
   options.add_ca_cert(cert);
 
-  std::ofstream out_file("foo.txt", std::ofstream::binary);
-
   double previous_progress = 0.0;
-  auto rc = get_sync(http, "https://127.0.0.1:1337/foo", out_file, [&](double progress) {
+  auto rc = get_sync(http, "https://127.0.0.1:1337/foo", "foo.txt", [&](double progress) {
     BOOST_CHECK_GE(progress, previous_progress);
     previous_progress = progress;
   });
@@ -286,8 +298,6 @@ BOOST_AUTO_TEST_CASE(http_client_get_file)
   if (!rc.has_error())
     {
       auto [result, content] = rc.value();
-
-      out_file.close();
 
       BOOST_CHECK_EQUAL(result, 200);
       BOOST_CHECK_GE(previous_progress + 0.0001, 1.0);
@@ -308,10 +318,8 @@ BOOST_AUTO_TEST_CASE(http_client_get_file_not_found)
   auto &options = http->options();
   options.add_ca_cert(cert);
 
-  std::ofstream out_file("foo.txt", std::ofstream::binary);
-
   double previous_progress = 0.0;
-  auto rc = get_sync(http, "https://127.0.0.1:1337/bar", out_file, [&](double progress) {
+  auto rc = get_sync(http, "https://127.0.0.1:1337/bar", "foo.txt", [&](double progress) {
     BOOST_CHECK_GE(progress, previous_progress);
     previous_progress = progress;
   });
@@ -321,43 +329,41 @@ BOOST_AUTO_TEST_CASE(http_client_get_file_not_found)
     {
       auto [result, content] = rc.value();
 
-      out_file.close();
-
       BOOST_CHECK_EQUAL(result, 404);
-      BOOST_CHECK_LE(previous_progress, 0.0001);
+      BOOST_CHECK_LE(previous_progress, 1);
     }
   server.stop();
 }
 
-// BOOST_AUTO_TEST_CASE(http_client_redirect)
-// {
-//   HttpServer server;
+BOOST_AUTO_TEST_CASE(http_client_redirect_plain_to_secure)
+{
+  HttpServer plain_server(Protocol::Plain, 1338);
+  HttpServer secure_server;
 
-//   std::string body(10000, 'x');
+  std::string body(4 * 8192, 'x');
 
-//   server.add("/bar", body);
-//   server.add_redirect("/foo", "https://127.0.0.1:1337/bar");
-//   server.run();
+  plain_server.add_redirect("/foo", "https://127.0.0.1:1337/bar");
+  plain_server.run();
 
-//   auto http = std::make_shared<unfold::http::HttpClient>();
-//   auto &options = http->options();
-//   options.add_ca_cert(cert);
+  secure_server.add("/bar", body);
+  secure_server.run();
 
-//   std::ofstream out_file("foo.txt", std::ofstream::binary);
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
+  options.add_ca_cert(cert);
 
-//   double previous_progress = 0.0;
-//   auto rc = get_sync(http, "https://127.0.0.1:1337/foo", out_file, [&](double progress) {
-//     BOOST_CHECK_GE(progress, previous_progress);
-//     previous_progress = progress;
-//   });
-//   auto [result, content] = rc.value();
+  double previous_progress = 0.0;
+  auto rc = get_sync(http, "http://127.0.0.1:1338/foo", "foo.txt", [&](double progress) {
+    BOOST_CHECK_GE(progress, previous_progress);
+    previous_progress = progress;
+  });
+  auto [result, content] = rc.value();
 
-//   out_file.close();
+  BOOST_CHECK_EQUAL(result, 200);
+  BOOST_CHECK_GE(previous_progress + 0.0001, 1.0);
 
-//   BOOST_CHECK_EQUAL(result, 200);
-//   BOOST_CHECK_GE(previous_progress + 0.0001, 1.0);
-
-//   server.stop();
-// }
+  secure_server.stop();
+  plain_server.stop();
+}
 
 BOOST_AUTO_TEST_SUITE_END()

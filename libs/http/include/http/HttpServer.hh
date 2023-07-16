@@ -64,16 +64,16 @@ namespace unfold::http
       std::map<std::string_view, std::string_view> redirects;
     };
 
+    template<typename StreamType>
     class Session
     {
     public:
-      Session(boost::beast::ssl_stream<boost::beast::tcp_stream> stream, Documents documents, detail::Redirects redirects);
-      Session(boost::asio::ip::tcp::socket socket,
-              boost::asio::ssl::context &ctx,
-              Documents documents,
-              detail::Redirects redirects);
-
-      void run(boost::asio::yield_context yield);
+      Session(StreamType &&stream, Documents documents, detail::Redirects redirects)
+        : stream(std::move(stream))
+        , documents(std::move(documents))
+        , redirects(std::move(redirects))
+      {
+      }
 
     private:
       template<bool isRequest, class Body, class Fields>
@@ -87,30 +87,149 @@ namespace unfold::http
         return eof;
       }
 
-      std::string_view mime_type(std::string_view path);
+      std::string_view mime_type(std::string_view path)
+      {
+        auto pos = path.rfind(".");
+        if (pos != std::string_view::npos)
+          {
+            auto ext = path.substr(pos);
+            if (ext == ".xml")
+              {
+                return "application/xml";
+              }
+          }
+        return "application/octet-stream";
+      }
 
       void send_error(boost::beast::http::status status,
                       const std::string &text,
                       boost::beast::error_code &ec,
-                      boost::asio::yield_context yield);
-      void send_bad_request(std::string_view why, boost::beast::error_code &ec, boost::asio::yield_context yield);
-      void send_not_found(std::string_view target, boost::beast::error_code &ec, boost::asio::yield_context yield);
-      void send_redirect(std::string_view location, boost::beast::error_code &ec, boost::asio::yield_context yield);
-      bool handle_request(boost::beast::error_code &ec, boost::asio::yield_context yield);
+                      boost::asio::yield_context yield)
+      {
+        logger->error("sending http response: ({})", text);
+
+        boost::beast::http::response<boost::beast::http::string_body> res{status, req.version()};
+        res.set(boost::beast::http::field::server, BOOST_BEAST_VERSION_STRING);
+        res.set(boost::beast::http::field::content_type, "text/html");
+        res.keep_alive(req.keep_alive());
+        res.body() = text;
+        res.prepare_payload();
+        send(std::move(res), ec, yield);
+      }
+
+      void send_bad_request(std::string_view why, boost::beast::error_code &ec, boost::asio::yield_context yield)
+      {
+        send_error(boost::beast::http::status::bad_request, std::string(why), ec, yield);
+      }
+
+      void send_not_found(std::string_view target, boost::beast::error_code &ec, boost::asio::yield_context yield)
+      {
+        send_error(boost::beast::http::status::not_found, "The resource '" + std::string(target) + "' was not found.", ec, yield);
+      }
+
+      void send_redirect(const std::string_view location, boost::beast::error_code &ec, boost::asio::yield_context yield)
+      {
+        logger->error("sending http redirect response: ({})", location);
+
+        boost::beast::http::response<boost::beast::http::string_body> res{boost::beast::http::status::found, req.version()};
+        res.set(boost::beast::http::field::server, BOOST_BEAST_VERSION_STRING);
+        res.set(boost::beast::http::field::location, location);
+        res.keep_alive(req.keep_alive());
+        res.prepare_payload();
+        send(std::move(res), ec, yield);
+      }
+
+    protected:
+      bool handle_request(boost::beast::error_code &ec, boost::asio::yield_context yield)
+      {
+        if (req.method() != boost::beast::http::verb::get)
+          {
+            logger->error("unknown http method: ({})", req.method_string());
+            send_bad_request("Unknown HTTP method", ec, yield);
+            return false;
+          }
+
+        if (redirects.exists(req.target()))
+          {
+            auto location = redirects.get(req.target());
+            logger->info("redirecting to: ({})", location);
+            send_redirect(location, ec, yield);
+            return false;
+          }
+
+        if (documents.exists(req.target()))
+          {
+            auto txt = documents.get(req.target());
+            auto length = txt.size();
+
+            boost::beast::http::response<boost::beast::http::string_body> res{std::piecewise_construct,
+                                                                              std::make_tuple(std::move(txt)),
+                                                                              std::make_tuple(boost::beast::http::status::ok,
+                                                                                              req.version())};
+            res.set(boost::beast::http::field::server, BOOST_BEAST_VERSION_STRING);
+            res.set(boost::beast::http::field::content_type, mime_type(req.target()));
+            res.content_length(length);
+            res.keep_alive(req.keep_alive());
+            return send(std::move(res), ec, yield);
+          }
+
+        logger->info("sending not found: ({})", req.target());
+        send_not_found(req.target(), ec, yield);
+        return false;
+      }
+
+    protected:
+      StreamType stream;
+      boost::beast::http::request<boost::beast::http::string_body> req;
 
     private:
-      boost::beast::ssl_stream<boost::beast::tcp_stream> stream;
       Documents documents;
       Redirects redirects;
-      boost::beast::http::request<boost::beast::http::string_body> req;
       std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("test:server:session")};
     };
 
+    class PlainSession : public Session<boost::beast::tcp_stream>
+    {
+    public:
+      PlainSession(boost::asio::ip::tcp::socket socket, Documents documents, detail::Redirects redirects)
+        : Session<boost::beast::tcp_stream>(boost::beast::tcp_stream(std::move(socket)), documents, redirects)
+      {
+      }
+
+      void run(boost::asio::yield_context yield);
+
+    private:
+      std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("test:server:plainsession")};
+    };
+
+    class SecureSession : public Session<boost::beast::ssl_stream<boost::beast::tcp_stream>>
+    {
+    public:
+      SecureSession(boost::asio::ip::tcp::socket socket,
+                    boost::asio::ssl::context &ctx,
+                    Documents documents,
+                    detail::Redirects redirects)
+        : Session<boost::beast::ssl_stream<boost::beast::tcp_stream>>({std::move(socket), ctx}, documents, redirects)
+      {
+      }
+
+      void run(boost::asio::yield_context yield);
+
+    private:
+      std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("test:server:securesession")};
+    };
   } // namespace detail
+
+  enum class Protocol
+  {
+    Plain,
+    Secure
+  };
 
   class HttpServer
   {
   public:
+    explicit HttpServer(Protocol protocol = Protocol::Secure, unsigned short port = 1337);
     void run();
     void stop();
 
@@ -122,6 +241,8 @@ namespace unfold::http
     void do_listen(boost::asio::ip::tcp::endpoint endpoint, boost::asio::yield_context yield);
 
   private:
+    Protocol protocol;
+    unsigned short port;
     detail::Documents documents;
     detail::Redirects redirects;
     static constexpr int threads{4};

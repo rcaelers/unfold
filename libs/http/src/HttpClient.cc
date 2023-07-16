@@ -52,23 +52,26 @@ using namespace unfold::http;
 boost::asio::awaitable<outcome::std_result<Response>>
 HttpClient::get(std::string url)
 {
-  std::stringstream ss;
+  HttpStream s(options_);
+  auto rc = co_await s.execute(url);
 
-  auto rc = co_await get(url, ss, [](double) {});
   if (!rc)
     {
-      co_return rc;
+      co_return rc.as_failure();
     }
-  if (rc.value().first != 200)
-    {
-      co_return rc;
-    }
-  co_return std::make_pair(rc.value().first, ss.str());
+  co_return std::make_pair(rc.value().base().result_int(), rc.value().body().data());
 }
 
 boost::asio::awaitable<outcome::std_result<Response>>
-HttpClient::get(std::string url, std::ostream &file, ProgressCallback cb)
+HttpClient::get(std::string url, std::string filename, ProgressCallback cb)
 {
   HttpStream s(options_);
-  co_return co_await s.execute(url, file, cb);
+  auto rc = co_await s.execute(url, filename, cb);
+
+  if (!rc)
+    {
+      co_return rc.as_failure();
+    }
+
+  co_return std::make_pair(rc.value().base().result_int(), "");
 }

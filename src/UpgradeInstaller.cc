@@ -97,9 +97,8 @@ UpgradeInstaller::download_installer()
   try
     {
       logger->info("downloading {} to {}", item->enclosure->url, installer_path.string());
-      std::ofstream out_file(installer_path.string(), std::ofstream::binary);
 
-      auto rc = co_await http->get(item->enclosure->url, out_file, [&](double progress) {
+      auto rc = co_await http->get(item->enclosure->url, installer_path.string(), [&](double progress) {
         if (progress_callback)
           {
             progress_callback(progress);
@@ -116,8 +115,6 @@ UpgradeInstaller::download_installer()
           logger->error("failed to download installer {} ({} {})", item->enclosure->url, result, content);
           co_return outcome::failure(unfold::UnfoldErrc::InstallerDownloadFailed);
         }
-
-      out_file.close();
     }
   catch (std::exception &e)
     {

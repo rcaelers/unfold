@@ -54,7 +54,7 @@ namespace unfold::http
 
     boost::asio::awaitable<outcome::std_result<unfold::http::Response>> get(std::string url);
     boost::asio::awaitable<outcome::std_result<unfold::http::Response>> get(std::string url,
-                                                                            std::ostream &file,
+                                                                            std::string file,
                                                                             unfold::http::ProgressCallback cb);
 
   private:

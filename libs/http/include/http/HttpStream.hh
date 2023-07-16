@@ -45,33 +45,48 @@ namespace unfold::http
   {
   public:
     using request_t = boost::beast::http::request<boost::beast::http::string_body>;
-    using response_t = boost::beast::http::response<boost::beast::http::buffer_body>;
+    using response_t = boost::beast::http::response<boost::beast::http::string_body>;
+    using file_response_t = boost::beast::http::response_parser<boost::beast::http::file_body>;
     using secure_stream_t = boost::beast::ssl_stream<boost::beast::tcp_stream>;
     using plain_stream_t = boost::beast::tcp_stream;
 
     explicit HttpStream(unfold::http::Options options);
 
-    boost::asio::awaitable<outcome::std_result<HttpStream::response_t>> execute(std::string url);
+    boost::asio::awaitable<outcome::std_result<HttpStream::response_t>> execute(std::string url,
+                                                                                std::string filename = "",
+                                                                                ProgressCallback cb = ProgressCallback());
 
   private:
     bool is_redirect(auto code);
     bool is_ok(auto code);
+    bool is_tls();
 
     outcome::std_result<void> init_certificates();
 
     outcome::std_result<void> parse_url(const std::string &u);
     bool connect_required();
     boost::asio::awaitable<outcome::std_result<void>> connect();
-    boost::asio::awaitable<outcome::std_result<HttpStream::response_t>> send_receive_request();
+    boost::asio::awaitable<outcome::std_result<void>> encrypt_connection();
+    boost::asio::awaitable<outcome::std_result<HttpStream::response_t>> send_receive_request(std::string filename,
+                                                                                             ProgressCallback cb);
     boost::beast::http::request<boost::beast::http::string_body> create_request();
     outcome::std_result<bool> handle_redirect(response_t response);
 
+    template<typename StreamType>
+    boost::asio::awaitable<outcome::std_result<HttpStream::response_t>> send_receive_request(StreamType stream,
+                                                                                             std::string filename,
+                                                                                             ProgressCallback cb);
     template<typename StreamType>
     boost::asio::awaitable<outcome::std_result<void>> send_request(StreamType stream, request_t request);
     template<typename StreamType>
     boost::asio::awaitable<outcome::std_result<HttpStream::response_t>> receive_response_body(StreamType stream);
     template<typename StreamType>
-    boost::asio::awaitable<void> shutdown(StreamType stream);
+    boost::asio::awaitable<outcome::std_result<HttpStream::response_t>> receive_response_body_as_file(StreamType stream,
+                                                                                                      std::string filename,
+                                                                                                      ProgressCallback cb);
+    boost::asio::awaitable<void> shutdown();
+    template<typename StreamType>
+    boost::asio::awaitable<void> shutdown_impl(StreamType stream);
 
 #if defined(WIN32)
     void add_windows_root_certs(boost::asio::ssl::context &ctx);

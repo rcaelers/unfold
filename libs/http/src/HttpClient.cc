@@ -54,13 +54,24 @@ HttpClient::get(std::string url)
 {
   HttpStream s(options_);
   auto rc = co_await s.execute(url);
-  co_return std::make_pair(rc.value().base().result_int(), "");
+
+  if (!rc)
+    {
+      co_return rc.as_failure();
+    }
+  co_return std::make_pair(rc.value().base().result_int(), rc.value().body().data());
 }
 
 boost::asio::awaitable<outcome::std_result<Response>>
-HttpClient::get(std::string url, std::ostream &file, ProgressCallback cb)
+HttpClient::get(std::string url, std::string filename, ProgressCallback cb)
 {
   HttpStream s(options_);
-  auto rc = co_await s.execute(url);
+  auto rc = co_await s.execute(url, filename, cb);
+
+  if (!rc)
+    {
+      co_return rc.as_failure();
+    }
+
   co_return std::make_pair(rc.value().base().result_int(), "");
 }

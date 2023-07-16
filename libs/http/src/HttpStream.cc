@@ -20,6 +20,7 @@
 
 #include "http/HttpStream.hh"
 
+#include <algorithm>
 #include <array>
 #include <exception>
 #include <iostream>
@@ -61,13 +62,12 @@ HttpStream::HttpStream(Options options_)
 }
 
 boost::asio::awaitable<outcome::std_result<HttpStream::response_t>>
-HttpStream::execute(std::string url_str)
+HttpStream::execute(std::string url_str, std::string filename, ProgressCallback cb)
 {
-  auto u = boost::urls::parse_uri(url_str);
-  if (!u)
+  auto rc = parse_url(url_str);
+  if (!rc)
     {
-      logger->error("malformed URL '{}' ({})", url_str, u.error());
-      co_return HttpClientErrc::MalformedURL;
+      co_return rc.as_failure();
     }
 
   outcome::std_result<HttpStream::response_t> response_rc = outcome::success();
@@ -75,14 +75,23 @@ HttpStream::execute(std::string url_str)
     {
       if (connect_required())
         {
-          auto rc = co_await connect();
+          rc = co_await connect();
           if (!rc)
             {
               co_return rc.as_failure();
             }
+
+          if (is_tls())
+            {
+              rc = co_await encrypt_connection();
+              if (!rc)
+                {
+                  co_return rc.as_failure();
+                }
+            }
         }
 
-      response_rc = co_await send_receive_request();
+      response_rc = co_await send_receive_request(filename, cb);
       if (!response_rc)
         {
           co_return response_rc.as_failure();
@@ -99,45 +108,49 @@ HttpStream::execute(std::string url_str)
           break;
         }
     }
+
+  co_await shutdown();
   co_return response_rc;
 }
 
 boost::asio::awaitable<outcome::std_result<HttpStream::response_t>>
-HttpStream::send_receive_request()
+HttpStream::send_receive_request(std::string filename, ProgressCallback cb)
+{
+  if (is_tls())
+    {
+      co_return co_await send_receive_request(secure_stream, filename, cb);
+    }
+  co_return co_await send_receive_request(plain_stream, filename, cb);
+}
+
+template<typename StreamType>
+boost::asio::awaitable<outcome::std_result<HttpStream::response_t>>
+HttpStream::send_receive_request(StreamType stream, std::string filename, ProgressCallback cb)
 {
   auto request = create_request();
 
-  bool use_tls = url.scheme() == "https";
   outcome::std_result<HttpStream::response_t> response_rc = outcome::success();
 
-  if (use_tls)
+  auto request_rc = co_await send_request(stream, request);
+  if (!request_rc)
     {
-      auto request_rc = co_await send_request(secure_stream, request);
-      if (!request_rc)
-        {
-          co_return request_rc.as_failure();
-        }
+      co_return request_rc.as_failure();
+    }
 
-      response_rc = co_await receive_response_body(secure_stream);
-      if (!response_rc)
-        {
-          co_return response_rc.as_failure();
-        }
+  if (filename.empty())
+    {
+      response_rc = co_await receive_response_body(stream);
     }
   else
     {
-      auto request_rc = co_await send_request(plain_stream, request);
-      if (!request_rc)
-        {
-          co_return request_rc.as_failure();
-        }
-
-      response_rc = co_await receive_response_body(plain_stream);
-      if (!response_rc)
-        {
-          co_return response_rc.as_failure();
-        }
+      response_rc = co_await receive_response_body_as_file(stream, filename, cb);
     }
+
+  if (!response_rc)
+    {
+      co_return response_rc.as_failure();
+    }
+
   co_return response_rc.value();
 }
 
@@ -155,8 +168,7 @@ HttpStream::parse_url(const std::string &u)
 
   if (url.port().empty())
     {
-      bool use_tls = url.scheme() == "https";
-      url.set_port(use_tls ? "443" : "80");
+      url.set_port(is_tls() ? "443" : "80");
     }
 
   return outcome::success();
@@ -198,25 +210,34 @@ HttpStream::connect()
       co_return HttpClientErrc::ConnectionRefused;
     }
 
-  bool use_tls = url.scheme() == "https";
-  if (use_tls)
+  co_return outcome::success();
+}
+
+boost::asio::awaitable<outcome::std_result<void>>
+HttpStream::encrypt_connection()
+{
+  secure_stream = std::make_shared<boost::beast::ssl_stream<boost::beast::tcp_stream>>(plain_stream->release_socket(), ctx);
+  auto rc = init_certificates();
+  if (!rc)
     {
-      secure_stream = std::make_shared<boost::beast::ssl_stream<boost::beast::tcp_stream>>(plain_stream->release_socket(), ctx);
+      co_return rc.as_failure();
+    }
 
-      if (!SSL_set_tlsext_host_name(secure_stream->native_handle(), url.host().data()))
-        {
-          logger->error("failed to set TLS hostname");
-          co_return HttpClientErrc::InternalError;
-        }
+  if (!SSL_set_tlsext_host_name(secure_stream->native_handle(), url.host().data()))
+    {
+      logger->error("failed to set TLS hostname");
+      co_return HttpClientErrc::InternalError;
+    }
 
-      boost::beast::get_lowest_layer(*secure_stream).expires_after(TIMEOUT);
-      co_await secure_stream->async_handshake(boost::asio::ssl::stream_base::client,
-                                              boost::asio::redirect_error(boost::asio::use_awaitable, ec));
-      if (ec)
-        {
-          logger->error("failed to perform TLS handshake with '{}' ({})", url.host(), ec.message());
-          co_return HttpClientErrc::CommunicationError;
-        }
+  boost::system::error_code ec;
+
+  boost::beast::get_lowest_layer(*secure_stream).expires_after(TIMEOUT);
+  co_await secure_stream->async_handshake(boost::asio::ssl::stream_base::client,
+                                          boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+  if (ec)
+    {
+      logger->error("failed to perform TLS handshake with '{}' ({})", url.host(), ec.message());
+      co_return HttpClientErrc::CommunicationError;
     }
   co_return outcome::success();
 }
@@ -259,11 +280,29 @@ HttpStream::receive_response_body(StreamType stream)
 {
   boost::system::error_code ec;
   boost::beast::flat_buffer buffer;
-  boost::beast::http::response_parser<boost::beast::http::buffer_body> parser;
+  boost::beast::http::response_parser<boost::beast::http::string_body> parser;
 
+  co_await boost::beast::http::async_read(*stream, buffer, parser, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+  if (ec)
+    {
+      logger->error("failed to read HTTP response from {} ({})", url.host(), ec.message());
+      co_return HttpClientErrc::CommunicationError;
+    }
+  co_return parser.get();
+}
+
+template<typename StreamType>
+boost::asio::awaitable<outcome::std_result<HttpStream::response_t>>
+HttpStream::receive_response_body_as_file(StreamType stream, std::string filename, ProgressCallback cb)
+{
+  boost::system::error_code ec;
+  boost::beast::flat_buffer buffer;
+  boost::beast::http::response_parser<boost::beast::http::empty_body> header_parser;
+
+  buffer.max_size(16384);
   co_await boost::beast::http::async_read_header(*stream,
                                                  buffer,
-                                                 parser,
+                                                 header_parser,
                                                  boost::asio::redirect_error(boost::asio::use_awaitable, ec));
   if (ec)
     {
@@ -271,23 +310,28 @@ HttpStream::receive_response_body(StreamType stream)
       co_return HttpClientErrc::CommunicationError;
     }
 
-  if (boost::beast::http::to_status_class(parser.get().result()) != boost::beast::http::status_class::successful)
+  if (boost::beast::http::to_status_class(header_parser.get().result()) != boost::beast::http::status_class::successful)
     {
-      // boost::beast::http::response_parser<boost::beast::http::dynamic_body> p(std::move(parser));
+      boost::beast::http::response_parser<boost::beast::http::string_body> string_parser{std::move(header_parser)};
       co_await boost::beast::http::async_read(*stream,
                                               buffer,
-                                              parser,
+                                              string_parser,
                                               boost::asio::redirect_error(boost::asio::use_awaitable, ec));
       if (ec)
         {
-          logger->error("failed to read HTTP response from {} ({})", url.host(), ec.message());
+          logger->error("failed to read HTTP file response from {} ({})", url.host(), ec.message());
           co_return HttpClientErrc::CommunicationError;
         }
-      co_await shutdown(stream);
-      co_return parser.get();
+      co_return string_parser.get();
     }
 
-  parser.body_limit((std::numeric_limits<std::uint64_t>::max)());
+  boost::beast::http::response_parser<boost::beast::http::file_body> parser{std::move(header_parser)};
+  parser.get().body().open(filename.c_str(), boost::beast::file_mode::write, ec);
+  if (ec)
+    {
+      logger->error("failed to open file '{}' for writing ({})", filename, ec.message());
+      co_return HttpClientErrc::InternalError;
+    }
 
   size_t payload_size = 0;
   if (parser.content_length())
@@ -295,38 +339,37 @@ HttpStream::receive_response_body(StreamType stream)
       payload_size = *parser.content_length();
     }
 
+  parser.body_limit((std::numeric_limits<std::uint64_t>::max)());
+  cb(0);
+
+  buffer.max_size(8192);
   while (!parser.is_done())
     {
-      constexpr auto buffer_size = 1024;
-      std::array<char, buffer_size> buf{};
-      parser.get().body().data = buf.data();
-      parser.get().body().size = buf.size();
-      co_await boost::beast::http::async_read(*stream,
-                                              buffer,
-                                              parser,
-                                              boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+      co_await boost::beast::http::async_read_some(*stream,
+                                                   buffer,
+                                                   parser,
+                                                   boost::asio::redirect_error(boost::asio::use_awaitable, ec));
       if (ec == boost::beast::http::error::need_buffer)
         {
           ec = {};
         }
       if (ec)
         {
-          logger->error("failed to read HTTP response from {} ({})", url.host(), ec.message());
+          logger->error("failed to read HTTP file response from {} ({})", url.host(), ec.message());
           co_return HttpClientErrc::CommunicationError;
         }
 
-      // out.write(buf.data(), static_cast<std::streamsize>(buf.size() - parser.get().body().size));
       if (payload_size != 0 && parser.content_length_remaining())
         {
           double progress = static_cast<double>(payload_size - *parser.content_length_remaining())
                             / static_cast<double>(payload_size);
-          spdlog::info("progress: {}", progress);
-          //     cb(progress);
+          cb(progress);
         }
     }
+  cb(1.0);
 
-  co_await shutdown(stream);
-  co_return parser.get();
+  boost::beast::http::response<boost::beast::http::string_body> string_response{std::move(parser.get())};
+  co_return string_response;
 }
 
 outcome::std_result<bool>
@@ -375,7 +418,7 @@ HttpStream::handle_redirect(response_t response)
 
 template<>
 boost::asio::awaitable<void>
-HttpStream::shutdown<std::shared_ptr<HttpStream::secure_stream_t>>(std::shared_ptr<secure_stream_t> stream)
+HttpStream::shutdown_impl<std::shared_ptr<HttpStream::secure_stream_t>>(std::shared_ptr<secure_stream_t> stream)
 {
   try
     {
@@ -391,7 +434,7 @@ HttpStream::shutdown<std::shared_ptr<HttpStream::secure_stream_t>>(std::shared_p
 
 template<>
 boost::asio::awaitable<void>
-HttpStream::shutdown<std::shared_ptr<HttpStream::plain_stream_t>>(std::shared_ptr<plain_stream_t> stream)
+HttpStream::shutdown_impl<std::shared_ptr<HttpStream::plain_stream_t>>(std::shared_ptr<plain_stream_t> stream)
 {
   try
     {
@@ -407,6 +450,16 @@ HttpStream::shutdown<std::shared_ptr<HttpStream::plain_stream_t>>(std::shared_pt
       logger->error("failed to shutdown connection ({})", e.what());
     }
   co_return;
+}
+
+boost::asio::awaitable<void>
+HttpStream::shutdown()
+{
+  if (is_tls())
+    {
+      co_return co_await shutdown_impl(secure_stream);
+    }
+  co_return co_await shutdown_impl(plain_stream);
 }
 
 outcome::std_result<void>
@@ -470,25 +523,8 @@ HttpStream::is_ok(auto code)
   return code == boost::beast::http::status::ok;
 }
 
-// void
-// init()
-// {
-//      determine if we need to use a proxy
-//      determine remote port
-//      determine if we need to use TLS
-//
-//       determine if new connection is needed
-// }
-
-// void
-// connect()
-// {
-//    proxy or direct
-//    resolve host
-//    connect to host
-//    add keepalive
-//    if proxy
-//      write
-//      read_header
-//      status class = success?
-// }
+bool
+HttpStream::is_tls()
+{
+  return url.scheme() == "https";
+}

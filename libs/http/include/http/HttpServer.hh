@@ -144,6 +144,7 @@ namespace unfold::http
       {
         if (req.method() != boost::beast::http::verb::get)
           {
+            logger->error("unknown http method: ({})", req.method_string());
             send_bad_request("Unknown HTTP method", ec, yield);
             return false;
           }
@@ -151,6 +152,7 @@ namespace unfold::http
         if (redirects.exists(req.target()))
           {
             auto location = redirects.get(req.target());
+            logger->info("redirecting to: ({})", location);
             send_redirect(location, ec, yield);
             return false;
           }
@@ -171,6 +173,7 @@ namespace unfold::http
             return send(std::move(res), ec, yield);
           }
 
+        logger->info("sending not found: ({})", req.target());
         send_not_found(req.target(), ec, yield);
         return false;
       }

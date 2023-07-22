@@ -55,6 +55,8 @@ namespace
         return "too many redirects";
       case HttpClientErrc::FileError:
         return "file error";
+      case HttpClientErrc::InvalidRedirect:
+        return "invalid redirect";
       }
     return "(unknown)";
   }

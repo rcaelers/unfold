@@ -442,7 +442,7 @@ HttpStream::receive_response_body_as_file(StreamType stream, std::string filenam
   if (ec)
     {
       logger->error("failed to open file '{}' for writing ({})", filename, ec.message());
-      co_return HttpClientErrc::InternalError;
+      co_return HttpClientErrc::FileError;
     }
 
   size_t payload_size = 0;
@@ -507,7 +507,7 @@ HttpStream::handle_redirect(response_t response)
       if (redirect_url.empty())
         {
           logger->error("no Location header in redirect response from {}", connected_url->host());
-          return HttpClientErrc::CommunicationError;
+          return HttpClientErrc::InvalidRedirect;
         }
 
       if (redirect_url[0] == '/')
@@ -520,7 +520,7 @@ HttpStream::handle_redirect(response_t response)
           if (!url_rc)
             {
               logger->error("malformed redirect URL '{}'", redirect_url);
-              return HttpClientErrc::MalformedURL;
+              return HttpClientErrc::InvalidRedirect;
             }
           requested_url = std::move(url_rc.value());
         }
@@ -541,7 +541,6 @@ HttpStream::shutdown_impl<std::shared_ptr<HttpStream::secure_stream_t>>(std::sha
   catch (std::exception &e)
     {
       // Skip eof
-      logger->error("failed to shutdown connection ({})", e.what());
     }
 }
 
@@ -560,7 +559,6 @@ HttpStream::shutdown_impl<std::shared_ptr<HttpStream::plain_stream_t>>(std::shar
   catch (std::exception &e)
     {
       // Skip eof
-      logger->error("failed to shutdown connection ({})", e.what());
     }
   co_return;
 }

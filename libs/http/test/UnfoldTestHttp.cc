@@ -275,7 +275,7 @@ BOOST_AUTO_TEST_CASE(http_client_get_file_invalid_url)
   BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::MalformedURL);
 }
 
-BOOST_AUTO_TEST_CASE(http_client_get_file)
+BOOST_AUTO_TEST_CASE(http_client_get_file_secure)
 {
   HttpServer server;
 
@@ -290,6 +290,36 @@ BOOST_AUTO_TEST_CASE(http_client_get_file)
 
   double previous_progress = 0.0;
   auto rc = get_sync(http, "https://127.0.0.1:1337/foo", "foo.txt", [&](double progress) {
+    BOOST_CHECK_GE(progress, previous_progress);
+    previous_progress = progress;
+  });
+
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  if (!rc.has_error())
+    {
+      auto [result, content] = rc.value();
+
+      BOOST_CHECK_EQUAL(result, 200);
+      BOOST_CHECK_GE(previous_progress + 0.0001, 1.0);
+    }
+  server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(http_client_get_file_plain)
+{
+  HttpServer server(Protocol::Plain);
+
+  std::string body(4 * 8192, 'x');
+
+  server.add("/foo", body);
+  server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
+  options.add_ca_cert(cert);
+
+  double previous_progress = 0.0;
+  auto rc = get_sync(http, "http://127.0.0.1:1337/foo", "foo.txt", [&](double progress) {
     BOOST_CHECK_GE(progress, previous_progress);
     previous_progress = progress;
   });
@@ -387,6 +417,46 @@ BOOST_AUTO_TEST_CASE(http_client_redirect_plain_to_plain_same_server)
   plain_server.stop();
 }
 
+BOOST_AUTO_TEST_CASE(http_client_redirect_malformed)
+{
+  HttpServer plain_server("plain1", Protocol::Plain, 1338);
+
+  std::string body(4 * 8192, 'x');
+
+  plain_server.add_redirect("/foo", "x//300.1:1.1:1337:foo:/bar");
+  plain_server.add("/bar", body);
+  plain_server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+
+  auto rc = get_sync(http, "http://127.0.0.1:1338/foo");
+
+  BOOST_CHECK_EQUAL(rc.has_error(), true);
+  BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::InvalidRedirect);
+
+  plain_server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(http_client_redirect_empty)
+{
+  HttpServer plain_server("plain1", Protocol::Plain, 1338);
+
+  std::string body(4 * 8192, 'x');
+
+  plain_server.add_redirect("/foo", "");
+  plain_server.add("/bar", body);
+  plain_server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+
+  auto rc = get_sync(http, "http://127.0.0.1:1338/foo");
+
+  BOOST_CHECK_EQUAL(rc.has_error(), true);
+  BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::InvalidRedirect);
+
+  plain_server.stop();
+}
+
 BOOST_AUTO_TEST_CASE(http_client_redirect_exceed_max)
 {
   HttpServer plain_server(Protocol::Plain, 1338);
@@ -408,6 +478,7 @@ BOOST_AUTO_TEST_CASE(http_client_redirect_exceed_max)
   auto rc = get_sync(http, "http://127.0.0.1:1338/a");
 
   BOOST_CHECK_EQUAL(rc.has_error(), true);
+  BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::TooManyRedirects);
 
   plain_server.stop();
 }
@@ -458,6 +529,7 @@ BOOST_AUTO_TEST_CASE(http_client_redirect_diabled)
   auto rc = get_sync(http, "http://127.0.0.1:1338/a");
 
   BOOST_CHECK_EQUAL(rc.has_error(), true);
+  BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::TooManyRedirects);
 
   plain_server.stop();
 }
@@ -543,9 +615,26 @@ BOOST_AUTO_TEST_CASE(http_client_proxy_not_found)
   auto rc = get_sync(http, "https://127.0.0.1:1337/foo");
 
   BOOST_CHECK_EQUAL(rc.has_error(), true);
-
+  BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::ConnectionRefused);
   proxy_server.stop();
   secure_server.stop();
 }
 
+BOOST_AUTO_TEST_CASE(http_client_invalid_cert)
+{
+  HttpServer server;
+  server.add("/foo", "foo\n");
+  server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
+  options.add_ca_cert("hello world");
+
+  auto rc = get_sync(http, "https://127.0.0.1:1337/foo");
+
+  BOOST_CHECK_EQUAL(rc.has_error(), true);
+  BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::InvalidCertificate);
+
+  server.stop();
+}
 BOOST_AUTO_TEST_SUITE_END()

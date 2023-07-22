@@ -76,6 +76,9 @@ HttpStream::execute(std::string url_str, std::string filename, ProgressCallback 
     {
       if (connect_required())
         {
+          co_await shutdown();
+
+          logger->debug("connect required {}", connected_url ? connected_url->c_str() : "null");
           auto rc = co_await connect();
           if (!rc)
             {
@@ -84,6 +87,7 @@ HttpStream::execute(std::string url_str, std::string filename, ProgressCallback 
 
           if (is_tls_connection() && connected_url)
             {
+              logger->debug("encrypt");
               rc = co_await encrypt_connection(*connected_url);
               if (!rc)
                 {
@@ -96,6 +100,10 @@ HttpStream::execute(std::string url_str, std::string filename, ProgressCallback 
             {
               co_return rc.as_failure();
             }
+        }
+      else
+        {
+          logger->debug("connect not required");
         }
 
       response_rc = co_await send_receive_request(filename, cb);
@@ -124,7 +132,8 @@ HttpStream::execute(std::string url_str, std::string filename, ProgressCallback 
 boost::asio::awaitable<outcome::std_result<HttpStream::response_t>>
 HttpStream::send_receive_request(std::string filename, ProgressCallback cb)
 {
-  if (is_tls_connection() || is_tls_requested())
+  // if (is_tls_connection() || is_tls_requested())
+  if (secure_stream)
     {
       co_return co_await send_receive_request(secure_stream, filename, cb);
     }
@@ -216,6 +225,7 @@ HttpStream::connect()
   auto executor = co_await boost::asio::this_coro::executor;
   plain_stream = std::make_shared<boost::beast::tcp_stream>(executor);
 
+  logger->debug("resolving {}:{}", url.host(), url.port());
   boost::system::error_code ec;
   boost::asio::ip::tcp::resolver resolver(co_await boost::asio::this_coro::executor);
   auto results = co_await resolver.async_resolve(url.host(),
@@ -228,6 +238,7 @@ HttpStream::connect()
       co_return HttpClientErrc::NameResolutionFailed;
     }
 
+  logger->debug("connecting to {}:{}", url.host(), url.port());
   boost::beast::get_lowest_layer(*plain_stream).expires_after(options.get_timeout());
   co_await boost::beast::get_lowest_layer(*plain_stream)
     .async_connect(results, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
@@ -243,7 +254,10 @@ HttpStream::connect()
 boost::asio::awaitable<outcome::std_result<void>>
 HttpStream::encrypt_connection(boost::urls::url url)
 {
+  logger->debug("encrypting {}:{}", url.host(), url.port());
   secure_stream = std::make_shared<boost::beast::ssl_stream<boost::beast::tcp_stream>>(plain_stream->release_socket(), ctx);
+  plain_stream.reset();
+
   auto rc = init_certificates();
   if (!rc)
     {
@@ -258,6 +272,7 @@ HttpStream::encrypt_connection(boost::urls::url url)
 
   boost::system::error_code ec;
 
+  logger->debug("tls handshake {}:{}", url.host(), url.port());
   boost::beast::get_lowest_layer(*secure_stream).expires_after(options.get_timeout());
   co_await secure_stream->async_handshake(boost::asio::ssl::stream_base::client,
                                           boost::asio::redirect_error(boost::asio::use_awaitable, ec));
@@ -429,7 +444,9 @@ HttpStream::receive_response_body_as_file(StreamType stream, std::string filenam
   boost::beast::flat_buffer buffer;
   boost::beast::http::response_parser<boost::beast::http::empty_body> header_parser;
 
+  header_parser.body_limit((std::numeric_limits<std::uint64_t>::max)());
   buffer.max_size(16384);
+
   co_await boost::beast::http::async_read_header(*stream,
                                                  buffer,
                                                  header_parser,
@@ -564,6 +581,7 @@ HttpStream::shutdown_impl<std::shared_ptr<HttpStream::secure_stream_t>>(std::sha
     {
       boost::beast::get_lowest_layer(*stream).expires_after(options.get_timeout());
       co_await stream->async_shutdown(boost::asio::use_awaitable);
+      boost::beast::get_lowest_layer(*stream).close();
     }
   catch (std::exception &e)
     {
@@ -593,11 +611,17 @@ HttpStream::shutdown_impl<std::shared_ptr<HttpStream::plain_stream_t>>(std::shar
 boost::asio::awaitable<void>
 HttpStream::shutdown()
 {
-  if (is_tls_connection())
+  logger->debug("shutdown");
+  if (secure_stream)
     {
-      co_return co_await shutdown_impl(secure_stream);
+      co_await shutdown_impl(secure_stream);
+      secure_stream.reset();
     }
-  co_return co_await shutdown_impl(plain_stream);
+  if (plain_stream)
+    {
+      co_await shutdown_impl(plain_stream);
+      plain_stream.reset();
+    }
 }
 
 outcome::std_result<void>

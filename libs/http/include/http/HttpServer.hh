@@ -18,8 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef HTTP_SERVER_HH
-#define HTTP_SERVER_HH
+#ifndef NET_HTTP_SERVER_HH
+#define NET_HTTP_SERVER_HH
 
 #include <thread>
 #include <boost/beast/core.hpp>
@@ -395,4 +395,4 @@ namespace unfold::http
   };
 } // namespace unfold::http
 
-#endif // HTTP_SERVER_HH
+#endif // NET_HTTP_SERVER_HH

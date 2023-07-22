@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Rob Caelers <rob.caelers@gmail.com>
+// Copyright (C) 2022, 2023 Rob Caelers <rob.caelers@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -226,7 +226,7 @@ HttpStream::connect()
       co_return HttpClientErrc::NameResolutionFailed;
     }
 
-  boost::beast::get_lowest_layer(*plain_stream).expires_after(TIMEOUT);
+  boost::beast::get_lowest_layer(*plain_stream).expires_after(options.get_timeout());
   co_await boost::beast::get_lowest_layer(*plain_stream)
     .async_connect(results, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
   if (ec)
@@ -256,7 +256,7 @@ HttpStream::encrypt_connection(boost::urls::url url)
 
   boost::system::error_code ec;
 
-  boost::beast::get_lowest_layer(*secure_stream).expires_after(TIMEOUT);
+  boost::beast::get_lowest_layer(*secure_stream).expires_after(options.get_timeout());
   co_await secure_stream->async_handshake(boost::asio::ssl::stream_base::client,
                                           boost::asio::redirect_error(boost::asio::use_awaitable, ec));
   if (ec)
@@ -302,7 +302,7 @@ HttpStream::proxy_connection(StreamType stream)
 
   boost::system::error_code ec;
 
-  boost::beast::get_lowest_layer(*stream).expires_after(TIMEOUT);
+  boost::beast::get_lowest_layer(*stream).expires_after(options.get_timeout());
   co_await boost::beast::http::async_write(*stream, req, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
   if (ec)
     {
@@ -375,7 +375,7 @@ HttpStream::send_request(StreamType stream, request_t request)
 {
   boost::system::error_code ec;
 
-  boost::beast::get_lowest_layer(*stream).expires_after(TIMEOUT);
+  boost::beast::get_lowest_layer(*stream).expires_after(options.get_timeout());
   co_await boost::beast::http::async_write(*stream, request, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
   if (ec)
     {
@@ -535,7 +535,7 @@ HttpStream::shutdown_impl<std::shared_ptr<HttpStream::secure_stream_t>>(std::sha
 {
   try
     {
-      boost::beast::get_lowest_layer(*stream).expires_after(TIMEOUT);
+      boost::beast::get_lowest_layer(*stream).expires_after(options.get_timeout());
       co_await stream->async_shutdown(boost::asio::use_awaitable);
     }
   catch (std::exception &e)
@@ -550,7 +550,7 @@ HttpStream::shutdown_impl<std::shared_ptr<HttpStream::plain_stream_t>>(std::shar
 {
   try
     {
-      boost::beast::get_lowest_layer(*stream).expires_after(TIMEOUT);
+      boost::beast::get_lowest_layer(*stream).expires_after(options.get_timeout());
       boost::system::error_code rc;
 
       stream->socket().shutdown(boost::asio::ip::tcp::socket::shutdown_both, rc);

@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Rob Caelers <rob.caelers@gmail.com>
+// Copyright (C) 2022, 2023 Rob Caelers <rob.caelers@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -100,7 +100,6 @@ namespace unfold::http
 
   private:
     static constexpr int BUFFER_SIZE = 1024;
-    static constexpr std::chrono::seconds TIMEOUT{30};
 
     unfold::http::Options options;
     boost::asio::ssl::context ctx{boost::asio::ssl::context::tlsv12_client};

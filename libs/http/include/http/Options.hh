@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Rob Caelers <rob.caelers@gmail.com>
+// Copyright (C) 2023 Rob Caelers <rob.caelers@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -59,7 +59,7 @@ namespace unfold::http
     bool follow_redirects = true;
     int max_redirects = 5;
     std::optional<std::string> proxy;
-    std::chrono::seconds timeout = std::chrono::seconds(10);
+    std::chrono::seconds timeout = std::chrono::seconds(30);
     std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:http")};
   };
 } // namespace unfold::http

@@ -66,6 +66,7 @@ public:
   void set_configuration_prefix(const std::string &prefix) override;
   void set_update_available_callback(update_available_callback_t callback) override;
   void set_download_progress_callback(download_progress_callback_t callback) override;
+  void set_update_status_callback(update_status_callback_t callback) override;
   std::optional<std::chrono::system_clock::time_point> get_last_update_check_time() override;
 
   boost::asio::awaitable<outcome::std_result<bool>> check_for_update() override;
@@ -99,6 +100,7 @@ private:
   bool periodic_update_check_enabled{false};
 
   update_available_callback_t update_available_callback;
+  update_status_callback_t update_status_callback;
 
   std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:control")};
 };

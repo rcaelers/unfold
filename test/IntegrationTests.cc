@@ -241,6 +241,15 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check_alpha)
     last_progress = progress;
   });
 
+  std::optional<outcome::std_result<void>> status;
+  control.set_update_status_callback([&](outcome::std_result<void> rc) {
+    status = rc;
+    if (rc.has_error())
+      {
+        spdlog::info("Update status ", rc.error().message());
+      }
+  });
+
   control.get_hooks()->hook_terminate() = []() { return false; };
 
   boost::asio::io_context ioc;
@@ -284,6 +293,8 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check_alpha)
     },
     boost::asio::detached);
   ioc.run();
+
+  BOOST_CHECK_EQUAL(status.has_value(), false);
 }
 
 BOOST_AUTO_TEST_CASE(upgrade_control_check_release)
@@ -312,6 +323,15 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check_release)
   control.set_download_progress_callback([&last_progress](auto progress) {
     BOOST_CHECK_GE(progress, last_progress);
     last_progress = progress;
+  });
+
+  std::optional<outcome::std_result<void>> status;
+  control.set_update_status_callback([&](outcome::std_result<void> rc) {
+    status = rc;
+    if (rc.has_error())
+      {
+        spdlog::info("Update status ", rc.error().message());
+      }
   });
 
   control.get_hooks()->hook_terminate() = []() { return false; };
@@ -357,6 +377,8 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check_release)
     },
     boost::asio::detached);
   ioc.run();
+
+  BOOST_CHECK_EQUAL(status.has_value(), false);
 }
 
 BOOST_AUTO_TEST_CASE(upgrade_last_upgrade_time)
@@ -433,9 +455,21 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_later)
     co_return unfold::UpdateResponse::Later;
   });
 
+  std::optional<outcome::std_result<void>> status;
+  control.set_update_status_callback([&](outcome::std_result<void> rc) {
+    status = rc;
+    if (rc.has_error())
+      {
+        spdlog::info("Update status ", rc.error().message());
+      }
+  });
+
   control.set_periodic_update_check_enabled(true);
 
   io_context.wait();
+
+  BOOST_CHECK_EQUAL(status.has_value(), true);
+  BOOST_CHECK_EQUAL(status->has_error(), false);
 }
 
 BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_skip)
@@ -464,11 +498,22 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_skip)
     co_return unfold::UpdateResponse::Skip;
   });
 
+  std::optional<outcome::std_result<void>> status;
+  control.set_update_status_callback([&](outcome::std_result<void> rc) {
+    status = rc;
+    if (rc.has_error())
+      {
+        spdlog::info("Update status ", rc.error().message());
+      }
+  });
+
   control.set_periodic_update_check_enabled(true);
 
   io_context.wait();
 
   BOOST_CHECK_EQUAL(control.get_skip_version(), "1.11.0-alpha.1");
+  BOOST_CHECK_EQUAL(status.has_value(), true);
+  BOOST_CHECK_EQUAL(status->has_error(), false);
 }
 
 BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_install_now)
@@ -493,13 +538,37 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_install_now)
   control.set_periodic_update_check_interval(std::chrono::seconds{1});
   control.set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
     spdlog::info("Update available");
-    io_context.stop();
+    control.set_periodic_update_check_enabled(false);
     co_return unfold::UpdateResponse::Install;
   });
 
+  std::optional<outcome::std_result<void>> status;
+  control.set_update_status_callback([&](outcome::std_result<void> rc) {
+    status = rc;
+    if (rc.has_error())
+      {
+        spdlog::info("Update status ", rc.error().message());
+      }
+    io_context.stop();
+  });
+
   control.set_periodic_update_check_enabled(true);
+  std::filesystem::remove("installer.log");
 
   io_context.wait();
+  int tries = 100;
+  bool found = false;
+  do
+    {
+      found = std::filesystem::exists("installer.log");
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+      tries--;
+    }
+  while (tries > 0 && !found);
+  BOOST_CHECK(found);
+
+  BOOST_CHECK_EQUAL(status.has_value(), true);
+  BOOST_CHECK_EQUAL(status->has_error(), false);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -67,6 +67,9 @@ UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform, unfold::coro:
   , checker(std::make_shared<UpgradeChecker>(platform, http, hooks))
   , check_timer(io_context.get_io_context())
 {
+  http->options().set_timeout(std::chrono::seconds(30));
+  http->options().set_max_redirects(5);
+  http->options().set_follow_redirects(true);
   init_periodic_update_check();
 }
 
@@ -77,14 +80,14 @@ UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform,
                                std::shared_ptr<Installer> installer,
                                std::shared_ptr<Checker> checker,
                                unfold::coro::IOContext &io_context)
-  : platform(platform)
-  , http(http)
-  , verifier(verifier)
+  : platform(std::move(platform))
+  , http(std::move(http))
+  , verifier(std::move(verifier))
   , hooks(std::make_shared<Hooks>())
   , storage(storage)
   , state(std::make_shared<Settings>(storage))
-  , installer(installer)
-  , checker(checker)
+  , installer(std::move(installer))
+  , checker(std::move(checker))
   , check_timer(io_context.get_io_context())
 {
   init_periodic_update_check();
@@ -114,7 +117,7 @@ UpgradeControl::set_signature_verification_key(const std::string &key)
   auto result = verifier->set_key(unfold::crypto::SignatureAlgorithmType::ECDSA, key);
   if (!result)
     {
-      logger->error("invalid key '{}' ({})", key, result.error().message());
+      logger->error("invalid signature verification key '{}' ({})", key, result.error().message());
       return outcome::failure(unfold::UnfoldErrc::InvalidArgument);
     }
   return outcome::success();
@@ -164,6 +167,12 @@ UpgradeControl::set_download_progress_callback(download_progress_callback_t call
   installer->set_download_progress_callback(callback);
 }
 
+void
+UpgradeControl::set_update_status_callback(update_status_callback_t callback)
+{
+  update_status_callback = callback;
+}
+
 std::optional<std::chrono::system_clock::time_point>
 UpgradeControl::get_last_update_check_time()
 {
@@ -188,7 +197,12 @@ UpgradeControl::check_for_update()
 boost::asio::awaitable<outcome::std_result<void>>
 UpgradeControl::check_for_update_and_notify()
 {
-  co_return co_await check_for_update_and_notify(true);
+  auto rc = co_await check_for_update_and_notify(true);
+  if (update_status_callback)
+    {
+      update_status_callback(rc);
+    }
+  co_return rc;
 }
 
 boost::asio::awaitable<outcome::std_result<void>>
@@ -318,6 +332,12 @@ UpgradeControl::init_periodic_update_check()
       {
         logger->error("failed to perform periodic check for updates: {}", rc.error().message());
       }
+
+    if (update_status_callback)
+      {
+        update_status_callback(rc);
+      }
+
     update_check_timer();
   });
 }

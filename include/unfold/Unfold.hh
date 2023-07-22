@@ -68,6 +68,7 @@ namespace unfold
     virtual ~Unfold() = default;
 
     using update_available_callback_t = std::function<boost::asio::awaitable<UpdateResponse>()>;
+    using update_status_callback_t = std::function<void(outcome::std_result<void>)>;
     using download_progress_callback_t = std::function<void(double progress)>;
 
     static std::shared_ptr<Unfold> create(unfold::coro::IOContext &io_context);
@@ -82,6 +83,8 @@ namespace unfold
     virtual void set_configuration_prefix(const std::string &prefix) = 0;
     virtual void set_update_available_callback(update_available_callback_t callback) = 0;
     virtual void set_download_progress_callback(download_progress_callback_t callback) = 0;
+    virtual void set_update_status_callback(update_status_callback_t callback) = 0;
+
     virtual std::optional<std::chrono::system_clock::time_point> get_last_update_check_time() = 0;
 
     // TODO: custom version comparator API

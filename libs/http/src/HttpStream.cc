@@ -114,6 +114,7 @@ HttpStream::execute(std::string url_str, std::string filename, ProgressCallback 
         {
           break;
         }
+      logger->info("executing redirecting to {}", requested_url.c_str());
     }
 
   co_await shutdown();
@@ -178,6 +179,7 @@ HttpStream::parse_url(const std::string &u)
       url.set_port(url.scheme() == "https" ? "443" : "80");
     }
 
+  logger->debug("parsed URL {}", url.c_str());
   return url;
 }
 
@@ -350,13 +352,15 @@ HttpStream::create_request()
 
   if (proxy && !is_tls_requested())
     {
+      logger->debug("using http via proxy {}", *proxy);
       target = requested_url.c_str();
     }
   else
     {
-      target = requested_url.path();
+      target = requested_url.encoded_resource();
     }
 
+  logger->debug("target {}", target);
   constexpr auto http_version = 11;
   boost::beast::http::request<boost::beast::http::string_body> req;
   req.method(boost::beast::http::verb::get);
@@ -365,6 +369,12 @@ HttpStream::create_request()
   req.set(boost::beast::http::field::host, requested_url.host());
   req.set(boost::beast::http::field::user_agent, BOOST_BEAST_VERSION_STRING);
   req.prepare_payload();
+
+  logger->debug("req HTTP/{} {}", req.version(), req.target());
+  for (auto const &field: req)
+    {
+      logger->debug("req {}: {}", field.name_string(), field.value());
+    }
 
   return req;
 }
@@ -400,6 +410,14 @@ HttpStream::receive_response_body(StreamType stream)
       logger->error("failed to read HTTP response from {} ({})", connected_url->host(), ec.message());
       co_return HttpClientErrc::CommunicationError;
     }
+
+  logger->debug("resp HTTP/{}", parser.get().version());
+  for (auto const &field: parser.get())
+    {
+      logger->debug("resp {}: {}", field.name_string(), field.value());
+    }
+  logger->debug("resp body {}", parser.get().body());
+
   co_return parser.get();
 }
 
@@ -422,6 +440,12 @@ HttpStream::receive_response_body_as_file(StreamType stream, std::string filenam
       co_return HttpClientErrc::CommunicationError;
     }
 
+  logger->debug("resp HTTP/{}", header_parser.get().version());
+  for (auto const &field: header_parser.get())
+    {
+      logger->debug("resp {}: {}", field.name_string(), field.value());
+    }
+
   if (boost::beast::http::to_status_class(header_parser.get().result()) != boost::beast::http::status_class::successful)
     {
       boost::beast::http::response_parser<boost::beast::http::string_body> string_parser{std::move(header_parser)};
@@ -434,6 +458,7 @@ HttpStream::receive_response_body_as_file(StreamType stream, std::string filenam
           logger->error("failed to read HTTP file response from {} ({})", connected_url->host(), ec.message());
           co_return HttpClientErrc::CommunicationError;
         }
+      logger->debug("resp {}", string_parser.get().body());
       co_return string_parser.get();
     }
 
@@ -510,6 +535,7 @@ HttpStream::handle_redirect(response_t response)
           return HttpClientErrc::InvalidRedirect;
         }
 
+      logger->debug("redirecting to {}", redirect_url);
       if (redirect_url[0] == '/')
         {
           requested_url.set_path(redirect_url);
@@ -522,6 +548,7 @@ HttpStream::handle_redirect(response_t response)
               logger->error("malformed redirect URL '{}'", redirect_url);
               return HttpClientErrc::InvalidRedirect;
             }
+          logger->debug("redirecting to url {}", url_rc.value().c_str());
           requested_url = std::move(url_rc.value());
         }
       return true;

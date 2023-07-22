@@ -99,6 +99,7 @@ namespace unfold::http
       boost::asio::awaitable<bool> send(boost::beast::http::message<isRequest, Body, Fields> &&msg, boost::beast::error_code &ec)
       {
         auto eof = msg.need_eof();
+        logger->info("send need eof: ({})", eof);
         boost::beast::http::serializer<isRequest, Body, Fields> sr{msg};
         co_await boost::beast::http::async_write(stream, sr, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
         co_return eof;
@@ -118,7 +119,7 @@ namespace unfold::http
         return "application/octet-stream";
       }
 
-      boost::asio::awaitable<void> send_status(boost::beast::http::status status, std::string text, boost::beast::error_code &ec)
+      boost::asio::awaitable<bool> send_status(boost::beast::http::status status, std::string text, boost::beast::error_code &ec)
       {
         boost::beast::http::response<boost::beast::http::string_body> res{status, req.version()};
         res.set(boost::beast::http::field::server, BOOST_BEAST_VERSION_STRING);
@@ -126,34 +127,35 @@ namespace unfold::http
         res.keep_alive(req.keep_alive());
         res.body() = text;
         res.prepare_payload();
-        co_await send(std::move(res), ec);
+        co_return co_await send(std::move(res), ec);
       }
 
-      boost::asio::awaitable<void> send_bad_request(std::string_view why, boost::beast::error_code &ec)
+      boost::asio::awaitable<bool> send_bad_request(std::string_view why, boost::beast::error_code &ec)
       {
-        co_await send_status(boost::beast::http::status::bad_request, std::string(why), ec);
+        co_return co_await send_status(boost::beast::http::status::bad_request, std::string(why), ec);
       }
 
-      boost::asio::awaitable<void> send_not_found(std::string_view target, boost::beast::error_code &ec)
+      boost::asio::awaitable<bool> send_not_found(std::string_view target, boost::beast::error_code &ec)
       {
-        co_await send_status(boost::beast::http::status::not_found,
-                             "The resource '" + std::string(target) + "' was not found.",
-                             ec);
+        co_return co_await send_status(boost::beast::http::status::not_found,
+                                       "The resource '" + std::string(target) + "' was not found.",
+                                       ec);
       }
 
-      boost::asio::awaitable<void> send_redirect(const std::string_view location, boost::beast::error_code &ec)
+      boost::asio::awaitable<bool> send_redirect(const std::string_view location, boost::beast::error_code &ec)
       {
         boost::beast::http::response<boost::beast::http::string_body> res{boost::beast::http::status::found, req.version()};
         res.set(boost::beast::http::field::server, BOOST_BEAST_VERSION_STRING);
         res.set(boost::beast::http::field::location, location);
         res.keep_alive(req.keep_alive());
         res.prepare_payload();
-        co_await send(std::move(res), ec);
+        co_return co_await send(std::move(res), ec);
       }
 
     protected:
       boost::asio::awaitable<bool> handle_request(boost::beast::error_code &ec)
       {
+        logger->debug("handle request: {}", req.target());
         if (req.method() == boost::beast::http::verb::connect)
           {
             co_return co_await handle_connect_request(ec);
@@ -169,6 +171,7 @@ namespace unfold::http
 
       boost::asio::awaitable<bool> handle_connect_request(boost::beast::error_code &ec)
       {
+        logger->debug("handle connect request: {}", req.target());
         if (!req.keep_alive())
           {
             logger->error("connection must be keepalive");
@@ -182,8 +185,7 @@ namespace unfold::http
         if (target_parts.size() != 2)
           {
             logger->error("invalid target format: ({})", target);
-            co_await send_bad_request("Invalid target format", ec);
-            co_return false;
+            co_return co_await send_bad_request("Invalid target format", ec);
           }
 
         std::string host = target_parts[0];
@@ -195,7 +197,7 @@ namespace unfold::http
         if (ec)
           {
             logger->error("failed to resolve hostname '{}' ({})", host, ec.message());
-            co_return false;
+            co_return true;
           }
 
         boost::asio::ip::tcp::socket peer{ioc};
@@ -204,7 +206,7 @@ namespace unfold::http
           {
             logger->error("failed to connected to: ({}) {}", host, ec.message());
             co_await send_bad_request("Unable to establish connection with remote host", ec);
-            co_return false;
+            co_return true;
           }
         co_await send_status(boost::beast::http::status::ok, "OK", ec);
 
@@ -223,11 +225,11 @@ namespace unfold::http
 
       boost::asio::awaitable<bool> handle_proxied_get_request(boost::beast::error_code &ec)
       {
+        logger->debug("handle proxy connect request: {}", req.target());
         auto rc = co_await http->get(req.target());
         if (!rc)
           {
-            co_await send_not_found(req.target(), ec);
-            co_return false;
+            co_return co_await send_not_found(req.target(), ec);
           }
 
         auto [code, body] = rc.value();
@@ -245,6 +247,7 @@ namespace unfold::http
 
       boost::asio::awaitable<bool> handle_get_request(boost::beast::error_code &ec)
       {
+        logger->debug("handle get request: {}", req.target());
         if (!req.target().starts_with("/"))
           {
             co_return co_await handle_proxied_get_request(ec);
@@ -254,12 +257,12 @@ namespace unfold::http
           {
             auto location = redirects.get(req.target());
             logger->info("redirecting to: ({})", location);
-            co_await send_redirect(location, ec);
-            co_return false;
+            co_return co_await send_redirect(location, ec);
           }
 
         if (documents.exists(req.target()))
           {
+            logger->debug("sending document: {}", req.target());
             auto txt = documents.get(req.target());
             auto length = txt.size();
 
@@ -274,8 +277,8 @@ namespace unfold::http
             co_return co_await send(std::move(res), ec);
           }
 
-        co_await send_not_found(req.target(), ec);
-        co_return false;
+        logger->debug("sending not found document: {}", req.target());
+        co_return co_await send_not_found(req.target(), ec);
       }
 
       template<typename StringFrom, typename StreamTo>

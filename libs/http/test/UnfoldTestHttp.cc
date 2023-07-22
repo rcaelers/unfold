@@ -89,7 +89,7 @@ struct GlobalFixture
     logger->flush_on(spdlog::level::critical);
     spdlog::set_default_logger(logger);
 
-    spdlog::set_level(spdlog::level::info);
+    spdlog::set_level(spdlog::level::debug);
     spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%^%-5l%$] %v");
 
 #if SPDLOG_VERSION >= 10801
@@ -180,6 +180,30 @@ BOOST_AUTO_TEST_CASE(http_client_get_plain)
   options.add_ca_cert(cert);
 
   auto rc = get_sync(http, "http://127.0.0.1:1337/foo");
+
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  if (!rc.has_error())
+    {
+      auto [result, content] = rc.value();
+      BOOST_CHECK_EQUAL(result, 200);
+      BOOST_CHECK_EQUAL(content, "foo\n");
+    }
+
+  server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(http_client_get_plain_special_characters)
+{
+  HttpServer server(Protocol::Plain);
+  server.add("/foo?x=%2f&b=2&c=3", "foo\n");
+  server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
+  options.add_ca_cert(cert);
+
+  auto rc = get_sync(http, "http://127.0.0.1:1337/foo?x=%2f&b=2&c=3");
 
   BOOST_CHECK_EQUAL(rc.has_error(), false);
 
@@ -417,6 +441,56 @@ BOOST_AUTO_TEST_CASE(http_client_redirect_plain_to_plain_same_server)
   plain_server.stop();
 }
 
+BOOST_AUTO_TEST_CASE(http_client_redirect_plain_to_plain_same_server_absolute_url)
+{
+  HttpServer plain_server("plain1", Protocol::Plain, 1338);
+
+  std::string body(4 * 8192, 'x');
+
+  plain_server.add_redirect("/foo", "http://127.0.0.1:1338/bar");
+  plain_server.add("/bar", body);
+  plain_server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+
+  auto rc = get_sync(http, "http://127.0.0.1:1338/foo");
+
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  if (!rc.has_error())
+    {
+      auto [result, content] = rc.value();
+      BOOST_CHECK_EQUAL(result, 200);
+    }
+  plain_server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(http_client_redirect_plain_to_plain_same_server_complex_url)
+{
+  HttpServer plain_server("plain1", Protocol::Plain, 1338);
+
+  std::string body(4 * 8192, 'x');
+
+  plain_server.add_redirect(
+    "/foo",
+    "http://127.0.0.1:1338/github-production-release-asset-2e65be/192349/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=XXXXXXXXXXXXXXXXXXXX%2F20230722%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20230722T171852Z&X-Amz-Expires=300&X-Amz-Signature=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx&X-Amz-SignedHeaders=host&actor_id=0&key_id=0&repo_id=192349&response-content-disposition=attachment%3B%20filename%3Dworkrave-windows-1.11.0-beta.6.exe&response-content-type=application%2Foctet-stream");
+  plain_server.add(
+    "/github-production-release-asset-2e65be/192349/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=XXXXXXXXXXXXXXXXXXXX%2F20230722%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20230722T171852Z&X-Amz-Expires=300&X-Amz-Signature=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx&X-Amz-SignedHeaders=host&actor_id=0&key_id=0&repo_id=192349&response-content-disposition=attachment%3B%20filename%3Dworkrave-windows-1.11.0-beta.6.exe&response-content-type=application%2Foctet-stream",
+    body);
+  plain_server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+
+  auto rc = get_sync(http, "http://127.0.0.1:1338/foo");
+
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  if (!rc.has_error())
+    {
+      auto [result, content] = rc.value();
+      BOOST_CHECK_EQUAL(result, 200);
+    }
+  plain_server.stop();
+}
+
 BOOST_AUTO_TEST_CASE(http_client_redirect_malformed)
 {
   HttpServer plain_server("plain1", Protocol::Plain, 1338);
@@ -551,6 +625,37 @@ BOOST_AUTO_TEST_CASE(http_client_proxy_get_plain)
   // options.set_proxy("http://127.0.0.1:8118");
 
   auto rc = get_sync(http, "http://127.0.0.1:1339/foo");
+
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  if (!rc.has_error())
+    {
+      auto [result, content] = rc.value();
+      BOOST_CHECK_EQUAL(result, 200);
+      BOOST_CHECK_EQUAL(content, "foo\n");
+    }
+
+  plain_server.stop();
+  proxy_server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(http_client_proxy_get_plain_special_character)
+{
+  HttpServer proxy_server("proxy", Protocol::Plain, 1338);
+  HttpServer plain_server("http", Protocol::Plain, 1339);
+
+  proxy_server.run();
+
+  plain_server.run();
+  plain_server.add("/foo?x=%2f&b=2&c=3", "foo\n");
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
+  options.add_ca_cert(cert);
+  options.set_proxy("http://127.0.0.1:1338");
+  // options.set_proxy("http://127.0.0.1:8118");
+
+  auto rc = get_sync(http, "http://127.0.0.1:1339/foo?x=%2f&b=2&c=3");
 
   BOOST_CHECK_EQUAL(rc.has_error(), false);
 

@@ -117,11 +117,13 @@ SecureSession::run()
 
   for (;;)
     {
+      logger->info("session read");
       boost::beast::get_lowest_layer(stream).expires_after(std::chrono::seconds(30));
 
       co_await boost::beast::http::async_read(stream, buffer, req, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
       if (ec == boost::beast::http::error::end_of_stream)
         {
+          logger->info("session eos");
           break;
         }
       if (ec)
@@ -130,6 +132,7 @@ SecureSession::run()
           co_return;
         }
 
+      logger->info("handle request");
       close = co_await handle_request(ec);
       if (ec)
         {
@@ -138,6 +141,7 @@ SecureSession::run()
         }
       if (close)
         {
+          logger->info("closing session");
           break;
         }
     }
@@ -162,10 +166,12 @@ PlainSession::run()
 
   for (;;)
     {
+      logger->debug("session read");
       boost::beast::get_lowest_layer(stream).expires_after(std::chrono::seconds(30));
       co_await boost::beast::http::async_read(stream, buffer, req, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
       if (ec == boost::beast::http::error::end_of_stream)
         {
+          logger->debug("session eos");
           break;
         }
       if (ec)
@@ -174,6 +180,7 @@ PlainSession::run()
           co_return;
         }
 
+      logger->debug("handle request");
       close = co_await handle_request(ec);
       if (ec)
         {
@@ -183,14 +190,9 @@ PlainSession::run()
 
       if (close)
         {
+          logger->debug("closing session");
           break;
         }
-    }
-
-  boost::beast::get_lowest_layer(stream).expires_after(std::chrono::seconds(30));
-  if (ec)
-    {
-      logger->error("session shutdown failed ({})", ec.message());
     }
 }
 

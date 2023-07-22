@@ -34,6 +34,18 @@ if (HAVE_TESTS)
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/data/installer.sh" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
   add_executable(test-installer TestInstaller.cc)
+  target_link_options(test-installer PRIVATE -static-libgcc -static-libstdc++)
+
+  # if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  #   set_target_properties(test-installer PROPERTIES COMPILE_FLAGS "-Wl,--subsystem,console")
+  #   set_target_properties(test-installer PROPERTIES LINK_FLAGS "-Wl,--subsystem,console")
+  # elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  #   set_target_properties(test-installer PROPERTIES COMPILE_FLAGS "-mconsole")
+  #   set_target_properties(test-installer PROPERTIES LINK_FLAGS "-mconsole")
+  # elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+  #   set_target_properties(test-installer PROPERTIES COMPILE_FLAGS "/SUBSYSTEM:CONSOLE")
+  #   set_target_properties(test-installer PROPERTIES LINK_FLAGS "/SUBSYSTEM:CONSOLE")
+  # endif()
 
   if(WIN32)
     set_tests_properties(unfold-test PROPERTIES ENVIRONMENT "PATH=${TEST_PATH_ENV}")

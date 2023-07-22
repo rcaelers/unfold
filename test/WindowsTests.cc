@@ -220,4 +220,21 @@ BOOST_AUTO_TEST_CASE(windows_platform_is_supported)
 #endif
 }
 
+// BOOST_AUTO_TEST_CASE(windows_platform_is_supported_os_version)
+// {
+//   WindowsPlatform platform;
+
+//   auto rc = platform.is_supported_os_version("");
+//   BOOST_CHECK_EQUAL(rc, true);
+
+//   rc = platform.is_supported_os_version("9.0.0");
+//   BOOST_CHECK_EQUAL(rc, true);
+
+//   rc = platform.is_supported_os_version("10.0.0");
+//   BOOST_CHECK_EQUAL(rc, true);
+
+//   rc = platform.is_supported_os_version("12.0.0");
+//   BOOST_CHECK_EQUAL(rc, false);
+// }
+
 BOOST_AUTO_TEST_SUITE_END()

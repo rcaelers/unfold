@@ -59,14 +59,20 @@ namespace unfold::http
   private:
     bool is_redirect(auto code);
     bool is_ok(auto code);
-    bool is_tls();
+    bool is_tls_connection();
+    bool is_tls_requested();
 
     outcome::std_result<void> init_certificates();
 
-    outcome::std_result<void> parse_url(const std::string &u);
+    outcome::std_result<boost::urls::url> parse_url(const std::string &u);
+    boost::urls::url get_connect_url();
     bool connect_required();
     boost::asio::awaitable<outcome::std_result<void>> connect();
-    boost::asio::awaitable<outcome::std_result<void>> encrypt_connection();
+    boost::asio::awaitable<outcome::std_result<void>> encrypt_connection(boost::urls::url url);
+    boost::asio::awaitable<outcome::std_result<void>> proxy_connection();
+
+    template<typename StreamType>
+    boost::asio::awaitable<outcome::std_result<void>> proxy_connection(StreamType stream);
     boost::asio::awaitable<outcome::std_result<HttpStream::response_t>> send_receive_request(std::string filename,
                                                                                              ProgressCallback cb);
     boost::beast::http::request<boost::beast::http::string_body> create_request();
@@ -101,8 +107,8 @@ namespace unfold::http
     std::shared_ptr<plain_stream_t> plain_stream;
     std::shared_ptr<secure_stream_t> secure_stream;
     int redirect_count{0};
-    boost::urls::url url;
-    std::optional<boost::urls::url> current_url;
+    boost::urls::url requested_url;
+    std::optional<boost::urls::url> connected_url;
     std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold::http:connection")};
   };
 } // namespace unfold::http

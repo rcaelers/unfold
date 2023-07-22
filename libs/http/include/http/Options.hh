@@ -50,7 +50,7 @@ namespace unfold::http
     bool get_follow_redirects() const;
     int get_max_redirects() const;
     std::chrono::seconds get_timeout() const;
-    std::string get_proxy() const;
+    std::optional<std::string> get_proxy() const;
     std::function<void(double progress)> get_progress_callback() const;
 
   private:
@@ -58,7 +58,7 @@ namespace unfold::http
     bool keep_alive = true;
     bool follow_redirects = true;
     int max_redirects = 5;
-    std::string proxy;
+    std::optional<std::string> proxy;
     std::chrono::seconds timeout = std::chrono::seconds(10);
     std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:http")};
   };

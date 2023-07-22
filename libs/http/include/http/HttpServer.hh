@@ -28,12 +28,17 @@
 #include <boost/beast/version.hpp>
 #include <boost/asio.hpp>
 #include <boost/asio/spawn.hpp>
+#include <boost/asio/experimental/parallel_group.hpp>
 #include <boost/config.hpp>
+#include <boost/algorithm/string.hpp>
+
 #include <string_view>
+#include <array>
 
 #include <spdlog/spdlog.h>
 
 #include "utils/Logging.hh"
+#include "http/HttpClient.hh"
 
 namespace unfold::http
 {
@@ -69,12 +74,25 @@ namespace unfold::http
     class Session
     {
     public:
-      Session(StreamType &&stream, Documents documents, detail::Redirects redirects)
+      Session(const std::string &name,
+              StreamType &&stream,
+              boost::asio::io_context &ioc,
+              Documents documents,
+              detail::Redirects redirects)
         : stream(std::move(stream))
+        , ioc(ioc)
         , documents(std::move(documents))
         , redirects(std::move(redirects))
       {
+        logger = unfold::utils::Logging::create("test:server:session:" + name);
+        http = std::make_shared<unfold::http::HttpClient>();
       }
+
+      ~Session() = default;
+      Session(const Session &) = delete;
+      Session &operator=(const Session &) = delete;
+      Session(Session &&) = delete;
+      Session &operator=(Session &&) = delete;
 
     private:
       template<bool isRequest, class Body, class Fields>
@@ -100,10 +118,8 @@ namespace unfold::http
         return "application/octet-stream";
       }
 
-      boost::asio::awaitable<void> send_error(boost::beast::http::status status, std::string text, boost::beast::error_code &ec)
+      boost::asio::awaitable<void> send_status(boost::beast::http::status status, std::string text, boost::beast::error_code &ec)
       {
-        logger->error("sending http response: ({})", text);
-
         boost::beast::http::response<boost::beast::http::string_body> res{status, req.version()};
         res.set(boost::beast::http::field::server, BOOST_BEAST_VERSION_STRING);
         res.set(boost::beast::http::field::content_type, "text/html");
@@ -115,20 +131,18 @@ namespace unfold::http
 
       boost::asio::awaitable<void> send_bad_request(std::string_view why, boost::beast::error_code &ec)
       {
-        co_await send_error(boost::beast::http::status::bad_request, std::string(why), ec);
+        co_await send_status(boost::beast::http::status::bad_request, std::string(why), ec);
       }
 
       boost::asio::awaitable<void> send_not_found(std::string_view target, boost::beast::error_code &ec)
       {
-        co_await send_error(boost::beast::http::status::not_found,
-                            "The resource '" + std::string(target) + "' was not found.",
-                            ec);
+        co_await send_status(boost::beast::http::status::not_found,
+                             "The resource '" + std::string(target) + "' was not found.",
+                             ec);
       }
 
       boost::asio::awaitable<void> send_redirect(const std::string_view location, boost::beast::error_code &ec)
       {
-        logger->error("sending http redirect response: ({})", location);
-
         boost::beast::http::response<boost::beast::http::string_body> res{boost::beast::http::status::found, req.version()};
         res.set(boost::beast::http::field::server, BOOST_BEAST_VERSION_STRING);
         res.set(boost::beast::http::field::location, location);
@@ -140,11 +154,100 @@ namespace unfold::http
     protected:
       boost::asio::awaitable<bool> handle_request(boost::beast::error_code &ec)
       {
-        if (req.method() != boost::beast::http::verb::get)
+        if (req.method() == boost::beast::http::verb::connect)
           {
-            logger->error("unknown http method: ({})", req.method_string());
-            co_await send_bad_request("Unknown HTTP method", ec);
+            co_return co_await handle_connect_request(ec);
+          }
+        if (req.method() == boost::beast::http::verb::get)
+          {
+            co_return co_await handle_get_request(ec);
+          }
+        logger->error("unknown http method: ({})", req.method_string());
+        co_await send_bad_request("Unknown HTTP method", ec);
+        co_return false;
+      }
+
+      boost::asio::awaitable<bool> handle_connect_request(boost::beast::error_code &ec)
+      {
+        if (!req.keep_alive())
+          {
+            logger->error("connection must be keepalive");
+            co_await send_bad_request("connection must be keepalive", ec);
+          }
+
+        auto const target = req.target();
+
+        std::vector<std::string> target_parts;
+        boost::algorithm::split(target_parts, target, boost::is_any_of(":"));
+        if (target_parts.size() != 2)
+          {
+            logger->error("invalid target format: ({})", target);
+            co_await send_bad_request("Invalid target format", ec);
             co_return false;
+          }
+
+        std::string host = target_parts[0];
+        std::string port = target_parts[1];
+
+        boost::asio::ip::tcp::resolver resolver(co_await boost::asio::this_coro::executor);
+        auto results = co_await resolver.async_resolve(host, port, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+
+        if (ec)
+          {
+            logger->error("failed to resolve hostname '{}' ({})", host, ec.message());
+            co_return false;
+          }
+
+        boost::asio::ip::tcp::socket peer{ioc};
+        co_await peer.async_connect(*results, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+        if (ec)
+          {
+            logger->error("failed to connected to: ({}) {}", host, ec.message());
+            co_await send_bad_request("Unable to establish connection with remote host", ec);
+            co_return false;
+          }
+        co_await send_status(boost::beast::http::status::ok, "OK", ec);
+
+        co_await boost::asio::experimental::make_parallel_group(
+          boost::asio::co_spawn(
+            ioc,
+            [&]() -> boost::asio::awaitable<void> { co_await forward_data(stream, peer); },
+            boost::asio::deferred),
+          boost::asio::co_spawn(
+            ioc,
+            [&]() -> boost::asio::awaitable<void> { co_await forward_data(peer, stream); },
+            boost::asio::deferred))
+          .async_wait(boost::asio::experimental::wait_for_one(), boost::asio::deferred);
+        co_return false;
+      }
+
+      boost::asio::awaitable<bool> handle_proxied_get_request(boost::beast::error_code &ec)
+      {
+        auto rc = co_await http->get(req.target());
+        if (!rc)
+          {
+            co_await send_not_found(req.target(), ec);
+            co_return false;
+          }
+
+        auto [code, body] = rc.value();
+
+        boost::beast::http::response<boost::beast::http::string_body> res{std::piecewise_construct,
+                                                                          std::make_tuple(body),
+                                                                          std::make_tuple(boost::beast::http::status::ok,
+                                                                                          req.version())};
+        res.set(boost::beast::http::field::server, BOOST_BEAST_VERSION_STRING);
+        res.set(boost::beast::http::field::content_type, mime_type(req.target()));
+        res.content_length(body.size());
+        res.keep_alive(req.keep_alive());
+        co_return co_await send(std::move(res), ec);
+      }
+
+      boost::asio::awaitable<bool> handle_get_request(boost::beast::error_code &ec)
+      {
+        if (!req.target().starts_with("/"))
+          {
+            co_return co_await handle_proxied_get_request(ec);
           }
 
         if (redirects.exists(req.target()))
@@ -171,9 +274,38 @@ namespace unfold::http
             co_return co_await send(std::move(res), ec);
           }
 
-        logger->info("sending not found: ({})", req.target());
         co_await send_not_found(req.target(), ec);
         co_return false;
+      }
+
+      template<typename StringFrom, typename StreamTo>
+      boost::asio::awaitable<void> forward_data(StringFrom &in, StreamTo &out)
+      {
+        std::array<uint8_t, 2048> data{};
+        boost::beast::error_code ec;
+
+        for (;;)
+          {
+            size_t length = co_await in.async_read_some(boost::asio::buffer(data),
+                                                        boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+            if (ec)
+              {
+                break;
+              }
+            co_await boost::asio::async_write(out,
+                                              boost::asio::buffer(data, length),
+                                              boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+            if (ec)
+              {
+                break;
+              }
+          }
+
+        if (ec)
+          {
+            boost::beast::get_lowest_layer(in).close();
+            boost::beast::get_lowest_layer(out).close();
+          }
       }
 
     protected:
@@ -181,17 +313,24 @@ namespace unfold::http
       boost::beast::http::request<boost::beast::http::string_body> req;
 
     private:
+      boost::asio::io_context &ioc;
       Documents documents;
       Redirects redirects;
-      std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("test:server:session")};
+      std::shared_ptr<http::HttpClient> http;
+      std::shared_ptr<spdlog::logger> logger;
     };
 
     class PlainSession : public Session<boost::beast::tcp_stream>
     {
     public:
-      PlainSession(boost::asio::ip::tcp::socket socket, Documents documents, detail::Redirects redirects)
-        : Session<boost::beast::tcp_stream>(boost::beast::tcp_stream(std::move(socket)), documents, redirects)
+      PlainSession(const std::string &name,
+                   boost::asio::ip::tcp::socket socket,
+                   boost::asio::io_context &ioc,
+                   Documents documents,
+                   detail::Redirects redirects)
+        : Session<boost::beast::tcp_stream>(name, boost::beast::tcp_stream(std::move(socket)), ioc, documents, redirects)
       {
+        logger = unfold::utils::Logging::create(std::string("test:server:plainsession:") + name);
       }
 
       boost::asio::awaitable<void> run();
@@ -203,18 +342,21 @@ namespace unfold::http
     class SecureSession : public Session<boost::beast::ssl_stream<boost::beast::tcp_stream>>
     {
     public:
-      SecureSession(boost::asio::ip::tcp::socket socket,
+      SecureSession(const std::string &name,
+                    boost::asio::ip::tcp::socket socket,
                     boost::asio::ssl::context &ctx,
+                    boost::asio::io_context &ioc,
                     Documents documents,
                     detail::Redirects redirects)
-        : Session<boost::beast::ssl_stream<boost::beast::tcp_stream>>({std::move(socket), ctx}, documents, redirects)
+        : Session<boost::beast::ssl_stream<boost::beast::tcp_stream>>(name, {std::move(socket), ctx}, ioc, documents, redirects)
       {
+        logger = unfold::utils::Logging::create(std::string("test:server:securesession:") + name);
       }
 
       boost::asio::awaitable<void> run();
 
     private:
-      std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("test:server:securesession")};
+      std::shared_ptr<spdlog::logger> logger;
     };
   } // namespace detail
 
@@ -228,6 +370,7 @@ namespace unfold::http
   {
   public:
     explicit HttpServer(Protocol protocol = Protocol::Secure, unsigned short port = 1337);
+    explicit HttpServer(const std::string &name, Protocol protocol = Protocol::Secure, unsigned short port = 1337);
     void run();
     void stop();
 
@@ -241,6 +384,7 @@ namespace unfold::http
   private:
     Protocol protocol;
     unsigned short port;
+    std::string name;
     detail::Documents documents;
     detail::Redirects redirects;
     static constexpr int threads{4};

@@ -136,7 +136,6 @@ SecureSession::run()
           logger->error("session write failed ({})", ec.message());
           co_return;
         }
-
       if (close)
         {
           break;
@@ -164,7 +163,6 @@ PlainSession::run()
   for (;;)
     {
       boost::beast::get_lowest_layer(stream).expires_after(std::chrono::seconds(30));
-
       co_await boost::beast::http::async_read(stream, buffer, req, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
       if (ec == boost::beast::http::error::end_of_stream)
         {
@@ -190,7 +188,6 @@ PlainSession::run()
     }
 
   boost::beast::get_lowest_layer(stream).expires_after(std::chrono::seconds(30));
-  // boost::beast::get_lowest_layer(stream).async_shutdown(boost::asio::redirect_error(boost::asio::use_awaitable, ec));
   if (ec)
     {
       logger->error("session shutdown failed ({})", ec.message());
@@ -200,9 +197,16 @@ PlainSession::run()
 HttpServer::HttpServer(Protocol protocol, unsigned short port)
   : protocol(protocol)
   , port(port)
+  , name(std::to_string(port))
 {
 }
 
+HttpServer::HttpServer(const std::string &name, Protocol protocol, unsigned short port)
+  : protocol(protocol)
+  , port(port)
+  , name(name)
+{
+}
 boost::asio::awaitable<void>
 HttpServer::do_listen(boost::asio::ip::tcp::endpoint endpoint)
 {
@@ -252,7 +256,7 @@ HttpServer::do_listen(boost::asio::ip::tcp::endpoint endpoint)
           boost::asio::co_spawn(
             ioc,
             [this, &socket]() -> boost::asio::awaitable<void> {
-              SecureSession session(std::move(socket), ctx, documents, redirects);
+              SecureSession session(name, std::move(socket), ctx, ioc, documents, redirects);
               co_await session.run();
             },
             boost::asio::detached);
@@ -262,7 +266,7 @@ HttpServer::do_listen(boost::asio::ip::tcp::endpoint endpoint)
           boost::asio::co_spawn(
             ioc,
             [this, &socket]() -> boost::asio::awaitable<void> {
-              PlainSession session(std::move(socket), documents, redirects);
+              PlainSession session(name, std::move(socket), ioc, documents, redirects);
               co_await session.run();
             },
             boost::asio::detached);

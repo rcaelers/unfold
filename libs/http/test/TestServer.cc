@@ -55,9 +55,17 @@ main(int argc, char **argv)
 {
   setup_loggin();
 
-  unfold::http::HttpServer server;
-  server.add("/foo", "foo\n");
-  server.run();
+  unfold::http::HttpServer server_secure;
+  server_secure.add("/foo", "foo\n");
+  server_secure.run();
+
+  unfold::http::HttpServer server_plain1(unfold::http::Protocol::Plain, 1338);
+  server_plain1.add("/bar", "bat\n");
+  server_plain1.run();
+
+  unfold::http::HttpServer server_plain2(unfold::http::Protocol::Plain, 1339);
+  server_plain2.add("/baz", "baz\n");
+  server_plain2.run();
 
   while (true)
     {

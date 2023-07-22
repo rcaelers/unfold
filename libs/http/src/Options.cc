@@ -76,3 +76,14 @@ Options::get_max_redirects() const
   return max_redirects;
 }
 
+void
+Options ::set_proxy(const std::string &proxy)
+{
+  this->proxy = proxy;
+}
+
+std::optional<std::string>
+Options::get_proxy() const
+{
+  return proxy;
+}

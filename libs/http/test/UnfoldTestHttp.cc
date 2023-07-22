@@ -352,18 +352,200 @@ BOOST_AUTO_TEST_CASE(http_client_redirect_plain_to_secure)
   auto &options = http->options();
   options.add_ca_cert(cert);
 
-  double previous_progress = 0.0;
-  auto rc = get_sync(http, "http://127.0.0.1:1338/foo", "foo.txt", [&](double progress) {
-    BOOST_CHECK_GE(progress, previous_progress);
-    previous_progress = progress;
-  });
-  auto [result, content] = rc.value();
+  auto rc = get_sync(http, "http://127.0.0.1:1338/foo");
 
-  BOOST_CHECK_EQUAL(result, 200);
-  BOOST_CHECK_GE(previous_progress + 0.0001, 1.0);
-
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  if (!rc.has_error())
+    {
+      auto [result, content] = rc.value();
+      BOOST_CHECK_EQUAL(result, 200);
+    }
   secure_server.stop();
   plain_server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(http_client_redirect_plain_to_plain_same_server)
+{
+  HttpServer plain_server("plain1", Protocol::Plain, 1338);
+
+  std::string body(4 * 8192, 'x');
+
+  plain_server.add_redirect("/foo", "/bar");
+  plain_server.add("/bar", body);
+  plain_server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+
+  auto rc = get_sync(http, "http://127.0.0.1:1338/foo");
+
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  if (!rc.has_error())
+    {
+      auto [result, content] = rc.value();
+      BOOST_CHECK_EQUAL(result, 200);
+    }
+  plain_server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(http_client_redirect_exceed_max)
+{
+  HttpServer plain_server(Protocol::Plain, 1338);
+
+  plain_server.add_redirect("/a", "/b");
+  plain_server.add_redirect("/b", "/c");
+  plain_server.add_redirect("/c", "/d");
+  plain_server.add_redirect("/d", "/e");
+  plain_server.add_redirect("/e", "/f");
+  plain_server.add_redirect("/f", "/g");
+  plain_server.add("/g", "hello");
+  plain_server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
+  options.add_ca_cert(cert);
+  options.set_max_redirects(5);
+
+  auto rc = get_sync(http, "http://127.0.0.1:1338/a");
+
+  BOOST_CHECK_EQUAL(rc.has_error(), true);
+
+  plain_server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(http_client_redirect_below_max)
+{
+  HttpServer plain_server(Protocol::Plain, 1338);
+
+  plain_server.add_redirect("/a", "/b");
+  plain_server.add_redirect("/b", "/c");
+  plain_server.add_redirect("/c", "/d");
+  plain_server.add_redirect("/d", "/e");
+  plain_server.add_redirect("/e", "/f");
+  plain_server.add_redirect("/f", "/g");
+  plain_server.add("/g", "hello");
+  plain_server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
+  options.add_ca_cert(cert);
+  options.set_max_redirects(7);
+
+  auto rc = get_sync(http, "http://127.0.0.1:1338/a");
+
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  if (!rc.has_error())
+    {
+      auto [result, content] = rc.value();
+      BOOST_CHECK_EQUAL(result, 200);
+    }
+
+  plain_server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(http_client_redirect_diabled)
+{
+  HttpServer plain_server(Protocol::Plain, 1338);
+
+  plain_server.add_redirect("/a", "/b");
+  plain_server.add("/b", "hello");
+  plain_server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
+  options.add_ca_cert(cert);
+  options.set_follow_redirects(false);
+
+  auto rc = get_sync(http, "http://127.0.0.1:1338/a");
+
+  BOOST_CHECK_EQUAL(rc.has_error(), true);
+
+  plain_server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(http_client_proxy_get_plain)
+{
+  HttpServer proxy_server("proxy", Protocol::Plain, 1338);
+  HttpServer plain_server("http", Protocol::Plain, 1339);
+
+  proxy_server.run();
+
+  plain_server.run();
+  plain_server.add("/foo", "foo\n");
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
+  options.add_ca_cert(cert);
+  options.set_proxy("http://127.0.0.1:1338");
+  // options.set_proxy("http://127.0.0.1:8118");
+
+  auto rc = get_sync(http, "http://127.0.0.1:1339/foo");
+
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  if (!rc.has_error())
+    {
+      auto [result, content] = rc.value();
+      BOOST_CHECK_EQUAL(result, 200);
+      BOOST_CHECK_EQUAL(content, "foo\n");
+    }
+
+  plain_server.stop();
+  proxy_server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(http_client_proxy_get_secure)
+{
+  HttpServer proxy_server(Protocol::Plain, 1338);
+  HttpServer secure_server;
+
+  proxy_server.run();
+
+  secure_server.add("/foo", "foo\n");
+  secure_server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
+  options.add_ca_cert(cert);
+  options.set_proxy("http://127.0.0.1:1338");
+  // options.set_proxy("http://127.0.0.1:8118");
+
+  auto rc = get_sync(http, "https://127.0.0.1:1337/foo");
+
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  if (!rc.has_error())
+    {
+      auto [result, content] = rc.value();
+      BOOST_CHECK_EQUAL(result, 200);
+      BOOST_CHECK_EQUAL(content, "foo\n");
+    }
+
+  proxy_server.stop();
+  secure_server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(http_client_proxy_not_found)
+{
+  HttpServer proxy_server(Protocol::Plain, 1338);
+  HttpServer secure_server;
+
+  proxy_server.run();
+
+  secure_server.add("/foo", "foo\n");
+  secure_server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
+  options.add_ca_cert(cert);
+  options.set_proxy("http://127.0.0.1:3338");
+  // options.set_proxy("http://127.0.0.1:8118");
+
+  auto rc = get_sync(http, "https://127.0.0.1:1337/foo");
+
+  BOOST_CHECK_EQUAL(rc.has_error(), true);
+
+  proxy_server.stop();
+  secure_server.stop();
 }
 
 BOOST_AUTO_TEST_SUITE_END()

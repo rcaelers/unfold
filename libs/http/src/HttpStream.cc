@@ -64,30 +64,37 @@ HttpStream::HttpStream(Options options_)
 boost::asio::awaitable<outcome::std_result<HttpStream::response_t>>
 HttpStream::execute(std::string url_str, std::string filename, ProgressCallback cb)
 {
-  auto rc = parse_url(url_str);
-  if (!rc)
+  auto url_rc = parse_url(url_str);
+  if (!url_rc)
     {
-      co_return rc.as_failure();
+      co_return url_rc.as_failure();
     }
+  requested_url = url_rc.value();
 
   outcome::std_result<HttpStream::response_t> response_rc = outcome::success();
   while (true)
     {
       if (connect_required())
         {
-          rc = co_await connect();
+          auto rc = co_await connect();
           if (!rc)
             {
               co_return rc.as_failure();
             }
 
-          if (is_tls())
+          if (is_tls_connection() && connected_url)
             {
-              rc = co_await encrypt_connection();
+              rc = co_await encrypt_connection(*connected_url);
               if (!rc)
                 {
                   co_return rc.as_failure();
                 }
+            }
+
+          rc = co_await proxy_connection();
+          if (!rc)
+            {
+              co_return rc.as_failure();
             }
         }
 
@@ -116,7 +123,7 @@ HttpStream::execute(std::string url_str, std::string filename, ProgressCallback 
 boost::asio::awaitable<outcome::std_result<HttpStream::response_t>>
 HttpStream::send_receive_request(std::string filename, ProgressCallback cb)
 {
-  if (is_tls())
+  if (is_tls_connection() || is_tls_requested())
     {
       co_return co_await send_receive_request(secure_stream, filename, cb);
     }
@@ -154,7 +161,7 @@ HttpStream::send_receive_request(StreamType stream, std::string filename, Progre
   co_return response_rc.value();
 }
 
-outcome::std_result<void>
+outcome::std_result<boost::urls::url>
 HttpStream::parse_url(const std::string &u)
 {
   auto url_rc = boost::urls::parse_uri(u);
@@ -164,27 +171,45 @@ HttpStream::parse_url(const std::string &u)
       logger->error("malformed URL '{}' ({})", u, url_rc.error());
       return HttpClientErrc::MalformedURL;
     }
-  url = url_rc.value();
+  boost::urls::url url = url_rc.value();
 
   if (url.port().empty())
     {
-      url.set_port(is_tls() ? "443" : "80");
+      url.set_port(url.scheme() == "https" ? "443" : "80");
     }
 
-  return outcome::success();
+  return url;
+}
+
+boost::urls::url
+HttpStream::get_connect_url()
+{
+  auto proxy_url = options.get_proxy();
+
+  if (proxy_url)
+    {
+      auto rc = parse_url(*proxy_url);
+      if (rc)
+        {
+          return rc.value();
+        }
+    }
+  return requested_url;
 }
 
 bool
 HttpStream::connect_required()
 {
-  return !current_url || url.host() != (*current_url).host() || url.port() != (*current_url).port()
-         || url.scheme() != (*current_url).scheme();
+  auto url = get_connect_url();
+  return !connected_url || url.host() != (*connected_url).host() || url.port() != (*connected_url).port()
+         || url.scheme() != (*connected_url).scheme();
 }
 
 boost::asio::awaitable<outcome::std_result<void>>
 HttpStream::connect()
 {
-  current_url = url;
+  auto url = get_connect_url();
+  connected_url.reset();
 
   auto executor = co_await boost::asio::this_coro::executor;
   plain_stream = std::make_shared<boost::beast::tcp_stream>(executor);
@@ -206,15 +231,15 @@ HttpStream::connect()
     .async_connect(results, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
   if (ec)
     {
-      logger->error("failed to connect to '{}' ({})", url.host(), ec.message());
+      logger->error("failed to connect to '{}:{}' ({})", url.host(), url.port(), ec.message());
       co_return HttpClientErrc::ConnectionRefused;
     }
-
+  connected_url = url;
   co_return outcome::success();
 }
 
 boost::asio::awaitable<outcome::std_result<void>>
-HttpStream::encrypt_connection()
+HttpStream::encrypt_connection(boost::urls::url url)
 {
   secure_stream = std::make_shared<boost::beast::ssl_stream<boost::beast::tcp_stream>>(plain_stream->release_socket(), ctx);
   auto rc = init_certificates();
@@ -239,20 +264,107 @@ HttpStream::encrypt_connection()
       logger->error("failed to perform TLS handshake with '{}' ({})", url.host(), ec.message());
       co_return HttpClientErrc::CommunicationError;
     }
+
+  co_return outcome::success();
+}
+
+boost::asio::awaitable<outcome::std_result<void>>
+HttpStream::proxy_connection()
+{
+  if (is_tls_connection())
+    {
+      co_return co_await proxy_connection(secure_stream);
+    }
+  co_return co_await proxy_connection(plain_stream);
+}
+
+template<typename StreamType>
+boost::asio::awaitable<outcome::std_result<void>>
+HttpStream::proxy_connection(StreamType stream)
+{
+  auto proxy = options.get_proxy();
+
+  if (!proxy || !is_tls_requested())
+    {
+      co_return outcome::success();
+    }
+
+  constexpr auto http_version = 11;
+  auto target = requested_url.host() + std::string(":") + std::string(requested_url.port());
+  boost::beast::http::request<boost::beast::http::string_body> req;
+  req.method(boost::beast::http::verb::connect);
+  req.target(target);
+  req.keep_alive(true);
+  req.version(http_version);
+  req.set(boost::beast::http::field::host, connected_url->host());
+  req.set(boost::beast::http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+  req.prepare_payload();
+
+  boost::system::error_code ec;
+
+  boost::beast::get_lowest_layer(*stream).expires_after(TIMEOUT);
+  co_await boost::beast::http::async_write(*stream, req, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+  if (ec)
+    {
+      logger->error("failed to send HTTP connect request to '{}' ({})", connected_url->host(), ec.message());
+      co_return HttpClientErrc::CommunicationError;
+    }
+
+  boost::beast::flat_buffer buffer;
+  boost::beast::http::response_parser<boost::beast::http::empty_body> header_parser;
+  header_parser.skip(true);
+
+  buffer.max_size(16384);
+  co_await boost::beast::http::async_read_header(*stream,
+                                                 buffer,
+                                                 header_parser,
+                                                 boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+  if (ec)
+    {
+      logger->error("failed to read HTTP header from {} ({})", connected_url->host(), ec.message());
+      co_return HttpClientErrc::CommunicationError;
+    }
+
+  if (boost::beast::http::to_status_class(header_parser.get().result()) != boost::beast::http::status_class::successful)
+    {
+      logger->error("failed to proxy to {} ({})", connected_url->host(), header_parser.get().result_int());
+      co_return HttpClientErrc::CommunicationError;
+    }
+
+  if (is_tls_requested())
+    {
+      auto rc = co_await encrypt_connection(requested_url);
+      if (!rc)
+        {
+          co_return rc.as_failure();
+        }
+    }
   co_return outcome::success();
 }
 
 boost::beast::http::request<boost::beast::http::string_body>
 HttpStream::create_request()
 {
+  std::string target;
+  auto proxy = options.get_proxy();
+
+  if (proxy && !is_tls_requested())
+    {
+      target = requested_url.c_str();
+    }
+  else
+    {
+      target = requested_url.path();
+    }
+
   constexpr auto http_version = 11;
-  boost::beast::http::request<boost::beast::http::string_body> req{boost::beast::http::verb::get,
-                                                                   url.encoded_path(),
-                                                                   http_version};
-  req.set(boost::beast::http::field::host, url.host());
+  boost::beast::http::request<boost::beast::http::string_body> req;
+  req.method(boost::beast::http::verb::get);
+  req.target(target);
+  req.version(http_version);
+  req.set(boost::beast::http::field::host, requested_url.host());
   req.set(boost::beast::http::field::user_agent, BOOST_BEAST_VERSION_STRING);
   req.prepare_payload();
-  req.keep_alive(true);
 
   return req;
 }
@@ -267,7 +379,7 @@ HttpStream::send_request(StreamType stream, request_t request)
   co_await boost::beast::http::async_write(*stream, request, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
   if (ec)
     {
-      logger->error("failed to send HTTP request to '{}' ({})", url.host(), ec.message());
+      logger->error("failed to send HTTP request to '{}' ({})", connected_url->host(), ec.message());
       co_return HttpClientErrc::CommunicationError;
     }
 
@@ -285,7 +397,7 @@ HttpStream::receive_response_body(StreamType stream)
   co_await boost::beast::http::async_read(*stream, buffer, parser, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
   if (ec)
     {
-      logger->error("failed to read HTTP response from {} ({})", url.host(), ec.message());
+      logger->error("failed to read HTTP response from {} ({})", connected_url->host(), ec.message());
       co_return HttpClientErrc::CommunicationError;
     }
   co_return parser.get();
@@ -306,7 +418,7 @@ HttpStream::receive_response_body_as_file(StreamType stream, std::string filenam
                                                  boost::asio::redirect_error(boost::asio::use_awaitable, ec));
   if (ec)
     {
-      logger->error("failed to read HTTP header from {} ({})", url.host(), ec.message());
+      logger->error("failed to read HTTP header from {} ({})", connected_url->host(), ec.message());
       co_return HttpClientErrc::CommunicationError;
     }
 
@@ -319,7 +431,7 @@ HttpStream::receive_response_body_as_file(StreamType stream, std::string filenam
                                               boost::asio::redirect_error(boost::asio::use_awaitable, ec));
       if (ec)
         {
-          logger->error("failed to read HTTP file response from {} ({})", url.host(), ec.message());
+          logger->error("failed to read HTTP file response from {} ({})", connected_url->host(), ec.message());
           co_return HttpClientErrc::CommunicationError;
         }
       co_return string_parser.get();
@@ -355,7 +467,7 @@ HttpStream::receive_response_body_as_file(StreamType stream, std::string filenam
         }
       if (ec)
         {
-          logger->error("failed to read HTTP file response from {} ({})", url.host(), ec.message());
+          logger->error("failed to read HTTP file response from {} ({})", connected_url->host(), ec.message());
           co_return HttpClientErrc::CommunicationError;
         }
 
@@ -376,7 +488,7 @@ outcome::std_result<bool>
 HttpStream::handle_redirect(response_t response)
 {
   redirect_count++;
-  if (redirect_count > options.get_max_redirects())
+  if (redirect_count > options.get_max_redirects() || !options.get_follow_redirects())
     {
       logger->error("too many redirects");
       return HttpClientErrc::TooManyRedirects;
@@ -394,13 +506,13 @@ HttpStream::handle_redirect(response_t response)
 
       if (redirect_url.empty())
         {
-          logger->error("no Location header in redirect response from {}", url.host());
+          logger->error("no Location header in redirect response from {}", connected_url->host());
           return HttpClientErrc::CommunicationError;
         }
 
       if (redirect_url[0] == '/')
         {
-          url.set_path(redirect_url);
+          requested_url.set_path(redirect_url);
         }
       else
         {
@@ -410,6 +522,7 @@ HttpStream::handle_redirect(response_t response)
               logger->error("malformed redirect URL '{}'", redirect_url);
               return HttpClientErrc::MalformedURL;
             }
+          requested_url = std::move(url_rc.value());
         }
       return true;
     }
@@ -455,7 +568,7 @@ HttpStream::shutdown_impl<std::shared_ptr<HttpStream::plain_stream_t>>(std::shar
 boost::asio::awaitable<void>
 HttpStream::shutdown()
 {
-  if (is_tls())
+  if (is_tls_connection())
     {
       co_return co_await shutdown_impl(secure_stream);
     }
@@ -524,7 +637,13 @@ HttpStream::is_ok(auto code)
 }
 
 bool
-HttpStream::is_tls()
+HttpStream::is_tls_connection()
 {
-  return url.scheme() == "https";
+  return connected_url && connected_url->scheme() == "https";
+}
+
+bool
+HttpStream::is_tls_requested()
+{
+  return connected_url && requested_url.scheme() == "https";
 }

@@ -169,6 +169,81 @@ BOOST_AUTO_TEST_CASE(http_client_get_secure)
   server.stop();
 }
 
+BOOST_AUTO_TEST_CASE(http_client_get_secure_many)
+{
+  HttpServer server1;
+  server1.add("/foo", "foo\n");
+  server1.add("/bar", "bar\n");
+  server1.run();
+
+  HttpServer server2(Protocol::Secure, 1338);
+  server2.add("/foo", "foo\n");
+  server2.add("/bar", "bar\n");
+  server2.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
+  options.add_ca_cert(cert);
+
+  auto rc = get_sync(http, "https://127.0.0.1:1337/foo");
+
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  if (!rc.has_error())
+    {
+      auto [result, content] = rc.value();
+      BOOST_CHECK_EQUAL(result, 200);
+      BOOST_CHECK_EQUAL(content, "foo\n");
+    }
+
+  rc = get_sync(http, "https://127.0.0.1:1337/bar");
+
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  if (!rc.has_error())
+    {
+      auto [result, content] = rc.value();
+      BOOST_CHECK_EQUAL(result, 200);
+      BOOST_CHECK_EQUAL(content, "bar\n");
+    }
+
+  rc = get_sync(http, "https://127.0.0.1:1338/foo");
+
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  if (!rc.has_error())
+    {
+      auto [result, content] = rc.value();
+      BOOST_CHECK_EQUAL(result, 200);
+      BOOST_CHECK_EQUAL(content, "foo\n");
+    }
+
+    rc = get_sync(http, "https://127.0.0.1:1338/bar");
+
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  if (!rc.has_error())
+    {
+      auto [result, content] = rc.value();
+      BOOST_CHECK_EQUAL(result, 200);
+      BOOST_CHECK_EQUAL(content, "bar\n");
+    }
+
+  rc = get_sync(http, "https://127.0.0.1:1337/bar");
+
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  if (!rc.has_error())
+    {
+      auto [result, content] = rc.value();
+      BOOST_CHECK_EQUAL(result, 200);
+      BOOST_CHECK_EQUAL(content, "bar\n");
+    }
+
+  server1.stop();
+  server2.stop();
+}
+
 BOOST_AUTO_TEST_CASE(http_client_get_plain)
 {
   HttpServer server(Protocol::Plain);
@@ -191,6 +266,67 @@ BOOST_AUTO_TEST_CASE(http_client_get_plain)
     }
 
   server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(http_client_get_plain_many)
+{
+  HttpServer server1(Protocol::Plain);
+  server1.add("/foo", "foo\n");
+  server1.add("/bar", "bar\n");
+  server1.run();
+
+  HttpServer server2(Protocol::Plain, 1338);
+  server2.add("/foo", "foo\n");
+  server2.add("/bar", "bar\n");
+  server2.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
+  options.add_ca_cert(cert);
+
+  auto rc = get_sync(http, "http://127.0.0.1:1337/foo");
+
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  if (!rc.has_error())
+    {
+      auto [result, content] = rc.value();
+      BOOST_CHECK_EQUAL(result, 200);
+      BOOST_CHECK_EQUAL(content, "foo\n");
+    }
+
+  rc = get_sync(http, "http://127.0.0.1:1337/bar");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  if (!rc.has_error())
+    {
+      auto [result, content] = rc.value();
+      BOOST_CHECK_EQUAL(result, 200);
+      BOOST_CHECK_EQUAL(content, "bar\n");
+    }
+
+  rc = get_sync(http, "http://127.0.0.1:1338/foo");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  if (!rc.has_error())
+    {
+      auto [result, content] = rc.value();
+      BOOST_CHECK_EQUAL(result, 200);
+      BOOST_CHECK_EQUAL(content, "foo\n");
+    }
+
+  rc = get_sync(http, "http://127.0.0.1:1337/bar");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  if (!rc.has_error())
+    {
+      auto [result, content] = rc.value();
+      BOOST_CHECK_EQUAL(result, 200);
+      BOOST_CHECK_EQUAL(content, "bar\n");
+    }
+
+  server1.stop();
+  server2.stop();
 }
 
 BOOST_AUTO_TEST_CASE(http_client_get_plain_special_characters)

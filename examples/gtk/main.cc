@@ -102,6 +102,8 @@ main(int argc, char *argv[])
   SetEnvironmentVariableA("GDK_WIN32_DISABLE_HIDPI", "1");
 #endif
 
+  spdlog::set_level(spdlog::level::debug);
+
   unfold::http::HttpServer server;
   server.add_file("/appcast.xml", "../../test/appcast.xml");
   server.add_file("/workrave-1.11.0-alpha.1.exe", "../../test/junk");
@@ -147,12 +149,7 @@ main(int argc, char *argv[])
 
   unfold::coro::glib::scheduler scheduler(g_main_context_default(), io_context.get_io_context());
 
-  Glib::signal_timeout().connect(
-    []() {
-      spdlog::info("timer");
-      return 1;
-    },
-    500);
+  Glib::signal_timeout().connect([]() { return 1; }, 500);
 
   Glib::signal_timeout().connect(
     [updater, &app, &scheduler]() {

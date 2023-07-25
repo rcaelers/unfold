@@ -27,6 +27,7 @@
 #include <fmt/core.h>
 #include <fmt/format.h>
 #include <boost/system/error_code.hpp>
+#include <boost/core/detail/string_view.hpp>
 
 namespace unfold::utils
 {
@@ -46,6 +47,15 @@ struct fmt::formatter<boost::system::error_code> : fmt::formatter<std::string>
     ss << e;
     auto s = ss.str();
     return fmt::formatter<std::string>::format(s, ctx);
+  }
+};
+
+template<typename C>
+struct fmt::formatter<boost::core::basic_string_view<C>> : fmt::formatter<std::string_view>
+{
+  auto format(const typename boost::core::basic_string_view<C> &s, format_context &ctx) const
+  {
+    return fmt::formatter<std::string_view>::format((std::string_view(s)), ctx);
   }
 };
 

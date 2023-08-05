@@ -22,6 +22,7 @@
 #define UNFOLD_ERRORS_HH
 
 #include <system_error>
+#include <optional>
 
 namespace unfold
 {
@@ -38,6 +39,7 @@ namespace unfold
   };
 
   std::error_code make_error_code(UnfoldErrc ec);
+  std::optional<UnfoldErrc> to_errc(const std::error_code &ec);
 
 } // namespace unfold
 

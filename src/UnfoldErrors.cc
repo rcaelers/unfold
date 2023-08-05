@@ -65,3 +65,13 @@ unfold::make_error_code(UnfoldErrc ec)
 {
   return std::error_code{static_cast<int>(ec), globalUnfoldErrorCategory};
 }
+
+std::optional<UnfoldErrc>
+unfold::to_errc(const std::error_code &ec)
+{
+  if (ec.category() == globalUnfoldErrorCategory)
+    {
+      return static_cast<UnfoldErrc>(ec.value());
+    }
+  return {};
+}

@@ -150,7 +150,7 @@ namespace unfold::coro
 
     auto operator co_await() & = delete;
 
-    auto operator co_await() const &&noexcept
+    auto operator co_await() const && noexcept
     {
       return detail::task_awaitable{handle_};
     }

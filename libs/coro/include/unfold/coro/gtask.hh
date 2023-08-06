@@ -86,7 +86,9 @@ namespace unfold::coro
       executer &operator=(const executer &) = delete;
 
       executer(executer &&other) noexcept
-        : context_(std::exchange(other.context_, nullptr))
+        : func_(std::exchange(other.func_, nullptr))
+        , context_(std::exchange(other.context_, nullptr))
+
       {
       }
 
@@ -95,6 +97,7 @@ namespace unfold::coro
         if (std::addressof(other) != this)
           {
             context_ = std::exchange(other.context_, nullptr);
+            func_ = std::exchange(other.func_, nullptr);
           }
 
         return *this;
@@ -113,7 +116,11 @@ namespace unfold::coro
       static gboolean on_resume_coroutine(gpointer data)
       {
         auto *self = static_cast<executer *>(data);
-        self->func_();
+        auto f = std::exchange(self->func_, nullptr);
+        if (f)
+          {
+            f();
+          }
         return FALSE;
       }
 

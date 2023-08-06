@@ -116,12 +116,8 @@ namespace unfold::coro
       static gboolean on_resume_coroutine(gpointer data)
       {
         auto *self = static_cast<executer *>(data);
-        auto f = std::exchange(self->func_, nullptr);
-        if (f)
-          {
-            f();
-          }
-        return FALSE;
+        self->func_();
+        return G_SOURCE_REMOVE;
       }
 
     private:

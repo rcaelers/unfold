@@ -171,6 +171,7 @@ void
 UpgradeControl::set_update_status_callback(update_status_callback_t callback)
 {
   update_status_callback = callback;
+  installer->set_update_status_callback(callback);
 }
 
 std::optional<std::chrono::system_clock::time_point>
@@ -198,9 +199,9 @@ boost::asio::awaitable<outcome::std_result<void>>
 UpgradeControl::check_for_update_and_notify()
 {
   auto rc = co_await check_for_update_and_notify(true);
-  if (update_status_callback)
+  if (update_status_callback && rc.has_error())
     {
-      update_status_callback(rc);
+      update_status_callback(rc.as_failure());
     }
   co_return rc;
 }
@@ -333,9 +334,9 @@ UpgradeControl::init_periodic_update_check()
         logger->error("failed to perform periodic check for updates: {}", rc.error().message());
       }
 
-    if (update_status_callback)
+    if (update_status_callback && rc.has_error())
       {
-        update_status_callback(rc);
+        update_status_callback(rc.as_failure());
       }
 
     update_check_timer();

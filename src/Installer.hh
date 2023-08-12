@@ -37,6 +37,7 @@ public:
 
   virtual void set_download_progress_callback(unfold::Unfold::download_progress_callback_t callback) = 0;
   virtual boost::asio::awaitable<outcome::std_result<void>> install(std::shared_ptr<AppcastItem> item) = 0;
+  virtual void set_update_status_callback(unfold::Unfold::update_status_callback_t callback) = 0;
 };
 
 #endif // INSTALLER_HH

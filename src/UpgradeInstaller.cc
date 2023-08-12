@@ -35,6 +35,7 @@
 #include <boost/url/parse.hpp>
 #include <boost/process.hpp>
 
+#include "Unfold.hh"
 #include "UnfoldErrors.hh"
 #include "crypto/SignatureVerifier.hh"
 #include "utils/TempDirectory.hh"
@@ -56,6 +57,12 @@ void
 UpgradeInstaller::set_download_progress_callback(unfold::Unfold::download_progress_callback_t callback)
 {
   this->progress_callback = callback;
+}
+
+void
+UpgradeInstaller::set_update_status_callback(unfold::Unfold::update_status_callback_t callback)
+{
+  this->update_status_callback = callback;
 }
 
 boost::asio::awaitable<outcome::std_result<void>>
@@ -98,6 +105,11 @@ UpgradeInstaller::download_installer()
     {
       logger->info("downloading {} to {}", item->enclosure->url, installer_path.string());
 
+      if (update_status_callback)
+        {
+          update_status_callback(unfold::UpdateState::DownloadInstaller);
+        }
+
       auto rc = co_await http->get(item->enclosure->url, installer_path.string(), [&](double progress) {
         if (progress_callback)
           {
@@ -127,6 +139,11 @@ UpgradeInstaller::download_installer()
 boost::asio::awaitable<outcome::std_result<void>>
 UpgradeInstaller::verify_installer()
 {
+  if (update_status_callback)
+    {
+      update_status_callback(unfold::UpdateState::VerifyInstaller);
+    }
+
   std::error_code ec;
   std::uintmax_t size = std::filesystem::file_size(installer_path, ec);
   if (ec)
@@ -178,6 +195,11 @@ UpgradeInstaller::fix_permissions()
 boost::asio::awaitable<outcome::std_result<void>>
 UpgradeInstaller::run_installer()
 {
+  if (update_status_callback)
+    {
+      update_status_callback(unfold::UpdateState::RunInstaller);
+    }
+
   fix_permissions();
 
   try

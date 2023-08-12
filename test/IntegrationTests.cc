@@ -29,6 +29,7 @@
 #include <openssl/pem.h>
 #include <openssl/err.h>
 
+#include "unfold/Unfold.hh"
 #include "unfold/UnfoldErrors.hh"
 #include "http/HttpServer.hh"
 #include "utils/Base64.hh"
@@ -147,6 +148,28 @@ namespace
 
 } // namespace
 
+template<>
+struct unfold::utils::enum_traits<unfold::UpdateState>
+{
+  static constexpr auto min = unfold::UpdateState::DownloadInstaller;
+  static constexpr auto max = unfold::UpdateState::RunInstaller;
+  static constexpr auto linear = true;
+
+  static constexpr std::array<std::pair<std::string_view, unfold::UpdateState>, 3> names{
+    {{"Download", unfold::UpdateState::DownloadInstaller},
+     {"Run", unfold::UpdateState::RunInstaller},
+     {"Verify", unfold::UpdateState::VerifyInstaller}}};
+};
+
+namespace unfold
+{
+  inline std::ostream &operator<<(std::ostream &os, unfold::UpdateState e)
+  {
+    os << unfold::utils::enum_to_string(e);
+    return os;
+  }
+} // namespace unfold
+
 struct IntegrationTestFixture
 {
   IntegrationTestFixture()
@@ -241,13 +264,25 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check_alpha)
     last_progress = progress;
   });
 
-  std::optional<outcome::std_result<void>> status;
-  control.set_update_status_callback([&](outcome::std_result<void> rc) {
-    status = rc;
+  std::optional<outcome::std_result<unfold::UpdateState>> status;
+  control.set_update_status_callback([&](outcome::std_result<unfold::UpdateState> rc) {
     if (rc.has_error())
       {
-        spdlog::info("Update status ", rc.error().message());
+        spdlog::info("Update status {}", rc.error().message());
       }
+    else
+      {
+        spdlog::info("Update status {}", rc.value());
+        if (!status)
+          {
+            BOOST_CHECK_EQUAL(rc.value(), unfold::UpdateState::DownloadInstaller);
+          }
+        else
+          {
+            BOOST_CHECK_EQUAL(rc.value(), (*status).value() + 1);
+          }
+      }
+    status = rc;
   });
 
   control.get_hooks()->hook_terminate() = []() { return false; };
@@ -293,8 +328,9 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check_alpha)
     },
     boost::asio::detached);
   ioc.run();
-
-  BOOST_CHECK_EQUAL(status.has_value(), false);
+  BOOST_CHECK_EQUAL(status.has_value(), true);
+  BOOST_CHECK_EQUAL(status->has_value(), true);
+  BOOST_CHECK_EQUAL((*status).value(), unfold::UpdateState::RunInstaller);
 }
 
 BOOST_AUTO_TEST_CASE(upgrade_control_check_release)
@@ -325,13 +361,25 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check_release)
     last_progress = progress;
   });
 
-  std::optional<outcome::std_result<void>> status;
-  control.set_update_status_callback([&](outcome::std_result<void> rc) {
-    status = rc;
+  std::optional<outcome::std_result<unfold::UpdateState>> status;
+  control.set_update_status_callback([&](outcome::std_result<unfold::UpdateState> rc) {
     if (rc.has_error())
       {
-        spdlog::info("Update status ", rc.error().message());
+        spdlog::info("Update status {}", rc.error().message());
       }
+    else
+      {
+        spdlog::info("Update status {}", rc.value());
+        if (!status)
+          {
+            BOOST_CHECK_EQUAL(rc.value(), unfold::UpdateState::DownloadInstaller);
+          }
+        else
+          {
+            BOOST_CHECK_EQUAL(rc.value(), (*status).value() + 1);
+          }
+      }
+    status = rc;
   });
 
   control.get_hooks()->hook_terminate() = []() { return false; };
@@ -377,8 +425,9 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check_release)
     },
     boost::asio::detached);
   ioc.run();
-
-  BOOST_CHECK_EQUAL(status.has_value(), false);
+  BOOST_CHECK_EQUAL(status.has_value(), true);
+  BOOST_CHECK_EQUAL(status->has_value(), true);
+  BOOST_CHECK_EQUAL((*status).value(), unfold::UpdateState::RunInstaller);
 }
 
 BOOST_AUTO_TEST_CASE(upgrade_last_upgrade_time)
@@ -455,21 +504,23 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_later)
     co_return unfold::UpdateResponse::Later;
   });
 
-  std::optional<outcome::std_result<void>> status;
-  control.set_update_status_callback([&](outcome::std_result<void> rc) {
+  std::optional<outcome::std_result<unfold::UpdateState>> status;
+  control.set_update_status_callback([&](outcome::std_result<unfold::UpdateState> rc) {
     status = rc;
     if (rc.has_error())
       {
-        spdlog::info("Update status ", rc.error().message());
+        spdlog::info("Update status {}", rc.error().message());
+      }
+    else
+      {
+        spdlog::info("Update status {}", rc.value());
       }
   });
 
   control.set_periodic_update_check_enabled(true);
 
   io_context.wait();
-
-  BOOST_CHECK_EQUAL(status.has_value(), true);
-  BOOST_CHECK_EQUAL(status->has_error(), false);
+  BOOST_CHECK_EQUAL(status.has_value(), false);
 }
 
 BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_skip)
@@ -498,12 +549,16 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_skip)
     co_return unfold::UpdateResponse::Skip;
   });
 
-  std::optional<outcome::std_result<void>> status;
-  control.set_update_status_callback([&](outcome::std_result<void> rc) {
+  std::optional<outcome::std_result<unfold::UpdateState>> status;
+  control.set_update_status_callback([&](outcome::std_result<unfold::UpdateState> rc) {
     status = rc;
     if (rc.has_error())
       {
-        spdlog::info("Update status ", rc.error().message());
+        spdlog::info("Update status {}", rc.error().message());
+      }
+    else
+      {
+        spdlog::info("Update status {}", rc.value());
       }
   });
 
@@ -512,8 +567,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_skip)
   io_context.wait();
 
   BOOST_CHECK_EQUAL(control.get_skip_version(), "1.11.0-alpha.1");
-  BOOST_CHECK_EQUAL(status.has_value(), true);
-  BOOST_CHECK_EQUAL(status->has_error(), false);
+  BOOST_CHECK_EQUAL(status.has_value(), false);
 }
 
 BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_install_now)
@@ -542,14 +596,29 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_install_now)
     co_return unfold::UpdateResponse::Install;
   });
 
-  std::optional<outcome::std_result<void>> status;
-  control.set_update_status_callback([&](outcome::std_result<void> rc) {
-    status = rc;
+  std::optional<outcome::std_result<unfold::UpdateState>> status;
+  control.set_update_status_callback([&](outcome::std_result<unfold::UpdateState> rc) {
     if (rc.has_error())
       {
-        spdlog::info("Update status ", rc.error().message());
+        spdlog::info("Update status {}", rc.error().message());
       }
-    io_context.stop();
+    else
+      {
+        spdlog::info("Update status {}", rc.value());
+        if (!status)
+          {
+            BOOST_CHECK_EQUAL(rc.value(), unfold::UpdateState::DownloadInstaller);
+          }
+        else
+          {
+            BOOST_CHECK_EQUAL(rc.value(), (*status).value() + 1);
+            if (rc.value() == unfold::UpdateState::RunInstaller)
+              {
+                io_context.stop();
+              }
+          }
+      }
+    status = rc;
   });
 
   control.set_periodic_update_check_enabled(true);
@@ -566,9 +635,6 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_install_now)
     }
   while (tries > 0 && !found);
   BOOST_CHECK(found);
-
-  BOOST_CHECK_EQUAL(status.has_value(), true);
-  BOOST_CHECK_EQUAL(status->has_error(), false);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

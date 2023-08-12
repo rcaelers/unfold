@@ -1,5 +1,5 @@
 if (HAVE_TESTS)
-  add_executable(unfold-test-utils UnfoldTestUtils.cc)
+  add_executable(unfold-test-utils UnfoldTestUtils.cc EnumTest.cc)
   target_code_coverage(unfold-test-utils ALL AUTO EXCLUDE _build test/)
 
   target_link_libraries(unfold-test-utils PRIVATE unfold-utils)

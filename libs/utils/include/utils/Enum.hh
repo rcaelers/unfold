@@ -378,6 +378,13 @@ operator++(Enum &e, int) noexcept
   return ret;
 }
 
+template<typename Enum, typename = std::enable_if_t<unfold::utils::enum_traits<Enum>::linear>>
+constexpr Enum
+operator+(Enum &e, int d) noexcept
+{
+  return static_cast<Enum>(unfold::utils::underlying_cast(e) + d);
+}
+
 template<typename Enum, typename = std::enable_if_t<unfold::utils::enum_traits<Enum>::flag>>
 constexpr auto
 operator|(Enum lhs, Enum rhs) noexcept

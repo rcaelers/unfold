@@ -44,6 +44,7 @@ public:
                             std::shared_ptr<Hooks> hooks);
 
   void set_download_progress_callback(unfold::Unfold::download_progress_callback_t callback) override;
+  void set_update_status_callback(unfold::Unfold::update_status_callback_t callback) override;
 
   boost::asio::awaitable<outcome::std_result<void>> install(std::shared_ptr<AppcastItem> item) override;
 
@@ -64,6 +65,7 @@ private:
   std::shared_ptr<AppcastItem> item;
   std::filesystem::path installer_path;
   unfold::Unfold::download_progress_callback_t progress_callback;
+  unfold::Unfold::update_status_callback_t update_status_callback;
   std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:installer")};
 };
 

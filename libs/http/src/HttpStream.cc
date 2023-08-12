@@ -381,6 +381,7 @@ HttpStream::create_request()
   req.method(boost::beast::http::verb::get);
   req.target(target);
   req.version(http_version);
+  req.keep_alive(false);
   req.set(boost::beast::http::field::host, requested_url.host());
   req.set(boost::beast::http::field::user_agent, BOOST_BEAST_VERSION_STRING);
   req.prepare_payload();

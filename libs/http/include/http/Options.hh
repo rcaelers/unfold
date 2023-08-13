@@ -37,12 +37,20 @@ namespace unfold::http
   public:
     Options() = default;
 
+    enum class ProxyType
+    {
+      None,
+      System,
+      Custom
+    };
+
     void add_ca_cert(const std::string &cert);
     void set_keep_alive(bool keep_alive);
     void set_follow_redirects(bool follow_redirects);
     void set_max_redirects(int max_redirects);
     void set_timeout(std::chrono::seconds timeout);
-    void set_proxy(const std::string &proxy);
+    void set_proxy(ProxyType proxy);
+    void set_custom_proxy(const std::string &proxy);
     void set_progress_callback(std::function<void(double progress)> progress_callback);
 
     std::list<std::string> get_ca_certs() const;
@@ -50,7 +58,8 @@ namespace unfold::http
     bool get_follow_redirects() const;
     int get_max_redirects() const;
     std::chrono::seconds get_timeout() const;
-    std::optional<std::string> get_proxy() const;
+    std::string get_custom_proxy() const;
+    ProxyType get_proxy() const;
     std::function<void(double progress)> get_progress_callback() const;
 
   private:
@@ -58,7 +67,8 @@ namespace unfold::http
     bool keep_alive = true;
     bool follow_redirects = true;
     int max_redirects = 5;
-    std::optional<std::string> proxy;
+    ProxyType proxy = ProxyType::None;
+    std::string custom_proxy;
     std::chrono::seconds timeout = std::chrono::seconds(30);
     std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:http")};
   };

@@ -36,6 +36,7 @@
 #include "http/Options.hh"
 #include "http/HttpClient.hh"
 #include "http/HttpClientErrors.hh"
+#include "SystemProxy.hh"
 
 namespace outcome = boost::outcome_v2;
 
@@ -63,6 +64,8 @@ namespace unfold::http
     bool is_tls_requested();
 
     outcome::std_result<void> init_certificates();
+
+    boost::asio::awaitable<std::optional<std::string>> get_proxy_for_url(std::string url) const;
 
     outcome::std_result<boost::urls::url> parse_url(const std::string &u);
     boost::urls::url get_connect_url();
@@ -107,7 +110,9 @@ namespace unfold::http
     std::shared_ptr<secure_stream_t> secure_stream;
     int redirect_count{0};
     boost::urls::url requested_url;
+    std::optional<std::string> proxy_url;
     std::optional<boost::urls::url> connected_url;
+    std::shared_ptr<SystemProxy> system_proxy;
     std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold::http:connection")};
   };
 } // namespace unfold::http

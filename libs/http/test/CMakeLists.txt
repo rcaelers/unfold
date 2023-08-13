@@ -1,4 +1,11 @@
 if (HAVE_TESTS)
+  add_executable(proxy ProxyTest.cc)
+  target_link_libraries(proxy PRIVATE unfold-http unfold-utils)
+  target_link_libraries(proxy PRIVATE spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto)
+  target_link_libraries(proxy PRIVATE ${EXTRA_LIBRARIES})
+  target_include_directories(proxy PRIVATE ${PROJECT_SOURCE_DIR}/libs/http/src)
+  target_code_coverage(proxy ALL AUTO EXCLUDE _build libs/utils test/)
+
   add_executable(unfold-test-http UnfoldTestHttp.cc)
   target_code_coverage(unfold-test-http ALL AUTO EXCLUDE _build libs/utils test/)
 
@@ -6,8 +13,6 @@ if (HAVE_TESTS)
   target_link_libraries(unfold-test-http PRIVATE Boost::test_exec_monitor)
   target_link_libraries(unfold-test-http PRIVATE spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto)
   target_link_libraries(unfold-test-http PRIVATE ${EXTRA_LIBRARIES})
-
-  target_include_directories(unfold-test-http PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
   add_test(NAME unfold-test-http COMMAND unfold-test-http)
 

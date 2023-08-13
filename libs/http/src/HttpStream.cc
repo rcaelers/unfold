@@ -18,7 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "http/HttpStream.hh"
+#include "HttpStream.hh"
 
 #include <algorithm>
 #include <array>
@@ -46,6 +46,7 @@
 
 #if defined(WIN32)
 #  include <wincrypt.h>
+#  include "windows/WindowsSystemProxy.hh"
 #endif
 
 using namespace unfold::http;
@@ -59,6 +60,30 @@ HttpStream::HttpStream(Options options_)
   ctx.set_default_verify_paths();
 #endif
   ctx.set_verify_mode(boost::asio::ssl::verify_peer);
+
+#if defined(WIN32)
+  system_proxy = std::make_unique<WindowsSystemProxy>();
+#endif
+}
+
+boost::asio::awaitable<std::optional<std::string>>
+HttpStream::get_proxy_for_url(std::string url) const
+{
+  switch (options.get_proxy())
+    {
+    case Options::ProxyType::None:
+      co_return std::optional<std::string>{};
+    case Options::ProxyType::Custom:
+      co_return options.get_custom_proxy();
+    case Options::ProxyType::System:
+#if defined(WIN32)
+      co_return co_await system_proxy->get_system_proxy_for_url(url);
+#else
+      return std::optional<std::string>{};
+#endif
+    }
+
+  co_return std::optional<std::string>{};
 }
 
 boost::asio::awaitable<outcome::std_result<HttpStream::response_t>>
@@ -70,6 +95,8 @@ HttpStream::execute(std::string url_str, std::string filename, ProgressCallback 
       co_return url_rc.as_failure();
     }
   requested_url = url_rc.value();
+
+  proxy_url = co_await get_proxy_for_url(requested_url.c_str());
 
   outcome::std_result<HttpStream::response_t> response_rc = outcome::success();
   while (true)
@@ -123,6 +150,11 @@ HttpStream::execute(std::string url_str, std::string filename, ProgressCallback 
           break;
         }
       logger->info("executing redirecting to {}", requested_url.c_str());
+
+      if (!response_rc.value().keep_alive())
+        {
+          co_await shutdown();
+        }
     }
 
   co_await shutdown();
@@ -195,13 +227,12 @@ HttpStream::parse_url(const std::string &u)
 boost::urls::url
 HttpStream::get_connect_url()
 {
-  auto proxy_url = options.get_proxy();
-
   if (proxy_url)
     {
       auto rc = parse_url(*proxy_url);
       if (rc)
         {
+          spdlog::debug("using proxy {}", rc.value().c_str());
           return rc.value();
         }
     }
@@ -299,9 +330,7 @@ template<typename StreamType>
 boost::asio::awaitable<outcome::std_result<void>>
 HttpStream::proxy_connection(StreamType stream)
 {
-  auto proxy = options.get_proxy();
-
-  if (!proxy || !is_tls_requested())
+  if (!proxy_url || !is_tls_requested())
     {
       co_return outcome::success();
     }
@@ -363,11 +392,10 @@ boost::beast::http::request<boost::beast::http::string_body>
 HttpStream::create_request()
 {
   std::string target;
-  auto proxy = options.get_proxy();
 
-  if (proxy && !is_tls_requested())
+  if (proxy_url && !is_tls_requested())
     {
-      logger->debug("using http via proxy {}", *proxy);
+      logger->debug("using http via proxy {}", *proxy_url);
       target = requested_url.c_str();
     }
   else
@@ -623,6 +651,7 @@ HttpStream::shutdown()
       co_await shutdown_impl(plain_stream);
       plain_stream.reset();
     }
+  connected_url.reset();
 }
 
 outcome::std_result<void>

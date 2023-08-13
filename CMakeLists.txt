@@ -110,6 +110,7 @@ if(NOT ${spdlog_FOUND})
   FetchContent_MakeAvailable(spdlog)
   install(TARGETS spdlog)
 endif()
+add_definitions(-DSPDLOG_WCHAR_TO_UTF8_SUPPORT)
 
 #----------------------------------------------------------------------------------------------------
 # Semver

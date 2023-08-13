@@ -220,7 +220,7 @@ namespace unfold::http
             [&]() -> boost::asio::awaitable<void> { co_await forward_data(peer, stream); },
             boost::asio::deferred))
           .async_wait(boost::asio::experimental::wait_for_one(), boost::asio::deferred);
-        co_return false;
+        co_return !req.keep_alive();
       }
 
       boost::asio::awaitable<bool> handle_proxied_get_request(boost::beast::error_code &ec)

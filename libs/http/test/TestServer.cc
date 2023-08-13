@@ -42,7 +42,7 @@ setup_loggin()
   logger->flush_on(spdlog::level::critical);
   spdlog::set_default_logger(logger);
 
-  spdlog::set_level(spdlog::level::info);
+  spdlog::set_level(spdlog::level::debug);
   spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%^%-5l%$] %v");
 
 #if SPDLOG_VERSION >= 10801
@@ -66,6 +66,23 @@ main(int argc, char **argv)
   unfold::http::HttpServer server_plain2(unfold::http::Protocol::Plain, 1339);
   server_plain2.add("/baz", "baz\n");
   server_plain2.run();
+
+  std::string pac =
+    "function FindProxyForURL(url, host) \n"
+    "{\n"
+    "   if (isPlainHostName(host) || dnsDomainIs(host, \".apple.com\"))\n"
+    "   {\n"
+    "       return \"DIRECT\"\n"
+    "   }\n"
+    "   else\n"
+    "   {\n"
+    "       return \"PROXY localhost:8118; PROXY localhost:8000; DIRECT\";\n"
+    "   }\n"
+    "}\n";
+
+  unfold::http::HttpServer server_pac(unfold::http::Protocol::Plain, 8888);
+  server_pac.add("/proxy.pac", pac);
+  server_pac.run();
 
   while (true)
     {

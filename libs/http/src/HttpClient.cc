@@ -38,7 +38,7 @@
 #include <boost/asio/spawn.hpp>
 
 #include "http/HttpClientErrors.hh"
-#include "http/HttpStream.hh"
+#include "HttpStream.hh"
 
 #include <boost/outcome/result.hpp>
 #include <utility>

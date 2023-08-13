@@ -171,7 +171,7 @@ void
 UpgradeControl::set_update_status_callback(update_status_callback_t callback)
 {
   update_status_callback = callback;
-  }
+}
 
 std::optional<std::chrono::system_clock::time_point>
 UpgradeControl::get_last_update_check_time()
@@ -340,4 +340,27 @@ UpgradeControl::init_periodic_update_check()
 
     update_check_timer();
   });
+}
+
+void
+UpgradeControl::set_proxy(unfold::ProxyType proxy)
+{
+  switch (proxy)
+    {
+    case unfold::ProxyType::None:
+      http->options().set_proxy(unfold::http::Options::ProxyType::None);
+      break;
+    case unfold::ProxyType::System:
+      http->options().set_proxy(unfold::http::Options::ProxyType::System);
+      break;
+    case unfold::ProxyType::Custom:
+      http->options().set_proxy(unfold::http::Options::ProxyType::Custom);
+      break;
+    }
+}
+
+void
+UpgradeControl::set_custom_proxy(const std::string &proxy)
+{
+  http->options().set_custom_proxy(proxy);
 }

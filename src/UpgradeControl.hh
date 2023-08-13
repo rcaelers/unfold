@@ -78,6 +78,9 @@ public:
   void reset_skip_version() override;
   std::string get_skip_version() const override;
 
+  void set_proxy(unfold::ProxyType proxy) override;
+  void set_custom_proxy(const std::string &proxy) override;
+
   boost::asio::awaitable<outcome::std_result<void>> check_for_update_and_notify(bool ignore_skip_version);
 
 private:

@@ -25,7 +25,7 @@
 #include "http/HttpServer.hh"
 
 #include "TestPlatform.hh"
-#include "Fixture.hpp"
+#include "TestBase.hh"
 #include "UpgradeChecker.hh"
 
 namespace

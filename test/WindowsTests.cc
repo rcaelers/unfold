@@ -28,7 +28,7 @@
 #include "windows/WindowsPlatform.hh"
 
 #include "SignatureVerifierMock.hh"
-#include "Fixture.hpp"
+#include "TestBase.hh"
 
 BOOST_FIXTURE_TEST_SUITE(unfold_windows_test, Fixture)
 

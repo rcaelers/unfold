@@ -34,6 +34,7 @@
 #include "http/HttpServer.hh"
 #include "utils/Base64.hh"
 
+#include "TestBase.hh"
 #include "TestPlatform.hh"
 #include "UpgradeControl.hh"
 
@@ -148,28 +149,6 @@ namespace
 
 } // namespace
 
-template<>
-struct unfold::utils::enum_traits<unfold::UpdateState>
-{
-  static constexpr auto min = unfold::UpdateState::DownloadInstaller;
-  static constexpr auto max = unfold::UpdateState::RunInstaller;
-  static constexpr auto linear = true;
-
-  static constexpr std::array<std::pair<std::string_view, unfold::UpdateState>, 3> names{
-    {{"Download", unfold::UpdateState::DownloadInstaller},
-     {"Run", unfold::UpdateState::RunInstaller},
-     {"Verify", unfold::UpdateState::VerifyInstaller}}};
-};
-
-namespace unfold
-{
-  inline std::ostream &operator<<(std::ostream &os, unfold::UpdateState e)
-  {
-    os << unfold::utils::enum_to_string(e);
-    return os;
-  }
-} // namespace unfold
-
 struct IntegrationTestFixture
 {
   IntegrationTestFixture()
@@ -259,28 +238,34 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check_alpha)
   BOOST_CHECK_EQUAL(rc.has_error(), false);
 
   double last_progress = 0.0;
-  control.set_download_progress_callback([&last_progress](auto progress) {
-    BOOST_CHECK_GE(progress, last_progress);
-    last_progress = progress;
-  });
-
-  std::optional<outcome::std_result<unfold::UpdateState>> status;
-  control.set_update_status_callback([&](outcome::std_result<unfold::UpdateState> rc) {
-    if (rc.has_error())
+  std::optional<unfold::UpdateStage> last_stage;
+  control.set_download_progress_callback([&last_stage, &last_progress](unfold::UpdateStage stage, auto progress) {
+    if (stage == unfold::UpdateStage::DownloadInstaller)
       {
-        spdlog::info("Update status {}", rc.error().message());
+        BOOST_CHECK_GE(progress, last_progress);
+        last_progress = progress;
+      }
+
+    if (!last_stage)
+      {
+        BOOST_CHECK_EQUAL(stage, unfold::UpdateStage::DownloadInstaller);
+      }
+    else if (*last_stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        BOOST_CHECK(stage == unfold::UpdateStage::DownloadInstaller || stage == unfold::UpdateStage::VerifyInstaller);
       }
     else
       {
-        spdlog::info("Update status {}", rc.value());
-        if (!status)
-          {
-            BOOST_CHECK_EQUAL(rc.value(), unfold::UpdateState::DownloadInstaller);
-          }
-        else
-          {
-            BOOST_CHECK_EQUAL(rc.value(), (*status).value() + 1);
-          }
+        BOOST_CHECK_EQUAL(stage, *last_stage + 1);
+      }
+    last_stage = stage;
+  });
+
+  std::optional<outcome::std_result<void>> status;
+  control.set_update_status_callback([&](outcome::std_result<void> rc) {
+    if (rc.has_error())
+      {
+        spdlog::info("Update status {}", rc.error().message());
       }
     status = rc;
   });
@@ -328,9 +313,8 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check_alpha)
     },
     boost::asio::detached);
   ioc.run();
-  BOOST_CHECK_EQUAL(status.has_value(), true);
-  BOOST_CHECK_EQUAL(status->has_value(), true);
-  BOOST_CHECK_EQUAL((*status).value(), unfold::UpdateState::RunInstaller);
+  BOOST_CHECK_EQUAL(status.has_value(), false);
+  BOOST_CHECK_EQUAL(*last_stage, unfold::UpdateStage::RunInstaller);
 }
 
 BOOST_AUTO_TEST_CASE(upgrade_control_check_release)
@@ -356,28 +340,34 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check_release)
   BOOST_CHECK_EQUAL(rc.has_error(), false);
 
   double last_progress = 0.0;
-  control.set_download_progress_callback([&last_progress](auto progress) {
-    BOOST_CHECK_GE(progress, last_progress);
-    last_progress = progress;
-  });
-
-  std::optional<outcome::std_result<unfold::UpdateState>> status;
-  control.set_update_status_callback([&](outcome::std_result<unfold::UpdateState> rc) {
-    if (rc.has_error())
+  std::optional<unfold::UpdateStage> last_stage;
+  control.set_download_progress_callback([&last_stage, &last_progress](unfold::UpdateStage stage, auto progress) {
+    if (stage == unfold::UpdateStage::DownloadInstaller)
       {
-        spdlog::info("Update status {}", rc.error().message());
+        BOOST_CHECK_GE(progress, last_progress);
+        last_progress = progress;
+      }
+
+    if (!last_stage)
+      {
+        BOOST_CHECK_EQUAL(stage, unfold::UpdateStage::DownloadInstaller);
+      }
+    else if (*last_stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        BOOST_CHECK(stage == unfold::UpdateStage::DownloadInstaller || stage == unfold::UpdateStage::VerifyInstaller);
       }
     else
       {
-        spdlog::info("Update status {}", rc.value());
-        if (!status)
-          {
-            BOOST_CHECK_EQUAL(rc.value(), unfold::UpdateState::DownloadInstaller);
-          }
-        else
-          {
-            BOOST_CHECK_EQUAL(rc.value(), (*status).value() + 1);
-          }
+        BOOST_CHECK_EQUAL(stage, *last_stage + 1);
+      }
+    last_stage = stage;
+  });
+
+  std::optional<outcome::std_result<void>> status;
+  control.set_update_status_callback([&](outcome::std_result<void> rc) {
+    if (rc.has_error())
+      {
+        spdlog::info("Update status {}", rc.error().message());
       }
     status = rc;
   });
@@ -425,9 +415,8 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check_release)
     },
     boost::asio::detached);
   ioc.run();
-  BOOST_CHECK_EQUAL(status.has_value(), true);
-  BOOST_CHECK_EQUAL(status->has_value(), true);
-  BOOST_CHECK_EQUAL((*status).value(), unfold::UpdateState::RunInstaller);
+  BOOST_CHECK_EQUAL(status.has_value(), false);
+  BOOST_CHECK_EQUAL(*last_stage, unfold::UpdateStage::RunInstaller);
 }
 
 BOOST_AUTO_TEST_CASE(upgrade_last_upgrade_time)
@@ -504,16 +493,12 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_later)
     co_return unfold::UpdateResponse::Later;
   });
 
-  std::optional<outcome::std_result<unfold::UpdateState>> status;
-  control.set_update_status_callback([&](outcome::std_result<unfold::UpdateState> rc) {
+  std::optional<outcome::std_result<void>> status;
+  control.set_update_status_callback([&](outcome::std_result<void> rc) {
     status = rc;
     if (rc.has_error())
       {
         spdlog::info("Update status {}", rc.error().message());
-      }
-    else
-      {
-        spdlog::info("Update status {}", rc.value());
       }
   });
 
@@ -549,16 +534,12 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_skip)
     co_return unfold::UpdateResponse::Skip;
   });
 
-  std::optional<outcome::std_result<unfold::UpdateState>> status;
-  control.set_update_status_callback([&](outcome::std_result<unfold::UpdateState> rc) {
+  std::optional<outcome::std_result<void>> status;
+  control.set_update_status_callback([&](outcome::std_result<void> rc) {
     status = rc;
     if (rc.has_error())
       {
         spdlog::info("Update status {}", rc.error().message());
-      }
-    else
-      {
-        spdlog::info("Update status {}", rc.value());
       }
   });
 
@@ -595,28 +576,18 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_install_now)
     control.set_periodic_update_check_enabled(false);
     co_return unfold::UpdateResponse::Install;
   });
+  control.set_download_progress_callback([&](unfold::UpdateStage stage, auto progress) {
+    if (stage == unfold::UpdateStage::RunInstaller)
+      {
+        io_context.stop();
+      }
+  });
 
-  std::optional<outcome::std_result<unfold::UpdateState>> status;
-  control.set_update_status_callback([&](outcome::std_result<unfold::UpdateState> rc) {
+  std::optional<outcome::std_result<void>> status;
+  control.set_update_status_callback([&](outcome::std_result<void> rc) {
     if (rc.has_error())
       {
         spdlog::info("Update status {}", rc.error().message());
-      }
-    else
-      {
-        spdlog::info("Update status {}", rc.value());
-        if (!status)
-          {
-            BOOST_CHECK_EQUAL(rc.value(), unfold::UpdateState::DownloadInstaller);
-          }
-        else
-          {
-            BOOST_CHECK_EQUAL(rc.value(), (*status).value() + 1);
-            if (rc.value() == unfold::UpdateState::RunInstaller)
-              {
-                io_context.stop();
-              }
-          }
       }
     status = rc;
   });

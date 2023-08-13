@@ -26,7 +26,7 @@
 #include <sstream>
 
 #include "Settings.hh"
-#include "Fixture.hpp"
+#include "TestBase.hh"
 #include "SettingsStorage.hh"
 #include "SettingsStorageMock.hh"
 #include "UnfoldInternalErrors.hh"

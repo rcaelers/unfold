@@ -102,21 +102,21 @@ struct MockedTestFixture
 };
 
 template<>
-struct unfold::utils::enum_traits<unfold::UpdateState>
+struct unfold::utils::enum_traits<unfold::UpdateStage>
 {
-  static constexpr auto min = unfold::UpdateState::DownloadInstaller;
-  static constexpr auto max = unfold::UpdateState::RunInstaller;
+  static constexpr auto min = unfold::UpdateStage::DownloadInstaller;
+  static constexpr auto max = unfold::UpdateStage::RunInstaller;
   static constexpr auto linear = true;
 
-  static constexpr std::array<std::pair<std::string_view, unfold::UpdateState>, 3> names{
-    {{"Download", unfold::UpdateState::DownloadInstaller},
-     {"Run", unfold::UpdateState::RunInstaller},
-     {"Verify", unfold::UpdateState::VerifyInstaller}}};
+  static constexpr std::array<std::pair<std::string_view, unfold::UpdateStage>, 3> names{
+    {{"Download", unfold::UpdateStage::DownloadInstaller},
+     {"Run", unfold::UpdateStage::RunInstaller},
+     {"Verify", unfold::UpdateStage::VerifyInstaller}}};
 };
 
 namespace unfold
 {
-  inline std::ostream &operator<<(std::ostream &os, unfold::UpdateState e)
+  inline std::ostream &operator<<(std::ostream &os, unfold::UpdateStage e)
   {
     os << unfold::utils::enum_to_string(e);
     return os;
@@ -197,7 +197,6 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_later)
 BOOST_AUTO_TEST_CASE(upgrade_control_checker_failed)
 {
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(*installer, set_update_status_callback(_)).Times(AtLeast(1));
 
   bool available{false};
   control->set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
@@ -206,8 +205,8 @@ BOOST_AUTO_TEST_CASE(upgrade_control_checker_failed)
     co_return unfold::UpdateResponse::Later;
   });
 
-  std::optional<outcome::std_result<unfold::UpdateState>> status;
-  control->set_update_status_callback([&](outcome::std_result<unfold::UpdateState> rc) {
+  std::optional<outcome::std_result<void>> status;
+  control->set_update_status_callback([&](outcome::std_result<void> rc) {
     status = rc;
     if (rc.has_error())
       {
@@ -247,7 +246,6 @@ BOOST_AUTO_TEST_CASE(upgrade_control_checker_failed)
 BOOST_AUTO_TEST_CASE(upgrade_control_no_upgrade_available)
 {
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(*installer, set_update_status_callback(_)).Times(AtLeast(1));
 
   bool available{false};
   control->set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
@@ -257,23 +255,11 @@ BOOST_AUTO_TEST_CASE(upgrade_control_no_upgrade_available)
     co_return unfold::UpdateResponse::Later;
   });
 
-  std::optional<outcome::std_result<unfold::UpdateState>> status;
-  control->set_update_status_callback([&](outcome::std_result<unfold::UpdateState> rc) {
+  std::optional<outcome::std_result<void>> status;
+  control->set_update_status_callback([&](outcome::std_result<void> rc) {
     if (rc.has_error())
       {
         spdlog::info("Update status {}", rc.error().message());
-      }
-    else
-      {
-        spdlog::info("Update status {}", rc.value());
-        if (!status)
-          {
-            BOOST_CHECK_EQUAL(rc.value(), unfold::UpdateState::DownloadInstaller);
-          }
-        else
-          {
-            BOOST_CHECK_EQUAL(rc.value(), (*status).value() + 1);
-          }
       }
     status = rc;
   });
@@ -307,7 +293,6 @@ BOOST_AUTO_TEST_CASE(upgrade_control_no_upgrade_available)
 BOOST_AUTO_TEST_CASE(upgrade_control_no_upgrade_info)
 {
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(*installer, set_update_status_callback(_)).Times(AtLeast(1));
 
   bool available{false};
   control->set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
@@ -317,8 +302,8 @@ BOOST_AUTO_TEST_CASE(upgrade_control_no_upgrade_info)
     co_return unfold::UpdateResponse::Later;
   });
 
-  std::optional<outcome::std_result<unfold::UpdateState>> status;
-  control->set_update_status_callback([&](outcome::std_result<unfold::UpdateState> rc) {
+  std::optional<outcome::std_result<void>> status;
+  control->set_update_status_callback([&](outcome::std_result<void> rc) {
     status = rc;
     if (rc.has_error())
       {
@@ -359,7 +344,6 @@ BOOST_AUTO_TEST_CASE(upgrade_control_no_upgrade_info)
 BOOST_AUTO_TEST_CASE(upgrade_control_skip_version)
 {
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(*installer, set_update_status_callback(_)).Times(AtLeast(1));
 
   bool available{false};
   control->set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
@@ -369,8 +353,8 @@ BOOST_AUTO_TEST_CASE(upgrade_control_skip_version)
     co_return unfold::UpdateResponse::Later;
   });
 
-  std::optional<outcome::std_result<unfold::UpdateState>> status;
-  control->set_update_status_callback([&](outcome::std_result<unfold::UpdateState> rc) {
+  std::optional<outcome::std_result<void>> status;
+  control->set_update_status_callback([&](outcome::std_result<void> rc) {
     status = rc;
     if (rc.has_error())
       {
@@ -423,7 +407,6 @@ BOOST_AUTO_TEST_CASE(upgrade_control_skip_version)
 BOOST_AUTO_TEST_CASE(upgrade_control_skip_version_ignore)
 {
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(*installer, set_update_status_callback(_)).Times(AtLeast(1));
 
   bool available{false};
   control->set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
@@ -433,23 +416,11 @@ BOOST_AUTO_TEST_CASE(upgrade_control_skip_version_ignore)
     co_return unfold::UpdateResponse::Later;
   });
 
-  std::optional<outcome::std_result<unfold::UpdateState>> status;
-  control->set_update_status_callback([&](outcome::std_result<unfold::UpdateState> rc) {
+  std::optional<outcome::std_result<void>> status;
+  control->set_update_status_callback([&](outcome::std_result<void> rc) {
     if (rc.has_error())
       {
         spdlog::info("Update status {}", rc.error().message());
-      }
-    else
-      {
-        spdlog::info("Update status {}", rc.value());
-        if (!status)
-          {
-            BOOST_CHECK_EQUAL(rc.value(), unfold::UpdateState::DownloadInstaller);
-          }
-        else
-          {
-            BOOST_CHECK_EQUAL(rc.value(), (*status).value() + 1);
-          }
       }
     status = rc;
   });
@@ -496,10 +467,8 @@ BOOST_AUTO_TEST_CASE(upgrade_control_skip_version_ignore)
 
 BOOST_AUTO_TEST_CASE(upgrade_control_no_callback)
 {
-  EXPECT_CALL(*installer, set_update_status_callback(_)).Times(AtLeast(1));
-
-  std::optional<outcome::std_result<unfold::UpdateState>> status;
-  control->set_update_status_callback([&](outcome::std_result<unfold::UpdateState> rc) {
+  std::optional<outcome::std_result<void>> status;
+  control->set_update_status_callback([&](outcome::std_result<void> rc) {
     status = rc;
     if (rc.has_error())
       {
@@ -550,8 +519,6 @@ BOOST_AUTO_TEST_CASE(upgrade_control_no_callback)
 
 BOOST_AUTO_TEST_CASE(upgrade_control_callback_later)
 {
-  EXPECT_CALL(*installer, set_update_status_callback(_)).Times(AtLeast(1));
-
   EXPECT_CALL(*storage, set_value("SkipVersion", SettingValue{""})).Times(1).WillOnce(Return(outcome::success()));
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
 
@@ -563,8 +530,8 @@ BOOST_AUTO_TEST_CASE(upgrade_control_callback_later)
     co_return unfold::UpdateResponse::Later;
   });
 
-  std::optional<outcome::std_result<unfold::UpdateState>> status;
-  control->set_update_status_callback([&](outcome::std_result<unfold::UpdateState> rc) {
+  std::optional<outcome::std_result<void>> status;
+  control->set_update_status_callback([&](outcome::std_result<void> rc) {
     status = rc;
     if (rc.has_error())
       {
@@ -612,7 +579,6 @@ BOOST_AUTO_TEST_CASE(upgrade_control_callback_later)
 BOOST_AUTO_TEST_CASE(upgrade_control_callback_skip)
 {
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(*installer, set_update_status_callback(_)).Times(AtLeast(1));
 
   bool available{false};
   control->set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
@@ -622,8 +588,8 @@ BOOST_AUTO_TEST_CASE(upgrade_control_callback_skip)
     co_return unfold::UpdateResponse::Skip;
   });
 
-  std::optional<outcome::std_result<unfold::UpdateState>> status;
-  control->set_update_status_callback([&](outcome::std_result<unfold::UpdateState> rc) {
+  std::optional<outcome::std_result<void>> status;
+  control->set_update_status_callback([&](outcome::std_result<void> rc) {
     status = rc;
     if (rc.has_error())
       {
@@ -678,7 +644,6 @@ BOOST_AUTO_TEST_CASE(upgrade_control_callback_skip)
 BOOST_AUTO_TEST_CASE(upgrade_control_callback_install)
 {
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(*installer, set_update_status_callback(_)).Times(AtLeast(1));
 
   bool available{false};
   control->set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
@@ -688,23 +653,11 @@ BOOST_AUTO_TEST_CASE(upgrade_control_callback_install)
     co_return unfold::UpdateResponse::Install;
   });
 
-  std::optional<outcome::std_result<unfold::UpdateState>> status;
-  control->set_update_status_callback([&](outcome::std_result<unfold::UpdateState> rc) {
+  std::optional<outcome::std_result<void>> status;
+  control->set_update_status_callback([&](outcome::std_result<void> rc) {
     if (rc.has_error())
       {
         spdlog::info("Update status {}", rc.error().message());
-      }
-    else
-      {
-        spdlog::info("Update status {}", rc.value());
-        if (!status)
-          {
-            BOOST_CHECK_EQUAL(rc.value(), unfold::UpdateState::DownloadInstaller);
-          }
-        else
-          {
-            BOOST_CHECK_EQUAL(rc.value(), (*status).value() + 1);
-          }
       }
     status = rc;
   });
@@ -760,7 +713,6 @@ BOOST_AUTO_TEST_CASE(upgrade_control_callback_install)
 BOOST_AUTO_TEST_CASE(upgrade_control_callback_install_failed)
 {
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(*installer, set_update_status_callback(_)).Times(AtLeast(1));
 
   bool available{false};
   control->set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
@@ -770,8 +722,8 @@ BOOST_AUTO_TEST_CASE(upgrade_control_callback_install_failed)
     co_return unfold::UpdateResponse::Install;
   });
 
-  std::optional<outcome::std_result<unfold::UpdateState>> status;
-  control->set_update_status_callback([&](outcome::std_result<unfold::UpdateState> rc) {
+  std::optional<outcome::std_result<void>> status;
+  control->set_update_status_callback([&](outcome::std_result<void> rc) {
     status = rc;
     if (rc.has_error())
       {

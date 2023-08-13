@@ -21,7 +21,7 @@
 #include <boost/test/unit_test.hpp>
 #include <spdlog/spdlog.h>
 
-#include "Fixture.hpp"
+#include "TestBase.hh"
 #include "AppCast.hh"
 
 BOOST_FIXTURE_TEST_SUITE(unfold_appcast_test, Fixture)

@@ -171,8 +171,7 @@ void
 UpgradeControl::set_update_status_callback(update_status_callback_t callback)
 {
   update_status_callback = callback;
-  installer->set_update_status_callback(callback);
-}
+  }
 
 std::optional<std::chrono::system_clock::time_point>
 UpgradeControl::get_last_update_check_time()

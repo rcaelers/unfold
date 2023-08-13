@@ -59,7 +59,7 @@ namespace unfold
     Skip,
   };
 
-  enum class UpdateState
+  enum class UpdateStage
   {
     DownloadInstaller,
     VerifyInstaller,
@@ -75,8 +75,8 @@ namespace unfold
     virtual ~Unfold() = default;
 
     using update_available_callback_t = std::function<boost::asio::awaitable<UpdateResponse>()>;
-    using update_status_callback_t = std::function<void(outcome::std_result<UpdateState>)>;
-    using download_progress_callback_t = std::function<void(double progress)>;
+    using update_status_callback_t = std::function<void(outcome::std_result<void>)>;
+    using download_progress_callback_t = std::function<void(UpdateStage stage, double progress)>;
 
     static std::shared_ptr<Unfold> create(unfold::coro::IOContext &io_context);
 

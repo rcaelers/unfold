@@ -59,12 +59,6 @@ UpgradeInstaller::set_download_progress_callback(unfold::Unfold::download_progre
   this->progress_callback = callback;
 }
 
-void
-UpgradeInstaller::set_update_status_callback(unfold::Unfold::update_status_callback_t callback)
-{
-  this->update_status_callback = callback;
-}
-
 boost::asio::awaitable<outcome::std_result<void>>
 UpgradeInstaller::install(std::shared_ptr<AppcastItem> item)
 {
@@ -105,15 +99,15 @@ UpgradeInstaller::download_installer()
     {
       logger->info("downloading {} to {}", item->enclosure->url, installer_path.string());
 
-      if (update_status_callback)
+      if (progress_callback)
         {
-          update_status_callback(unfold::UpdateState::DownloadInstaller);
+          progress_callback(unfold::UpdateStage::DownloadInstaller, 0.0);
         }
 
       auto rc = co_await http->get(item->enclosure->url, installer_path.string(), [&](double progress) {
         if (progress_callback)
           {
-            progress_callback(progress);
+            progress_callback(unfold::UpdateStage::DownloadInstaller, progress);
           }
       });
       if (!rc)
@@ -139,9 +133,9 @@ UpgradeInstaller::download_installer()
 boost::asio::awaitable<outcome::std_result<void>>
 UpgradeInstaller::verify_installer()
 {
-  if (update_status_callback)
+  if (progress_callback)
     {
-      update_status_callback(unfold::UpdateState::VerifyInstaller);
+      progress_callback(unfold::UpdateStage::VerifyInstaller, 0.0);
     }
 
   std::error_code ec;
@@ -195,9 +189,9 @@ UpgradeInstaller::fix_permissions()
 boost::asio::awaitable<outcome::std_result<void>>
 UpgradeInstaller::run_installer()
 {
-  if (update_status_callback)
+  if (progress_callback)
     {
-      update_status_callback(unfold::UpdateState::RunInstaller);
+      progress_callback(unfold::UpdateStage::RunInstaller, 0.0);
     }
 
   fix_permissions();

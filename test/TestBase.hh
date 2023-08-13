@@ -18,12 +18,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef FIXTURE_HPP
-#define FIXTURE_HPP
+#ifndef TESTBASE_HH
+#define TESTBASE_HH
 
 #include <memory>
 
 #include "utils/Logging.hh"
+#include "utils/Enum.hh"
+#include "unfold/Unfold.hh"
 
 struct Fixture
 {
@@ -39,4 +41,26 @@ private:
   std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("test")};
 };
 
-#endif // FIXTURE_HPP
+template<>
+struct unfold::utils::enum_traits<unfold::UpdateStage>
+{
+  static constexpr auto min = unfold::UpdateStage::DownloadInstaller;
+  static constexpr auto max = unfold::UpdateStage::RunInstaller;
+  static constexpr auto linear = true;
+
+  static constexpr std::array<std::pair<std::string_view, unfold::UpdateStage>, 3> names{
+    {{"Download", unfold::UpdateStage::DownloadInstaller},
+     {"Run", unfold::UpdateStage::RunInstaller},
+     {"Verify", unfold::UpdateStage::VerifyInstaller}}};
+};
+
+namespace unfold
+{
+  inline std::ostream &operator<<(std::ostream &os, unfold::UpdateStage e)
+  {
+    os << unfold::utils::enum_to_string(e);
+    return os;
+  }
+} // namespace unfold
+
+#endif // TESTBASE_HH

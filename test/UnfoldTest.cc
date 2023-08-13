@@ -32,7 +32,7 @@
 #endif
 #include <spdlog/fmt/ostr.h>
 
-#include "Fixture.hpp"
+#include "TestBase.hh"
 #include "unfold/UnfoldErrors.hh"
 #include "UnfoldInternalErrors.hh"
 

@@ -29,7 +29,7 @@
 #include "unfold/UnfoldErrors.hh"
 
 #include "AppCast.hh"
-#include "Fixture.hpp"
+#include "TestBase.hh"
 #include "Hooks.hh"
 #include "UpgradeInstaller.hh"
 #include "SignatureVerifierMock.hh"
@@ -521,10 +521,29 @@ BOOST_DATA_TEST_CASE(installer_started_installer,
   UpgradeInstaller installer(platform, http, verifier, hooks);
 
   double last_progress = 0.0;
-  installer.set_download_progress_callback([&last_progress](auto progress) {
-    BOOST_CHECK_GE(progress, last_progress);
-    last_progress = progress;
+  std::optional<unfold::UpdateStage> last_stage;
+  installer.set_download_progress_callback([&last_stage, &last_progress](unfold::UpdateStage stage, auto progress) {
+    if (stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        BOOST_CHECK_GE(progress, last_progress);
+        last_progress = progress;
+      }
+
+    if (!last_stage)
+      {
+        BOOST_CHECK_EQUAL(stage, unfold::UpdateStage::DownloadInstaller);
+      }
+    else if (*last_stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        BOOST_CHECK(stage == unfold::UpdateStage::DownloadInstaller || stage == unfold::UpdateStage::VerifyInstaller);
+      }
+    else
+      {
+        BOOST_CHECK_EQUAL(stage, *last_stage + 1);
+      }
+    last_stage = stage;
   });
+
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
     ioc,
@@ -609,10 +628,29 @@ BOOST_AUTO_TEST_CASE(installer_started_installer_with_args)
   UpgradeInstaller installer(platform, http, verifier, hooks);
 
   double last_progress = 0.0;
-  installer.set_download_progress_callback([&last_progress](auto progress) {
-    BOOST_CHECK_GE(progress, last_progress);
-    last_progress = progress;
+  std::optional<unfold::UpdateStage> last_stage;
+  installer.set_download_progress_callback([&last_stage, &last_progress](unfold::UpdateStage stage, auto progress) {
+    if (stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        BOOST_CHECK_GE(progress, last_progress);
+        last_progress = progress;
+      }
+
+    if (!last_stage)
+      {
+        BOOST_CHECK_EQUAL(stage, unfold::UpdateStage::DownloadInstaller);
+      }
+    else if (*last_stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        BOOST_CHECK(stage == unfold::UpdateStage::DownloadInstaller || stage == unfold::UpdateStage::VerifyInstaller);
+      }
+    else
+      {
+        BOOST_CHECK_EQUAL(stage, *last_stage + 1);
+      }
+    last_stage = stage;
   });
+
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
     ioc,

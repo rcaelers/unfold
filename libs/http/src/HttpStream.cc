@@ -448,6 +448,7 @@ HttpStream::receive_response_body(StreamType stream)
   boost::beast::flat_buffer buffer;
   boost::beast::http::response_parser<boost::beast::http::string_body> parser;
 
+  boost::beast::get_lowest_layer(*stream).expires_after(options.get_timeout());
   co_await boost::beast::http::async_read(*stream, buffer, parser, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
   if (ec)
     {
@@ -476,6 +477,7 @@ HttpStream::receive_response_body_as_file(StreamType stream, std::string filenam
   header_parser.body_limit((std::numeric_limits<std::uint64_t>::max)());
   buffer.max_size(16384);
 
+  boost::beast::get_lowest_layer(*stream).expires_after(options.get_timeout());
   co_await boost::beast::http::async_read_header(*stream,
                                                  buffer,
                                                  header_parser,
@@ -495,6 +497,7 @@ HttpStream::receive_response_body_as_file(StreamType stream, std::string filenam
   if (boost::beast::http::to_status_class(header_parser.get().result()) != boost::beast::http::status_class::successful)
     {
       boost::beast::http::response_parser<boost::beast::http::string_body> string_parser{std::move(header_parser)};
+      boost::beast::get_lowest_layer(*stream).expires_after(options.get_timeout());
       co_await boost::beast::http::async_read(*stream,
                                               buffer,
                                               string_parser,
@@ -528,6 +531,7 @@ HttpStream::receive_response_body_as_file(StreamType stream, std::string filenam
   buffer.max_size(8192);
   while (!parser.is_done())
     {
+      boost::beast::get_lowest_layer(*stream).expires_after(options.get_timeout());
       co_await boost::beast::http::async_read_some(*stream,
                                                    buffer,
                                                    parser,

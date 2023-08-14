@@ -757,6 +757,7 @@ BOOST_AUTO_TEST_CASE(http_client_proxy_get_plain)
   auto http = std::make_shared<unfold::http::HttpClient>();
   auto &options = http->options();
   options.add_ca_cert(cert);
+  options.set_proxy(unfold::http::Options::ProxyType::Custom);
   options.set_custom_proxy("http://127.0.0.1:1338");
 
   auto rc = get_sync(http, "http://127.0.0.1:1339/foo");
@@ -787,7 +788,8 @@ BOOST_AUTO_TEST_CASE(http_client_proxy_get_plain_special_character)
   auto http = std::make_shared<unfold::http::HttpClient>();
   auto &options = http->options();
   options.add_ca_cert(cert);
-  options.set_custom_proxy("http://127.0.0.1:1338");
+    options.set_proxy(unfold::http::Options::ProxyType::Custom);
+options.set_custom_proxy("http://127.0.0.1:1338");
 
   auto rc = get_sync(http, "http://127.0.0.1:1339/foo?x=%2f&b=2&c=3");
 
@@ -817,7 +819,8 @@ BOOST_AUTO_TEST_CASE(http_client_proxy_get_secure)
   auto http = std::make_shared<unfold::http::HttpClient>();
   auto &options = http->options();
   options.add_ca_cert(cert);
-  options.set_custom_proxy("http://127.0.0.1:1338");
+   options.set_proxy(unfold::http::Options::ProxyType::Custom);
+ options.set_custom_proxy("http://127.0.0.1:1338");
 
   auto rc = get_sync(http, "https://127.0.0.1:1337/foo");
 
@@ -847,7 +850,8 @@ BOOST_AUTO_TEST_CASE(http_client_proxy_not_found)
   auto http = std::make_shared<unfold::http::HttpClient>();
   auto &options = http->options();
   options.add_ca_cert(cert);
-  options.set_custom_proxy("http://127.0.0.1:3338");
+   options.set_proxy(unfold::http::Options::ProxyType::Custom);
+ options.set_custom_proxy("http://127.0.0.1:3338");
 
   auto rc = get_sync(http, "https://127.0.0.1:1337/foo");
 

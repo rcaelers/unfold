@@ -89,7 +89,7 @@ if (HAVE_TESTS)
   set(BOOST_COMPONENTS ${BOOST_COMPONENTS} test_exec_monitor)
 endif()
 
-find_package(Boost 1.81.0 REQUIRED COMPONENTS ${BOOST_COMPONENTS})
+find_package(Boost 1.83.0 REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 
 include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIR})

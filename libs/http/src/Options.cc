@@ -24,7 +24,6 @@
 #include <spdlog/fmt/ostr.h>
 
 #include "boost/outcome/outcome.hpp"
-#include "boost/url/src.hpp"
 
 using namespace unfold::http;
 

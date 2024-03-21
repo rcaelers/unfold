@@ -290,7 +290,7 @@ HttpServer::run()
 
   boost::asio::co_spawn(
     ioc,
-    [=]() -> boost::asio::awaitable<void> {
+    [=, this]() -> boost::asio::awaitable<void> {
       auto ep = boost::asio::ip::tcp::endpoint{address, port};
       co_await do_listen(ep);
     },

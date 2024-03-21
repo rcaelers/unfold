@@ -34,6 +34,7 @@
 
 #include "utils/Logging.hh"
 #include "utils/StringUtils.hh"
+#include "utils/Base64.hh"
 
 #define BOOST_TEST_MODULE "unfold"
 #include <boost/test/unit_test.hpp>
@@ -112,6 +113,48 @@ BOOST_AUTO_TEST_CASE(utils_empty_string_utf8_to_utf16)
 {
   std::wstring s = unfold::utils::utf8_to_utf16("");
   BOOST_CHECK(s == L"");
+}
+
+BOOST_AUTO_TEST_CASE(utils_base64_encode)
+{
+  std::string s = unfold::utils::Base64::encode("Hello World");
+  BOOST_CHECK_EQUAL(s, "SGVsbG8gV29ybGQ=");
+}
+
+BOOST_AUTO_TEST_CASE(utils_base64_decode)
+{
+  std::string s = unfold::utils::Base64::decode("SGVsbG8gV29ybGQ=");
+  BOOST_CHECK_EQUAL(s, "Hello World");
+}
+
+BOOST_AUTO_TEST_CASE(utils_base64_decode_0_terminated)
+{
+  std::string ref = {'\xe3', '\xeb', '\x54', '\x77', '\x79', '\x46', '\xba', '\x72', '\xfa', '\x85', '\x96', '\x60', '\x02',
+                     '\x31', '\xb5', '\x85', '\xea', '\xe6', '\xaf', '\x8c', '\x43', '\x18', '\xf3', '\x5e', '\xaa', '\x52',
+                     '\x0f', '\x40', '\xfb', '\xdd', '\xe2', '\x4f', '\xdc', '\xdd', '\x4c', '\xad', '\x19', '\x9d', '\x22',
+                     '\x1f', '\xd4', '\x24', '\xb2', '\xbb', '\x2e', '\x27', '\xb3', '\x0d', '\xc3', '\xa5', '\xfc', '\x1c',
+                     '\x76', '\xaf', '\x76', '\x10', '\xb0', '\xc5', '\xed', '\x83', '\x43', '\x3b', '\x55', '\x00'};
+
+  std::string decoded = unfold::utils::Base64::decode(
+    "4+tUd3lGunL6hZZgAjG1hermr4xDGPNeqlIPQPvd4k/c3UytGZ0iH9QksrsuJ7MNw6X8HHavdhCwxe2DQztVAA==");
+
+  BOOST_CHECK_EQUAL(decoded.size(), 64);
+  BOOST_CHECK_EQUAL(decoded, ref);
+}
+
+BOOST_AUTO_TEST_CASE(utils_base64_encode_0_terminated)
+{
+  std::string ref = "4+tUd3lGunL6hZZgAjG1hermr4xDGPNeqlIPQPvd4k/c3UytGZ0iH9QksrsuJ7MNw6X8HHavdhCwxe2DQztVAA==";
+
+  std::string decoded = {'\xe3', '\xeb', '\x54', '\x77', '\x79', '\x46', '\xba', '\x72', '\xfa', '\x85', '\x96', '\x60', '\x02',
+                         '\x31', '\xb5', '\x85', '\xea', '\xe6', '\xaf', '\x8c', '\x43', '\x18', '\xf3', '\x5e', '\xaa', '\x52',
+                         '\x0f', '\x40', '\xfb', '\xdd', '\xe2', '\x4f', '\xdc', '\xdd', '\x4c', '\xad', '\x19', '\x9d', '\x22',
+                         '\x1f', '\xd4', '\x24', '\xb2', '\xbb', '\x2e', '\x27', '\xb3', '\x0d', '\xc3', '\xa5', '\xfc', '\x1c',
+                         '\x76', '\xaf', '\x76', '\x10', '\xb0', '\xc5', '\xed', '\x83', '\x43', '\x3b', '\x55', '\x00'};
+
+  std::string encoded = unfold::utils::Base64::encode(decoded);
+
+  BOOST_CHECK_EQUAL(encoded, ref);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

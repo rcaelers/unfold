@@ -20,6 +20,9 @@
 
 #include "utils/Base64.hh"
 
+#include <algorithm>
+#include <string>
+
 #include <boost/archive/iterators/binary_from_base64.hpp>
 #include <boost/archive/iterators/base64_from_binary.hpp>
 #include <boost/archive/iterators/transform_width.hpp>
@@ -32,8 +35,16 @@ Base64::decode(const std::string &val)
 {
   using namespace boost::archive::iterators;
   using It = transform_width<binary_from_base64<std::string::const_iterator>, 8, 6>;
-  return boost::algorithm::trim_right_copy_if(std::string(It(std::begin(val)), It(std::end(val))),
-                                              [](char c) { return c == '\0'; });
+
+  // pad with '=' if input is not a multiple of 4
+  std::string input = val;
+  input.append(((4 - input.size() % 4) % 4), '=');
+
+  size_t num_padding_chars(std::count(input.begin(), input.end(), '='));
+  std::replace(input.begin(), input.end(), '=', 'A');
+  std::string output(It(input.begin()), It(input.end()));
+  output.erase(output.end() - static_cast<std::string::difference_type>(num_padding_chars), output.end());
+  return output;
 }
 
 std::string

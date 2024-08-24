@@ -73,7 +73,6 @@ find_package(OpenSSL REQUIRED)
 #----------------------------------------------------------------------------------------------------
 # Boost
 
-set(Boost_NO_BOOST_CMAKE TRUE)
 set(BOOST_COMPONENTS coroutine filesystem url)
 set(Boost_DEBUG OFF)
 
@@ -86,11 +85,11 @@ if (WIN32)
 endif()
 
 if (HAVE_TESTS)
-  set(BOOST_COMPONENTS ${BOOST_COMPONENTS} test_exec_monitor)
+  set(Boost_USE_STATIC_LIBS ON)
+  set(BOOST_COMPONENTS ${BOOST_COMPONENTS} unit_test_framework test_exec_monitor)
 endif()
 
 find_package(Boost 1.83.0 REQUIRED COMPONENTS ${BOOST_COMPONENTS})
-
 include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIR})
 add_compile_definitions(BOOST_LOG_DYN_LINK BOOST_ASIO_HAS_CO_AWAIT BOOST_BEAST_USE_STD_STRING_VIEW)

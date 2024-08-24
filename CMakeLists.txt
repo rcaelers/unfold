@@ -118,7 +118,7 @@ add_definitions(-DSPDLOG_WCHAR_TO_UTF8_SUPPORT)
 FetchContent_Declare(
   semver
   GIT_REPOSITORY https://github.com/Neargye/semver
-  GIT_TAG 492ba1beb1da6a4f150b8ca45985290f152396ed
+  GIT_TAG v0.3.1
 )
 FetchContent_MakeAvailable(semver)
 

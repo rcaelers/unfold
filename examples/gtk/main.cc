@@ -105,9 +105,9 @@ main(int argc, char *argv[])
   spdlog::set_level(spdlog::level::debug);
 
   unfold::http::HttpServer server;
-  server.add_file("/appcast.xml", "../../test/appcast.xml");
-  server.add_file("/workrave-1.11.0-alpha.1.exe", "../../test/junk");
-  server.add_file("/installer.sh", "../../test/installer.sh");
+  server.add_file("/appcast.xml", "../../test/data/appcast.xml");
+  server.add_file("/workrave-1.11.0-alpha.1.exe", "../../test/data/junk");
+  server.add_file("/installer.sh", "../../test/data/installer.sh");
   server.run();
 
   unfold::coro::IOContext io_context;

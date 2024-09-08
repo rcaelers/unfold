@@ -2,7 +2,10 @@ cmake_minimum_required(VERSION 3.23)
 cmake_policy(VERSION 3.23)
 
 if(POLICY CMP0135)
-cmake_policy(SET CMP0135 NEW)
+  cmake_policy(SET CMP0135 NEW)
+endif()
+if(POLICY CMP0167)
+  cmake_policy(SET CMP0167 NEW)
 endif()
 
 project(Unfold VERSION 0.1 LANGUAGES CXX C)

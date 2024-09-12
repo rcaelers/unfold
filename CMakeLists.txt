@@ -48,7 +48,7 @@ elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "MSVC")
 endif()
 
 if(NOT MSVC)
-    check_cxx_compiler_flag(-fcoroutines HAS_FCOROUTINES)
+    check_cxx_compiler_flag("-fcoroutines -Werror" HAS_FCOROUTINES)
     if(HAS_FCOROUTINES)
       set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcoroutines")
     endif()

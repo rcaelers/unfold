@@ -11,8 +11,8 @@ if(WIN32)
 
   FetchContent_Declare(
     webview2
-    URL https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/1.0.1823.32
-    URL_HASH SHA1=b2bd5231a61e3142c68c480869a2241a6627dd5e
+    URL https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/1.0.2651.64
+    URL_HASH SHA1=e08093bd127686535cf3519011a584664e6d2b75
   )
   FetchContent_MakeAvailable(webview2)
 

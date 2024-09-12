@@ -72,6 +72,24 @@ namespace unfold::http
     std::chrono::seconds timeout = std::chrono::seconds(30);
     std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:http")};
   };
+
+  inline std::ostream &operator<<(std::ostream &os, Options::ProxyType type)
+  {
+    switch (type)
+      {
+      case Options::ProxyType::None:
+        os << "None";
+        break;
+      case Options::ProxyType::System:
+        os << "System";
+        break;
+      case Options::ProxyType::Custom:
+        os << "Custom";
+        break;
+      }
+    return os;
+  }
+
 } // namespace unfold::http
 
 #endif // NET_HTTP_OPTIONS_HH

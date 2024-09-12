@@ -782,4 +782,18 @@ BOOST_AUTO_TEST_CASE(upgrade_control_callback_install_failed)
   BOOST_CHECK_EQUAL(status->error(), unfold::UnfoldErrc::InternalError);
 }
 
+BOOST_AUTO_TEST_CASE(upgrade_control_proxy)
+{
+  control->set_proxy(unfold::ProxyType::None);
+  BOOST_CHECK_EQUAL(http->options().get_proxy(), unfold::http::Options::ProxyType::None);
+  control->set_proxy(unfold::ProxyType::System);
+  BOOST_CHECK_EQUAL(http->options().get_proxy(), unfold::http::Options::ProxyType::System);
+  control->set_proxy(unfold::ProxyType::Custom);
+  BOOST_CHECK_EQUAL(http->options().get_proxy(), unfold::http::Options::ProxyType::Custom);
+  control->set_custom_proxy("http://proxy:8080");
+  BOOST_CHECK_EQUAL(http->options().get_custom_proxy(), "http://proxy:8080");
+  control->set_proxy(unfold::ProxyType::None);
+  BOOST_CHECK_EQUAL(http->options().get_proxy(), unfold::http::Options::ProxyType::None);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

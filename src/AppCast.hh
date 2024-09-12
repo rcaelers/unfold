@@ -21,6 +21,7 @@
 #ifndef APPCAST_HH
 #define APPCAST_HH
 
+#include <chrono>
 #include <memory>
 #include <string>
 #include <vector>
@@ -41,6 +42,8 @@ struct AppcastEnclosure
   std::string os;
 };
 
+using CanaryRolloutIntervals = std::vector<std::pair<std::chrono::seconds, int>>;
+
 struct AppcastItem
 {
   std::string channel;
@@ -56,7 +59,7 @@ struct AppcastItem
   std::string ignore_skipped_upgrades_below_version; // TODO: not supported
   bool critical_update{false};                       // TODO: not supported
   std::string critical_update_version;               // TODO: not supported
-  uint64_t phased_rollout_interval{0};               // TODO: not supported
+  CanaryRolloutIntervals canary_rollout_intervals;
 
   std::shared_ptr<AppcastEnclosure> enclosure;
 };
@@ -74,7 +77,7 @@ class AppcastReader
 {
 public:
   using filter_func_t = std::function<bool(std::shared_ptr<AppcastItem>)>;
-  AppcastReader(filter_func_t filter);
+  explicit AppcastReader(filter_func_t filter);
 
   std::shared_ptr<Appcast> load_from_file(const std::string &filename);
   std::shared_ptr<Appcast> load_from_string(const std::string &str);
@@ -83,6 +86,8 @@ private:
   std::shared_ptr<Appcast> parse_channel(boost::property_tree::ptree pt);
   std::shared_ptr<AppcastItem> parse_item(boost::property_tree::ptree item_pt);
   std::shared_ptr<AppcastEnclosure> parse_enclosure(boost::property_tree::ptree enclosure_pt);
+  CanaryRolloutIntervals parse_rollout_intervals(boost::property_tree::ptree pt);
+  CanaryRolloutIntervals parse_canary_rollout_intervals(boost::property_tree::ptree rollout_pt);
 
 private:
   std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:appcast")};

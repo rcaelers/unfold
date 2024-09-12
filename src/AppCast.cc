@@ -21,7 +21,6 @@
 #include "AppCast.hh"
 
 #include <exception>
-#include <iostream>
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/iostreams/stream.hpp>
 
@@ -108,10 +107,10 @@ AppcastReader::parse_item(boost::property_tree::ptree item_pt)
   item->minimum_system_version = item_pt.get<std::string>("sparkle:minimumSystemVersion", "");
   item->minimum_auto_update_version = item_pt.get<std::string>("sparkle:minimumAutoupdateVersion>", "");
   item->ignore_skipped_upgrades_below_version = item_pt.get<std::string>("sparkle:ignoreSkippedUpgradesBelowVersion", "");
-  item->phased_rollout_interval = item_pt.get<uint64_t>("sparkle:phasedRolloutInterval", 0);
+  item->canary_rollout_intervals = parse_rollout_intervals(item_pt);
 
-  auto it = item_pt.find("sparkle:criticalUpdate");
-  if (it != item_pt.not_found())
+  auto it_critical_update = item_pt.find("sparkle:criticalUpdate");
+  if (it_critical_update != item_pt.not_found())
     {
       item->critical_update = true;
       item->critical_update_version = item_pt.get<std::string>("sparkle:criticalUpdate.<xmlattr>.sparkle:version", "");
@@ -127,10 +126,8 @@ AppcastReader::parse_item(boost::property_tree::ptree item_pt)
             {
               break;
             }
-          else
-            {
-              item->enclosure.reset();
-            }
+
+          item->enclosure.reset();
         }
     }
 
@@ -150,4 +147,56 @@ AppcastReader::parse_enclosure(boost::property_tree::ptree enclosure_pt)
   enclosure->length = enclosure_pt.get<uint64_t>("<xmlattr>.length", 0);
 
   return enclosure;
+}
+
+CanaryRolloutIntervals
+AppcastReader::parse_rollout_intervals(boost::property_tree::ptree item_pt)
+{
+  auto phased_rollout_interval = item_pt.get<uint64_t>("sparkle:phasedRolloutInterval", 0);
+
+  auto it_canaray = item_pt.find("unfold:canary");
+  if (it_canaray != item_pt.not_found())
+    {
+      if (phased_rollout_interval != 0)
+        {
+          logger->warn("phased rollout interval and canary rollout intervals are mutually exclusive");
+          phased_rollout_interval = 0;
+        }
+
+      return parse_canary_rollout_intervals(it_canaray->second);
+    }
+
+  if (phased_rollout_interval != 0)
+    {
+      CanaryRolloutIntervals intervals;
+      for (int i = 1; i <= 7; ++i)
+        {
+          intervals.emplace_back(std::chrono::seconds(phased_rollout_interval * i), i < 7 ? i * 15 : 100);
+        }
+      return intervals;
+    }
+  return {};
+}
+
+CanaryRolloutIntervals
+AppcastReader::parse_canary_rollout_intervals(boost::property_tree::ptree rollout_pt)
+{
+  CanaryRolloutIntervals intervals;
+  std::chrono::seconds total_time{0};
+  int total_percentage{0};
+
+  for (const auto &i: rollout_pt)
+    {
+      auto [name, interval_pt] = i;
+      if (name == "interval")
+        {
+          auto days = interval_pt.get<int>("days", 1);
+          auto percentage = interval_pt.get<int>("percentage", 0);
+          total_time += std::chrono::duration_cast<std::chrono::seconds>(std::chrono::days(days));
+          total_percentage += percentage;
+          intervals.emplace_back(total_time, total_percentage);
+        }
+    }
+
+  return intervals;
 }

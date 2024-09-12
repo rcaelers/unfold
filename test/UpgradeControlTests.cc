@@ -198,6 +198,138 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_later)
   io_context.wait();
 }
 
+BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_later_last_check_in_future)
+{
+  EXPECT_CALL(*checker, set_appcast("https://127.0.0.1:1337/appcast.xml")).Times(1).WillOnce(Return(outcome::success()));
+
+  auto rc = control->set_appcast("https://127.0.0.1:1337/appcast.xml");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  control->set_certificate(cert);
+
+  EXPECT_CALL(*verifier,
+              set_key(unfold::crypto::SignatureAlgorithmType::ECDSA,
+                      "MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM="))
+    .Times(1)
+    .WillOnce(Return(outcome::success()));
+
+  rc = control->set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  EXPECT_CALL(*checker, set_current_version("1.10.45")).Times(1).WillOnce(Return(outcome::success()));
+
+  rc = control->set_current_version("1.10.45");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  EXPECT_CALL(*storage, set_prefix("some\\prefix")).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
+  EXPECT_CALL(*storage, set_prefix("some\\wrong\\prefix"))
+    .Times(AtLeast(1))
+    .WillRepeatedly(Return(outcome::failure(UnfoldInternalErrc::InternalError)));
+  control->set_configuration_prefix("some\\prefix");
+  control->set_configuration_prefix("some\\wrong\\prefix");
+
+  auto now = std::chrono::system_clock::now();
+  EXPECT_CALL(*storage, get_value("LastUpdateCheckTime", SettingType::Int64))
+    .Times(AtLeast(1))
+    .WillRepeatedly(Return(outcome::success(
+      static_cast<int64_t>(std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count() + 3600))));
+
+  EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
+  EXPECT_CALL(*storage, get_value("SkipVersion", SettingType::String))
+    .Times(AtLeast(1))
+    .WillRepeatedly(Return(outcome::success("")));
+  EXPECT_CALL(*storage, set_value("SkipVersion", SettingValue{""})).Times(2).WillRepeatedly(Return(outcome::success()));
+
+  control->reset_skip_version();
+  control->set_periodic_update_check_interval(std::chrono::seconds{1});
+  control->set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
+    spdlog::info("Update available");
+    io_context.stop();
+    co_return unfold::UpdateResponse::Later;
+  });
+
+  EXPECT_CALL(*checker, check_for_update())
+    .Times(AtLeast(1))
+    .WillRepeatedly(
+      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
+
+  EXPECT_CALL(*checker, get_update_info())
+    .Times(AtLeast(1))
+    .WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
+      auto info = std::make_shared<unfold::UpdateInfo>();
+      info->current_version = "1.10.45";
+      info->version = "1.11.0-alpha.1";
+      info->title = "Workrave";
+      auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
+      info->release_notes.push_back(r);
+      return info;
+    }));
+  control->set_periodic_update_check_enabled(true);
+
+  io_context.wait();
+}
+
+BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_error)
+{
+  EXPECT_CALL(*checker, set_appcast("https://127.0.0.1:1337/appcast.xml")).Times(1).WillOnce(Return(outcome::success()));
+
+  auto rc = control->set_appcast("https://127.0.0.1:1337/appcast.xml");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  control->set_certificate(cert);
+
+  EXPECT_CALL(*verifier,
+              set_key(unfold::crypto::SignatureAlgorithmType::ECDSA,
+                      "MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM="))
+    .Times(1)
+    .WillOnce(Return(outcome::success()));
+
+  rc = control->set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  EXPECT_CALL(*checker, set_current_version("1.10.45")).Times(1).WillOnce(Return(outcome::success()));
+
+  rc = control->set_current_version("1.10.45");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  EXPECT_CALL(*storage, set_prefix("some\\prefix")).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
+  EXPECT_CALL(*storage, set_prefix("some\\wrong\\prefix"))
+    .Times(AtLeast(1))
+    .WillRepeatedly(Return(outcome::failure(UnfoldInternalErrc::InternalError)));
+  control->set_configuration_prefix("some\\prefix");
+  control->set_configuration_prefix("some\\wrong\\prefix");
+
+  EXPECT_CALL(*storage, get_value("LastUpdateCheckTime", SettingType::Int64))
+    .Times(AtLeast(1))
+    .WillRepeatedly(Return(outcome::success(32LL)));
+
+  EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
+  EXPECT_CALL(*storage, get_value("SkipVersion", SettingType::String))
+    .Times(AtLeast(1))
+    .WillRepeatedly(Return(outcome::success("")));
+  EXPECT_CALL(*storage, set_value("SkipVersion", SettingValue{""})).Times(2).WillRepeatedly(Return(outcome::success()));
+
+  control->reset_skip_version();
+  control->set_periodic_update_check_interval(std::chrono::seconds{1});
+  control->set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
+    spdlog::info("Update available");
+    io_context.stop();
+    co_return unfold::UpdateResponse::Later;
+  });
+
+  control->set_update_status_callback([&](outcome::std_result<void> rc) { io_context.stop(); });
+
+  EXPECT_CALL(*checker, check_for_update())
+    .Times(AtLeast(1))
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> {
+      co_return outcome::failure(UnfoldInternalErrc::InternalError);
+    }));
+
+  control->set_periodic_update_check_enabled(true);
+
+  io_context.wait();
+}
+
 BOOST_AUTO_TEST_CASE(upgrade_control_checker_failed)
 {
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));

@@ -2,11 +2,12 @@ if(WIN32)
   FetchContent_Declare(
     cmark
     GIT_REPOSITORY https://github.com/commonmark/cmark.git
-    GIT_TAG        0.30.3
+    GIT_TAG        0.31.1
     GIT_SHALLOW    TRUE
-    CMAKE_ARGS CMARK_TESTS=OFF
-    )
-  set(CMARK_TESTS OFF CACHE INTERNAL "Disable tests")
+    EXCLUDE_FROM_ALL
+    CMAKE_ARGS "BUILD_TESTING=OFF BUILD_STATIC_LIBS=OFF BUILD_SHARED_LIBS=ON"
+  )
+  set(BUILD_TESTING OFF CACHE INTERNAL "Disable tests")
   FetchContent_MakeAvailable(cmark)
 
   FetchContent_Declare(
@@ -58,7 +59,7 @@ target_link_libraries(gtk_example PRIVATE spdlog::spdlog OpenSSL::SSL OpenSSL::C
 
 if (WIN32)
   target_sources(gtk_example PRIVATE Edge.cc)
-  target_link_libraries(gtk_example PRIVATE cmark::cmark webview2 ws2_32 mswsock)
+  target_link_libraries(gtk_example PRIVATE cmark webview2 ws2_32 mswsock)
 endif()
 
 pkg_check_modules(

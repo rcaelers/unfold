@@ -192,6 +192,37 @@ BOOST_AUTO_TEST_CASE(settings_set_skip_verion)
   settings.set_skip_version("2.30.75");
 }
 
+BOOST_AUTO_TEST_CASE(settings_get_priority)
+{
+  auto storage = std::make_shared<SettingsStorageMock>();
+
+  EXPECT_CALL(*storage, set_prefix(_)).Times(0);
+  EXPECT_CALL(*storage, remove_key(_)).Times(0);
+  EXPECT_CALL(*storage, set_value(_, _)).Times(0);
+  EXPECT_CALL(*storage, get_value("Priority", SettingType::Int32)).Times(1).WillOnce(Return(outcome::success(10)));
+
+  Settings settings(storage);
+  auto rc = settings.get_priority();
+  BOOST_CHECK_EQUAL(rc, 10);
+}
+
+BOOST_AUTO_TEST_CASE(settings_set_priority)
+{
+  auto storage = std::make_shared<SettingsStorageMock>();
+
+  EXPECT_CALL(*storage, set_prefix(_)).Times(0);
+  EXPECT_CALL(*storage, remove_key(_)).Times(0);
+  EXPECT_CALL(*storage, get_value(_, _)).Times(0);
+  EXPECT_CALL(*storage, set_value("Priority", SettingValue{10})).Times(1).WillOnce(Return(outcome::success()));
+  EXPECT_CALL(*storage, set_value("Priority", SettingValue{101}))
+    .Times(1)
+    .WillOnce(Return(outcome::failure(UnfoldInternalErrc::InvalidSetting)));
+
+  Settings settings(storage);
+  settings.set_priority(10);
+  settings.set_priority(101);
+}
+
 namespace
 {
   template<class T>

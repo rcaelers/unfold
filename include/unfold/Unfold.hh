@@ -91,6 +91,8 @@ namespace unfold
     virtual outcome::std_result<void> set_current_version(const std::string &version) = 0;
     virtual outcome::std_result<void> set_allowed_channels(const std::vector<std::string> &channels) = 0;
     virtual outcome::std_result<void> set_signature_verification_key(const std::string &key) = 0;
+    virtual outcome::std_result<void> set_priority(int prio) = 0;
+    virtual void unset_priority() = 0;
     virtual void set_certificate(const std::string &cert) = 0;
     virtual void set_periodic_update_check_enabled(bool enabled) = 0;
     virtual void set_periodic_update_check_interval(std::chrono::seconds interval) = 0;

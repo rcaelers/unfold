@@ -23,6 +23,7 @@
 #include <chrono>
 #include <exception>
 #include <memory>
+#include <random>
 #include <utility>
 #include <fstream>
 #include <ranges>
@@ -71,6 +72,7 @@ UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform, unfold::coro:
   http->options().set_max_redirects(5);
   http->options().set_follow_redirects(true);
   init_periodic_update_check();
+  init_priority();
 }
 
 UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform,
@@ -91,6 +93,7 @@ UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform,
   , check_timer(io_context.get_io_context())
 {
   init_periodic_update_check();
+  init_priority();
 }
 
 outcome::std_result<void>
@@ -127,6 +130,23 @@ void
 UpgradeControl::set_certificate(const std::string &cert)
 {
   http->options().add_ca_cert(cert);
+}
+
+outcome::std_result<void>
+UpgradeControl::set_priority(int priority)
+{
+  if (priority < 1 || priority > 100)
+    {
+      return outcome::failure(unfold::UnfoldErrc::InvalidArgument);
+    }
+  custom_priority = priority;
+  return outcome::success();
+}
+
+void
+UpgradeControl::unset_priority()
+{
+  custom_priority.reset();
 }
 
 void
@@ -340,6 +360,31 @@ UpgradeControl::init_periodic_update_check()
 
     update_check_timer();
   });
+}
+
+void
+UpgradeControl::init_priority()
+{
+  int priority = state->get_priority();
+  logger->info("current priority: {}", priority);
+  if (priority == 0)
+    {
+      std::random_device rd;
+      std::mt19937 gen(rd());
+      std::uniform_int_distribution<> dis(1, 100);
+      priority = dis(gen);
+      state->set_priority(priority);
+    }
+}
+
+int
+UpgradeControl::get_priority() const
+{
+  if (custom_priority)
+    {
+      return *custom_priority;
+    }
+  return state->get_priority();
 }
 
 void

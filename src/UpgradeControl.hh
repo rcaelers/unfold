@@ -22,6 +22,7 @@
 #define UPGRADE_CONTROL_HH
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <filesystem>
 #include <chrono>
@@ -60,6 +61,8 @@ public:
   outcome::std_result<void> set_current_version(const std::string &version) override;
   outcome::std_result<void> set_allowed_channels(const std::vector<std::string> &channels) override;
   outcome::std_result<void> set_signature_verification_key(const std::string &key) override;
+  outcome::std_result<void> set_priority(int prio) override;
+  void unset_priority() override;
   void set_certificate(const std::string &cert) override;
   void set_periodic_update_check_enabled(bool enabled) override;
   void set_periodic_update_check_interval(std::chrono::seconds interval) override;
@@ -81,12 +84,14 @@ public:
   void set_proxy(unfold::ProxyType proxy) override;
   void set_custom_proxy(const std::string &proxy) override;
 
+  int get_priority() const;
   boost::asio::awaitable<outcome::std_result<void>> check_for_update_and_notify(bool ignore_skip_version);
 
 private:
   void init_periodic_update_check();
   void update_last_update_check_time();
   void update_check_timer();
+  void init_priority();
 
 private:
   std::shared_ptr<Platform> platform;
@@ -101,6 +106,7 @@ private:
   unfold::utils::OneShotTimer check_timer;
   std::chrono::seconds periodic_update_check_interval{60 * 60 * 24};
   bool periodic_update_check_enabled{false};
+  std::optional<int> custom_priority;
 
   update_available_callback_t update_available_callback;
   update_status_callback_t update_status_callback;

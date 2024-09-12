@@ -87,6 +87,10 @@ struct MockedTestFixture
     checker = std::make_shared<CheckerMock>();
     installer = std::make_shared<InstallerMock>();
 
+    EXPECT_CALL(*storage, get_value("Priority", SettingType::Int32)).Times(1).WillOnce(Return(outcome::success(0)));
+    EXPECT_CALL(*storage, set_value("Priority", _)).Times(1).WillRepeatedly(Return(outcome::success()));
+    ;
+
     control = std::make_shared<UpgradeControl>(platform, http, verifier, storage, installer, checker, io_context);
   }
 
@@ -794,6 +798,24 @@ BOOST_AUTO_TEST_CASE(upgrade_control_proxy)
   BOOST_CHECK_EQUAL(http->options().get_custom_proxy(), "http://proxy:8080");
   control->set_proxy(unfold::ProxyType::None);
   BOOST_CHECK_EQUAL(http->options().get_proxy(), unfold::http::Options::ProxyType::None);
+}
+
+BOOST_AUTO_TEST_CASE(upgrade_control_priority)
+{
+  EXPECT_CALL(*storage, get_value("Priority", SettingType::Int32)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success(10)));
+
+  BOOST_CHECK_EQUAL(control->get_priority(), 10);
+  auto ret = control->set_priority(5);
+  BOOST_CHECK_EQUAL(ret.has_error(), false);
+  BOOST_CHECK_EQUAL(control->get_priority(), 5);
+  control->unset_priority();
+  BOOST_CHECK_EQUAL(control->get_priority(), 10);
+  ret = control->set_priority(101);
+  BOOST_CHECK_EQUAL(ret.has_error(), true);
+  ret = control->set_priority(0);
+  BOOST_CHECK_EQUAL(ret.has_error(), true);
+  ret = control->set_priority(-1);
+  BOOST_CHECK_EQUAL(ret.has_error(), true);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

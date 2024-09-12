@@ -28,10 +28,11 @@
 
 namespace
 {
-  constexpr const char *last_update_check_time = "LastUpdateCheckTime";
-  constexpr const char *skip_version = "SkipVersion";
-  constexpr const char *periodic_update_check_interval = "PeriodicUpdateCheckInterval";
-  constexpr const char *periodic_update_check_enabled = "PeriodicUpdateCheckEnabled";
+  constexpr const char *setting_last_update_check_time = "LastUpdateCheckTime";
+  constexpr const char *setting_skip_version = "SkipVersion";
+  constexpr const char *setting_periodic_update_check_interval = "PeriodicUpdateCheckInterval";
+  constexpr const char *setting_periodic_update_check_enabled = "PeriodicUpdateCheckEnabled";
+  constexpr const char *setting_priority = "Priority";
 } // namespace
 
 Settings::Settings(std::shared_ptr<SettingsStorage> storage)
@@ -42,7 +43,7 @@ Settings::Settings(std::shared_ptr<SettingsStorage> storage)
 std::optional<std::chrono::system_clock::time_point>
 Settings::get_last_update_check_time() const
 {
-  auto l = storage->get_value(last_update_check_time, SettingType::Int64);
+  auto l = storage->get_value(setting_last_update_check_time, SettingType::Int64);
   if (l)
     {
       return std::chrono::system_clock::time_point(std::chrono::microseconds(std::get<int64_t>(l.value())));
@@ -53,7 +54,7 @@ Settings::get_last_update_check_time() const
 void
 Settings::set_last_update_check_time(std::chrono::system_clock::time_point t)
 {
-  auto rc = storage->set_value(last_update_check_time,
+  auto rc = storage->set_value(setting_last_update_check_time,
                                static_cast<int64_t>(
                                  std::chrono::duration_cast<std::chrono::microseconds>(t.time_since_epoch()).count()));
   if (!rc)
@@ -65,7 +66,7 @@ Settings::set_last_update_check_time(std::chrono::system_clock::time_point t)
 std::string
 Settings::get_skip_version() const
 {
-  auto version = storage->get_value(skip_version, SettingType::String);
+  auto version = storage->get_value(setting_skip_version, SettingType::String);
   if (version)
     {
       return std::get<std::string>(version.value());
@@ -76,7 +77,7 @@ Settings::get_skip_version() const
 void
 Settings::set_skip_version(std::string version)
 {
-  auto rc = storage->set_value(skip_version, version);
+  auto rc = storage->set_value(setting_skip_version, version);
   if (!rc)
     {
       spdlog::error("Failed to set skip version");
@@ -86,7 +87,7 @@ Settings::set_skip_version(std::string version)
 std::chrono::seconds
 Settings::get_periodic_update_check_interval() const
 {
-  auto interval = storage->get_value(periodic_update_check_interval, SettingType::Int64);
+  auto interval = storage->get_value(setting_periodic_update_check_interval, SettingType::Int64);
   if (interval)
     {
       return std::chrono::seconds(std::get<int64_t>(interval.value()));
@@ -97,7 +98,7 @@ Settings::get_periodic_update_check_interval() const
 void
 Settings::set_periodic_update_check_interval(std::chrono::seconds interval)
 {
-  auto rc = storage->set_value(periodic_update_check_interval, static_cast<int64_t>(interval.count()));
+  auto rc = storage->set_value(setting_periodic_update_check_interval, static_cast<int64_t>(interval.count()));
   if (!rc)
     {
       spdlog::error("Failed to set periodic update interval");
@@ -107,7 +108,7 @@ Settings::set_periodic_update_check_interval(std::chrono::seconds interval)
 bool
 Settings::get_periodic_update_check_enabled() const
 {
-  auto enabled = storage->get_value(periodic_update_check_enabled, SettingType::Boolean);
+  auto enabled = storage->get_value(setting_periodic_update_check_enabled, SettingType::Boolean);
   if (enabled)
     {
       return std::get<bool>(enabled.value());
@@ -118,9 +119,30 @@ Settings::get_periodic_update_check_enabled() const
 void
 Settings::set_periodic_update_check_enabled(bool enabled)
 {
-  auto rc = storage->set_value(periodic_update_check_enabled, enabled);
+  auto rc = storage->set_value(setting_periodic_update_check_enabled, enabled);
   if (!rc)
     {
       spdlog::error("Failed to set periodic update check enabled");
+    }
+}
+
+int
+Settings::get_priority() const
+{
+  auto priority = storage->get_value(setting_priority, SettingType::Int32);
+  if (priority)
+    {
+      return std::get<int32_t>(priority.value());
+    }
+  return 0;
+}
+
+void
+Settings::set_priority(int priority)
+{
+  auto rc = storage->set_value(setting_priority, static_cast<int32_t>(priority));
+  if (!rc)
+    {
+      spdlog::error("Failed to set priority");
     }
 }

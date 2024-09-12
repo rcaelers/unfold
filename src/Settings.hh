@@ -44,6 +44,9 @@ public:
   bool get_periodic_update_check_enabled() const;
   void set_periodic_update_check_enabled(bool enabled);
 
+  int get_priority() const;
+  void set_priority(int priority);
+
 private:
   std::shared_ptr<SettingsStorage> storage;
   std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:settings")};

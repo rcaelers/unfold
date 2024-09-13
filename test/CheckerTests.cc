@@ -19,6 +19,7 @@
 // THE SOFTWARE.
 
 #include <boost/test/unit_test.hpp>
+#include <chrono>
 #include <spdlog/spdlog.h>
 
 #include "unfold/UnfoldErrors.hh"
@@ -430,6 +431,104 @@ BOOST_AUTO_TEST_CASE(checker_has_upgrade)
           BOOST_CHECK_EQUAL(info->release_notes.front().date, "Sun, 27 Feb 2022 11:02:33 +0100");
           BOOST_CHECK_EQUAL(info->release_notes.back().version, "1.10.49");
           BOOST_CHECK_EQUAL(info->release_notes.back().date, "Wed, 05 Jan 2022 03:05:19 +0100");
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+
+  server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(checker_delay)
+{
+  unfold::http::HttpServer server;
+  server.add_file("/appcast.xml", "appcast-canary.xml");
+  server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
+  options.add_ca_cert(cert);
+
+  auto hooks = std::make_shared<Hooks>();
+
+  UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
+
+  auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = checker.set_current_version("1.0.0");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto delay = checker.get_rollout_delay_for_priority(0);
+          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(0));
+
+          auto check_result = co_await checker.check_for_update();
+          BOOST_CHECK_EQUAL(check_result.has_error(), false);
+          BOOST_CHECK_EQUAL(check_result.value(), true);
+
+          // <unfold:canary>
+          //     <interval>
+          //         <percentage>10</percentage>
+          //         <days>2</days>
+          //     </interval>
+          //     <interval>
+          //         <percentage>15</percentage>
+          //         <days>3</days>
+          //     </interval>
+          //     <interval>
+          //         <percentage>30</percentage>
+          //         <days>5</days>
+          //         <ignored>5</ignored>
+          //     </interval>
+          //     <ignored>
+          //         <percentage>30</percentage>
+          //         <days>5</days>
+          //     </ignored>
+          // </unfold:canary>
+
+          delay = checker.get_rollout_delay_for_priority(0);
+          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(0));
+          delay = checker.get_rollout_delay_for_priority(1);
+          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(0));
+          delay = checker.get_rollout_delay_for_priority(9);
+          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(0));
+          delay = checker.get_rollout_delay_for_priority(10);
+          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(0));
+          delay = checker.get_rollout_delay_for_priority(11);
+          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(2 * 24 * 60 * 60));
+          delay = checker.get_rollout_delay_for_priority(12);
+          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(2 * 24 * 60 * 60));
+          delay = checker.get_rollout_delay_for_priority(24);
+          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(2 * 24 * 60 * 60));
+          delay = checker.get_rollout_delay_for_priority(25);
+          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(2 * 24 * 60 * 60));
+          delay = checker.get_rollout_delay_for_priority(26);
+          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(5 * 24 * 60 * 60));
+          delay = checker.get_rollout_delay_for_priority(27);
+          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(5 * 24 * 60 * 60));
+          delay = checker.get_rollout_delay_for_priority(54);
+          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(5 * 24 * 60 * 60));
+          delay = checker.get_rollout_delay_for_priority(55);
+          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(5 * 24 * 60 * 60));
+          delay = checker.get_rollout_delay_for_priority(56);
+          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(10 * 24 * 60 * 60));
+          delay = checker.get_rollout_delay_for_priority(57);
+          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(10 * 24 * 60 * 60));
+          delay = checker.get_rollout_delay_for_priority(99);
+          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(10 * 24 * 60 * 60));
+          delay = checker.get_rollout_delay_for_priority(100);
+          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(10 * 24 * 60 * 60));
         }
       catch (std::exception &e)
         {

@@ -22,9 +22,7 @@
 
 #include <exception>
 #include <memory>
-#include <system_error>
 #include <utility>
-#include <fstream>
 #include <spdlog/fmt/ostr.h>
 #include <fmt/os.h>
 #include <fmt/std.h>
@@ -34,8 +32,6 @@
 #include <boost/process.hpp>
 
 #include "UnfoldErrors.hh"
-#include "crypto/SignatureVerifier.hh"
-#include "utils/TempDirectory.hh"
 
 #include "Platform.hh"
 
@@ -88,6 +84,26 @@ std::shared_ptr<AppcastItem>
 UpgradeChecker::get_selected_update() const
 {
   return selected_item;
+}
+
+std::chrono::seconds
+UpgradeChecker::get_rollout_delay_for_priority(int priority) const
+{
+  if (selected_item == nullptr)
+    {
+      return std::chrono::seconds(0);
+    }
+
+  auto it = std::find_if(selected_item->canary_rollout_intervals.rbegin(),
+                         selected_item->canary_rollout_intervals.rend(),
+                         [priority](const auto &interval) { return priority > interval.second; });
+
+  if (it != selected_item->canary_rollout_intervals.rend())
+    {
+      return it->first;
+    }
+
+  return std::chrono::seconds(0);
 }
 
 boost::asio::awaitable<outcome::std_result<bool>>
@@ -154,6 +170,7 @@ UpgradeChecker::parse_appcast(const std::string &appcast_xml)
   auto appcast = reader.load_from_string(appcast_xml);
   if (!appcast)
     {
+      logger->info("failed to parse appcast");
       return unfold::UnfoldErrc::InvalidAppcast;
     }
 

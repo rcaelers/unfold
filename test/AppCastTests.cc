@@ -154,7 +154,7 @@ BOOST_AUTO_TEST_CASE(appcast_canary)
   BOOST_CHECK_EQUAL(appcast->items[0]->channel, "");
   BOOST_CHECK_EQUAL(appcast->items[0]->title, "Version 1.0");
   BOOST_CHECK_EQUAL(appcast->items[0]->link, "https://workrave.org");
-  BOOST_CHECK_EQUAL(appcast->items[0]->version, "1.0");
+  BOOST_CHECK_EQUAL(appcast->items[0]->version, "1.0.0");
   BOOST_CHECK_EQUAL(appcast->items[0]->short_version, "");
   BOOST_CHECK_EQUAL(appcast->items[0]->description, "");
   BOOST_CHECK_EQUAL(appcast->items[0]->release_notes_link, "https://workrave.org/v1.html");
@@ -179,7 +179,7 @@ BOOST_AUTO_TEST_CASE(appcast_canary)
   BOOST_CHECK_EQUAL(appcast->items[1]->channel, "");
   BOOST_CHECK_EQUAL(appcast->items[1]->title, "Version 2.0");
   BOOST_CHECK_EQUAL(appcast->items[1]->link, "");
-  BOOST_CHECK_EQUAL(appcast->items[1]->version, "");
+  BOOST_CHECK_EQUAL(appcast->items[1]->version, "2.0.0");
   BOOST_CHECK_EQUAL(appcast->items[1]->short_version, "");
   BOOST_CHECK_EQUAL(appcast->items[1]->description, "Version 2 update");
   BOOST_CHECK_EQUAL(appcast->items[1]->release_notes_link, "");
@@ -189,7 +189,7 @@ BOOST_AUTO_TEST_CASE(appcast_canary)
   BOOST_CHECK_EQUAL(appcast->items[1]->ignore_skipped_upgrades_below_version, "");
   BOOST_CHECK_EQUAL(appcast->items[1]->critical_update, true);
   BOOST_CHECK_EQUAL(appcast->items[1]->critical_update_version, "1.5");
-  BOOST_CHECK_EQUAL(appcast->items[1]->canary_rollout_intervals.size(), 0);
+  BOOST_CHECK_EQUAL(appcast->items[1]->canary_rollout_intervals.size(), 3);
 }
 
 BOOST_AUTO_TEST_CASE(appcast_canary_error)

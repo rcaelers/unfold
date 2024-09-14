@@ -34,6 +34,7 @@
 
 #include "utils/Logging.hh"
 #include "utils/StringUtils.hh"
+#include "utils/DateUtils.hh"
 #include "utils/Base64.hh"
 
 #define BOOST_TEST_MODULE "unfold"
@@ -155,6 +156,76 @@ BOOST_AUTO_TEST_CASE(utils_base64_encode_0_terminated)
   std::string encoded = unfold::utils::Base64::encode(decoded);
 
   BOOST_CHECK_EQUAL(encoded, ref);
+}
+
+BOOST_AUTO_TEST_CASE(utils_dateutils_rfc)
+{
+  std::string date_str_rfc = "Wed, 13 Sep 2023 15:35:22 +0000";
+  std::chrono::system_clock::time_point tp = unfold::utils::DateUtils::parse_time_point(date_str_rfc);
+
+  std::time_t time = std::chrono::system_clock::to_time_t(tp);
+  std::tm *tm = std::gmtime(&time);
+
+  BOOST_CHECK_EQUAL(tm->tm_year + 1900, 2023);
+  BOOST_CHECK_EQUAL(tm->tm_mon + 1, 9);
+  BOOST_CHECK_EQUAL(tm->tm_mday, 13);
+  BOOST_CHECK_EQUAL(tm->tm_hour, 15);
+  BOOST_CHECK_EQUAL(tm->tm_min, 35);
+  BOOST_CHECK_EQUAL(tm->tm_sec, 22);
+}
+
+BOOST_AUTO_TEST_CASE(utils_dateutils_rfc_tz)
+{
+  std::string date_str_rfc = "Wed, 13 Sep 2023 15:35:22 +0200";
+  std::chrono::system_clock::time_point tp = unfold::utils::DateUtils::parse_time_point(date_str_rfc);
+
+  std::time_t time = std::chrono::system_clock::to_time_t(tp);
+  std::tm *tm = std::gmtime(&time);
+
+  BOOST_CHECK_EQUAL(tm->tm_year + 1900, 2023);
+  BOOST_CHECK_EQUAL(tm->tm_mon + 1, 9);
+  BOOST_CHECK_EQUAL(tm->tm_mday, 13);
+  BOOST_CHECK_EQUAL(tm->tm_hour, 15);
+  BOOST_CHECK_EQUAL(tm->tm_min, 35);
+  BOOST_CHECK_EQUAL(tm->tm_sec, 22);
+}
+
+BOOST_AUTO_TEST_CASE(utils_dateutils_iso)
+{
+  std::string date_str_rfc = "2023-09-13T15:35:22Z";
+  std::chrono::system_clock::time_point tp = unfold::utils::DateUtils::parse_time_point(date_str_rfc);
+
+  std::time_t time = std::chrono::system_clock::to_time_t(tp);
+  std::tm *tm = std::gmtime(&time);
+
+  BOOST_CHECK_EQUAL(tm->tm_year + 1900, 2023);
+  BOOST_CHECK_EQUAL(tm->tm_mon + 1, 9);
+  BOOST_CHECK_EQUAL(tm->tm_mday, 13);
+  BOOST_CHECK_EQUAL(tm->tm_hour, 15);
+  BOOST_CHECK_EQUAL(tm->tm_min, 35);
+  BOOST_CHECK_EQUAL(tm->tm_sec, 22);
+}
+
+BOOST_AUTO_TEST_CASE(utils_dateutils_iso_np_z)
+{
+  std::string date_str_rfc = "2023-09-13T15:35:22";
+  std::chrono::system_clock::time_point tp = unfold::utils::DateUtils::parse_time_point(date_str_rfc);
+
+  std::time_t time = std::chrono::system_clock::to_time_t(tp);
+  std::tm *tm = std::gmtime(&time);
+
+  BOOST_CHECK_EQUAL(tm->tm_year + 1900, 2023);
+  BOOST_CHECK_EQUAL(tm->tm_mon + 1, 9);
+  BOOST_CHECK_EQUAL(tm->tm_mday, 13);
+  BOOST_CHECK_EQUAL(tm->tm_hour, 15);
+  BOOST_CHECK_EQUAL(tm->tm_min, 35);
+  BOOST_CHECK_EQUAL(tm->tm_sec, 22);
+}
+
+BOOST_AUTO_TEST_CASE(utils_dateutils_incorrect_date)
+{
+  std::string date_str_rfc = "2023-13-13T15:35:22";
+  BOOST_CHECK_THROW(unfold::utils::DateUtils::parse_time_point(date_str_rfc), std::runtime_error);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

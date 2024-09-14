@@ -52,6 +52,7 @@ public:
   std::shared_ptr<unfold::UpdateInfo> get_update_info() const override;
   std::shared_ptr<AppcastItem> get_selected_update() const override;
   std::chrono::seconds get_rollout_delay_for_priority(int priority) const override;
+  std::chrono::system_clock::time_point get_earliest_rollout_time_for_priority(int priority) const override;
 
 private:
   boost::asio::awaitable<outcome::std_result<std::string>> download_appcast();

@@ -45,7 +45,7 @@ BOOST_AUTO_TEST_CASE(appcast_load_from_string)
     "            <sparkle:channel>release</sparkle:channel>\n"
     "            <sparkle:version>1.0</sparkle:version>\n"
     "            <sparkle:releaseNotesLink>https://workrave.org/v1.html</sparkle:releaseNotesLink>\n"
-    "            <pubDate>Sun Apr 17 19:30:14 CEST 2022</pubDate>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
     "            <enclosure url=\"http://localhost:1337/v2.zip\" sparkle:edSignature=\"xx\" length=\"1234\" type=\"application/octet-stream\" />\n"
     "        </item>\n"
     "    </channel>\n"
@@ -67,7 +67,7 @@ BOOST_AUTO_TEST_CASE(appcast_load_from_string)
   BOOST_CHECK_EQUAL(appcast->items[0]->short_version, "");
   BOOST_CHECK_EQUAL(appcast->items[0]->description, "");
   BOOST_CHECK_EQUAL(appcast->items[0]->release_notes_link, "https://workrave.org/v1.html");
-  BOOST_CHECK_EQUAL(appcast->items[0]->publication_date, "Sun Apr 17 19:30:14 CEST 2022");
+  BOOST_CHECK_EQUAL(appcast->items[0]->publication_date, "Sun, 17 Apr 2022 19:30:14 +0200");
   BOOST_CHECK_EQUAL(appcast->items[0]->minimum_system_version, "");
   BOOST_CHECK_EQUAL(appcast->items[0]->minimum_auto_update_version, "");
   BOOST_CHECK_EQUAL(appcast->items[0]->ignore_skipped_upgrades_below_version, "");
@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE(appcast_load_from_file)
   BOOST_CHECK_EQUAL(appcast->items[0]->short_version, "");
   BOOST_CHECK_EQUAL(appcast->items[0]->description, "");
   BOOST_CHECK_EQUAL(appcast->items[0]->release_notes_link, "https://workrave.org/v1.html");
-  BOOST_CHECK_EQUAL(appcast->items[0]->publication_date, "Sun Apr 17 19:30:14 CEST 2022");
+  BOOST_CHECK_EQUAL(appcast->items[0]->publication_date, "Sun, 17 Apr 2022 19:30:14 +0200");
   BOOST_CHECK_EQUAL(appcast->items[0]->minimum_system_version, "");
   BOOST_CHECK_EQUAL(appcast->items[0]->minimum_auto_update_version, "");
   BOOST_CHECK_EQUAL(appcast->items[0]->ignore_skipped_upgrades_below_version, "");
@@ -111,7 +111,7 @@ BOOST_AUTO_TEST_CASE(appcast_load_from_file)
   BOOST_CHECK_EQUAL(appcast->items[1]->short_version, "");
   BOOST_CHECK_EQUAL(appcast->items[1]->description, "Version 2 update");
   BOOST_CHECK_EQUAL(appcast->items[1]->release_notes_link, "");
-  BOOST_CHECK_EQUAL(appcast->items[1]->publication_date, "Sun Apr 17 19:30:14 CEST 2022");
+  BOOST_CHECK_EQUAL(appcast->items[1]->publication_date, "Sun, 17 Apr 2022 19:30:14 +0200");
   BOOST_CHECK_EQUAL(appcast->items[1]->minimum_system_version, "");
   BOOST_CHECK_EQUAL(appcast->items[1]->minimum_auto_update_version, "");
   BOOST_CHECK_EQUAL(appcast->items[1]->ignore_skipped_upgrades_below_version, "");
@@ -158,7 +158,7 @@ BOOST_AUTO_TEST_CASE(appcast_canary)
   BOOST_CHECK_EQUAL(appcast->items[0]->short_version, "");
   BOOST_CHECK_EQUAL(appcast->items[0]->description, "");
   BOOST_CHECK_EQUAL(appcast->items[0]->release_notes_link, "https://workrave.org/v1.html");
-  BOOST_CHECK_EQUAL(appcast->items[0]->publication_date, "Sun Apr 17 19:30:14 CEST 2022");
+  BOOST_CHECK_EQUAL(appcast->items[0]->publication_date, "Sun, 17 Apr 2022 19:30:14 +0200");
   BOOST_CHECK_EQUAL(appcast->items[0]->minimum_system_version, "");
   BOOST_CHECK_EQUAL(appcast->items[0]->minimum_auto_update_version, "");
   BOOST_CHECK_EQUAL(appcast->items[0]->ignore_skipped_upgrades_below_version, "");
@@ -183,7 +183,7 @@ BOOST_AUTO_TEST_CASE(appcast_canary)
   BOOST_CHECK_EQUAL(appcast->items[1]->short_version, "");
   BOOST_CHECK_EQUAL(appcast->items[1]->description, "Version 2 update");
   BOOST_CHECK_EQUAL(appcast->items[1]->release_notes_link, "");
-  BOOST_CHECK_EQUAL(appcast->items[1]->publication_date, "Sun Apr 17 19:30:14 CEST 2022");
+  BOOST_CHECK_EQUAL(appcast->items[1]->publication_date, "Sun, 17 Apr 2022 19:30:14 +0200");
   BOOST_CHECK_EQUAL(appcast->items[1]->minimum_system_version, "");
   BOOST_CHECK_EQUAL(appcast->items[1]->minimum_auto_update_version, "");
   BOOST_CHECK_EQUAL(appcast->items[1]->ignore_skipped_upgrades_below_version, "");

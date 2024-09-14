@@ -31,8 +31,9 @@
 #include <boost/url/url.hpp>
 #include <boost/process.hpp>
 
-#include "UnfoldErrors.hh"
+#include "utils/DateUtils.hh"
 
+#include "UnfoldErrors.hh"
 #include "Platform.hh"
 
 UpgradeChecker::UpgradeChecker(std::shared_ptr<Platform> platform,
@@ -104,6 +105,20 @@ UpgradeChecker::get_rollout_delay_for_priority(int priority) const
     }
 
   return std::chrono::seconds(0);
+}
+
+std::chrono::system_clock::time_point
+UpgradeChecker::get_earliest_rollout_time_for_priority(int priority) const
+{
+  if (selected_item == nullptr)
+    {
+      return std::chrono::system_clock::from_time_t(0);
+    }
+
+  auto delay = get_rollout_delay_for_priority(priority);
+  auto pub_date = unfold::utils::DateUtils::parse_time_point(selected_item->publication_date);
+
+  return pub_date + delay;
 }
 
 boost::asio::awaitable<outcome::std_result<bool>>
@@ -239,6 +254,7 @@ UpgradeChecker::build_update_info(std::shared_ptr<Appcast> appcast)
       for (auto x: items)
         {
           spdlog::info("applicable {}", x->version);
+
           auto r = unfold::UpdateReleaseNotes{x->version, x->publication_date, x->description};
           update_info->release_notes.push_back(r);
         }

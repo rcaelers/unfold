@@ -41,6 +41,7 @@ public:
   virtual std::shared_ptr<unfold::UpdateInfo> get_update_info() const = 0;
   virtual std::shared_ptr<AppcastItem> get_selected_update() const = 0;
   virtual std::chrono::seconds get_rollout_delay_for_priority(int priority) const = 0;
+  virtual std::chrono::system_clock::time_point get_earliest_rollout_time_for_priority(int priority) const = 0;
 };
 
 #endif // CHECKER_HH

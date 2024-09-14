@@ -37,6 +37,7 @@ public:
   MOCK_METHOD(std::shared_ptr<unfold::UpdateInfo>, get_update_info, (), (const, override));
   MOCK_METHOD(std::shared_ptr<AppcastItem>, get_selected_update, (), (const, override));
   MOCK_METHOD(std::chrono::seconds, get_rollout_delay_for_priority, (int priority), (const, override));
+  MOCK_METHOD(std::chrono::system_clock::time_point, get_earliest_rollout_time_for_priority, (int priority), (const, override));
 };
 
 #endif // CHECKER_MOCK_HH

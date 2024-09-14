@@ -24,6 +24,7 @@
 
 #include "unfold/UnfoldErrors.hh"
 #include "http/HttpServer.hh"
+#include "utils/DateUtils.hh"
 
 #include "TestPlatform.hh"
 #include "TestBase.hh"
@@ -529,6 +530,86 @@ BOOST_AUTO_TEST_CASE(checker_delay)
           BOOST_CHECK_EQUAL(delay, std::chrono::seconds(10 * 24 * 60 * 60));
           delay = checker.get_rollout_delay_for_priority(100);
           BOOST_CHECK_EQUAL(delay, std::chrono::seconds(10 * 24 * 60 * 60));
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          BOOST_CHECK(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+
+  server.stop();
+}
+
+BOOST_AUTO_TEST_CASE(checker_earliest_rollout)
+{
+  unfold::http::HttpServer server;
+  server.add_file("/appcast.xml", "appcast-canary.xml");
+  server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
+  options.add_ca_cert(cert);
+
+  auto hooks = std::make_shared<Hooks>();
+
+  UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
+
+  auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  rc = checker.set_current_version("1.0.0");
+  BOOST_CHECK_EQUAL(rc.has_error(), false);
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto pub_date = unfold::utils::DateUtils::parse_time_point("Sun, 17 Apr 2022 19:30:14 +0200");
+
+          auto rollout_time = checker.get_earliest_rollout_time_for_priority(0);
+          BOOST_CHECK_EQUAL(rollout_time, std::chrono::system_clock::from_time_t(0));
+
+          auto check_result = co_await checker.check_for_update();
+          BOOST_CHECK_EQUAL(check_result.has_error(), false);
+          BOOST_CHECK_EQUAL(check_result.value(), true);
+
+          rollout_time = checker.get_earliest_rollout_time_for_priority(0);
+          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(0));
+          rollout_time = checker.get_earliest_rollout_time_for_priority(1);
+          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(0));
+          rollout_time = checker.get_earliest_rollout_time_for_priority(9);
+          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(0));
+          rollout_time = checker.get_earliest_rollout_time_for_priority(10);
+          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(0));
+          rollout_time = checker.get_earliest_rollout_time_for_priority(11);
+          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(2 * 24 * 60 * 60));
+          rollout_time = checker.get_earliest_rollout_time_for_priority(12);
+          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(2 * 24 * 60 * 60));
+          rollout_time = checker.get_earliest_rollout_time_for_priority(24);
+          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(2 * 24 * 60 * 60));
+          rollout_time = checker.get_earliest_rollout_time_for_priority(25);
+          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(2 * 24 * 60 * 60));
+          rollout_time = checker.get_earliest_rollout_time_for_priority(26);
+          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(5 * 24 * 60 * 60));
+          rollout_time = checker.get_earliest_rollout_time_for_priority(27);
+          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(5 * 24 * 60 * 60));
+          rollout_time = checker.get_earliest_rollout_time_for_priority(54);
+          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(5 * 24 * 60 * 60));
+          rollout_time = checker.get_earliest_rollout_time_for_priority(55);
+          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(5 * 24 * 60 * 60));
+          rollout_time = checker.get_earliest_rollout_time_for_priority(56);
+          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(10 * 24 * 60 * 60));
+          rollout_time = checker.get_earliest_rollout_time_for_priority(57);
+          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(10 * 24 * 60 * 60));
+          rollout_time = checker.get_earliest_rollout_time_for_priority(99);
+          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(10 * 24 * 60 * 60));
+          rollout_time = checker.get_earliest_rollout_time_for_priority(100);
+          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(10 * 24 * 60 * 60));
         }
       catch (std::exception &e)
         {

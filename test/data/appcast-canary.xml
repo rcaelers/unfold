@@ -12,7 +12,7 @@
             <link>https://workrave.org</link>
             <sparkle:version>1.0.0</sparkle:version>
             <sparkle:releaseNotesLink>https://workrave.org/v1.html</sparkle:releaseNotesLink>
-            <pubDate>Sun Apr 17 19:30:14 CEST 2022</pubDate>
+            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>
             <enclosure os="windows-x64" url="http://localhost:1337/v2.zip" sparkle:edSignature="xx" length="1234" type="application/octet-stream" />
             <unfold:canary>
                 <interval>
@@ -38,7 +38,7 @@
         <item>
             <title>Version 2.0</title>
             <description>Version 2 update</description>
-            <pubDate>Sun Apr 17 19:30:14 CEST 2022</pubDate>
+            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>
             <sparkle:version>2.0.0</sparkle:version>
             <enclosure os="windows-x64" url="http://localhost:1337/v1.zip" sparkle:version="2.0" />
             <sparkle:criticalUpdate sparkle:version="1.5" />

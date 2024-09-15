@@ -28,6 +28,7 @@
 #include <optional>
 #include <spdlog/spdlog.h>
 
+#include "TimeSourceMock.hh"
 #include "UnfoldInternalErrors.hh"
 #include "unfold/Unfold.hh"
 #include "unfold/UnfoldErrors.hh"
@@ -43,6 +44,7 @@ using ::testing::_;
 using ::testing::AtLeast;
 using ::testing::InvokeWithoutArgs;
 using ::testing::Return;
+using ::testing::StrictMock;
 
 namespace
 {
@@ -83,12 +85,19 @@ struct UpgradeControlTest : public ::testing::Test
     http = std::make_shared<unfold::http::HttpClient>();
     verifier = std::make_shared<SignatureVerifierMock>();
     storage = std::make_shared<SettingsStorageMock>();
-    checker = std::make_shared<CheckerMock>();
+    checker = std::make_shared<StrictMock<CheckerMock>>();
+    time_source = std::make_shared<TimeSourceMock>();
     installer = std::make_shared<InstallerMock>();
-    EXPECT_CALL(*storage, get_value("Priority", SettingType::Int32)).Times(1).WillOnce(Return(outcome::success(0)));
+
     EXPECT_CALL(*storage, set_value("Priority", _)).Times(1).WillRepeatedly(Return(outcome::success()));
 
-    control = std::make_shared<UpgradeControl>(platform, http, verifier, storage, installer, checker, io_context);
+    EXPECT_CALL(*storage, get_value(::testing::_, ::testing::_)).WillRepeatedly(::testing::DoDefault());
+    ON_CALL(*storage, get_value("Priority", SettingType::Int32)).WillByDefault(Return(outcome::success(0)));
+
+    EXPECT_CALL(*time_source, now()).WillRepeatedly(Return(std::chrono::system_clock::now()));
+    ON_CALL(*time_source, now()).WillByDefault(Return(std::chrono::system_clock::now()));
+
+    control = std::make_shared<UpgradeControl>(platform, http, verifier, storage, installer, checker, time_source, io_context);
   }
 
   unfold::coro::IOContext io_context;
@@ -96,7 +105,8 @@ struct UpgradeControlTest : public ::testing::Test
   std::shared_ptr<SignatureVerifierMock> verifier;
   std::shared_ptr<SettingsStorageMock> storage;
   std::shared_ptr<InstallerMock> installer;
-  std::shared_ptr<CheckerMock> checker;
+  std::shared_ptr<StrictMock<CheckerMock>> checker;
+  std::shared_ptr<TimeSourceMock> time_source;
   std::shared_ptr<UpgradeControl> control;
   std::shared_ptr<TestPlatform> platform;
   std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("test")};
@@ -188,6 +198,11 @@ TEST_F(UpgradeControlTest, upgrade_control_periodic_check_later)
       info->release_notes.push_back(r);
       return info;
     }));
+
+  EXPECT_CALL(*checker, get_earliest_rollout_time_for_priority(_))
+    .Times(AtLeast(1))
+    .WillRepeatedly(Return(std::chrono::system_clock::now() - std::chrono::hours{1}));
+
   control->set_periodic_update_check_enabled(true);
 
   io_context.wait();
@@ -223,7 +238,7 @@ TEST_F(UpgradeControlTest, upgrade_control_periodic_check_later_last_check_in_fu
   control->set_configuration_prefix("some\\prefix");
   control->set_configuration_prefix("some\\wrong\\prefix");
 
-  auto now = std::chrono::system_clock::now();
+  auto now = time_source->now();
   EXPECT_CALL(*storage, get_value("LastUpdateCheckTime", SettingType::Int64))
     .Times(AtLeast(1))
     .WillRepeatedly(Return(outcome::success(
@@ -259,6 +274,11 @@ TEST_F(UpgradeControlTest, upgrade_control_periodic_check_later_last_check_in_fu
       info->release_notes.push_back(r);
       return info;
     }));
+
+  EXPECT_CALL(*checker, get_earliest_rollout_time_for_priority(_))
+    .Times(AtLeast(1))
+    .WillRepeatedly(Return(std::chrono::system_clock::now() - std::chrono::hours{1}));
+
   control->set_periodic_update_check_enabled(true);
 
   io_context.wait();
@@ -593,6 +613,75 @@ TEST_F(UpgradeControlTest, upgrade_control_skip_version_ignore)
   EXPECT_EQ(status.has_value(), false);
 }
 
+TEST_F(UpgradeControlTest, upgrade_control_not_ready_yet)
+{
+  EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
+
+  bool available{false};
+  control->set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
+    spdlog::info("Update available");
+    io_context.stop();
+    available = true;
+    co_return unfold::UpdateResponse::Later;
+  });
+
+  std::optional<outcome::std_result<void>> status;
+  control->set_update_status_callback([&](outcome::std_result<void> rc) {
+    status = rc;
+    if (rc.has_error())
+      {
+        spdlog::info("Update status {}", rc.error().message());
+      }
+  });
+
+  EXPECT_CALL(*checker, check_for_update())
+    .Times(AtLeast(1))
+    .WillRepeatedly(
+      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
+
+  EXPECT_CALL(*storage, get_value("SkipVersion", SettingType::String))
+    .Times(AtLeast(1))
+    .WillRepeatedly(Return(outcome::success("")));
+
+  EXPECT_CALL(*checker, get_update_info())
+    .Times(AtLeast(1))
+    .WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
+      auto info = std::make_shared<unfold::UpdateInfo>();
+      info->current_version = "1.10.45";
+      info->version = "1.11.0-alpha.1";
+      info->title = "Workrave";
+      auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
+      info->release_notes.push_back(r);
+      return info;
+    }));
+
+  EXPECT_CALL(*storage, get_value("Priority", SettingType::Int32)).WillRepeatedly(Return(100));
+
+  EXPECT_CALL(*checker, get_earliest_rollout_time_for_priority(100))
+    .Times(AtLeast(1))
+    .WillRepeatedly(Return(std::chrono::system_clock::now() + std::chrono::hours{1}));
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await control->check_for_update_and_notify(false);
+          EXPECT_FALSE(rc.has_error());
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          EXPECT_TRUE(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+  EXPECT_EQ(available, false);
+  EXPECT_EQ(status.has_value(), false);
+}
+
 TEST_F(UpgradeControlTest, upgrade_control_no_callback)
 {
   std::optional<outcome::std_result<void>> status;
@@ -747,6 +836,12 @@ TEST_F(UpgradeControlTest, upgrade_control_callback_skip)
       info->release_notes.push_back(r);
       return info;
     }));
+
+  EXPECT_CALL(*storage, get_value("Priority", SettingType::Int32)).WillRepeatedly(Return(80));
+
+  EXPECT_CALL(*checker, get_earliest_rollout_time_for_priority(80))
+    .Times(AtLeast(1))
+    .WillRepeatedly(Return(std::chrono::system_clock::now() - std::chrono::hours{1}));
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(

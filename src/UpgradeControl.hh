@@ -32,9 +32,11 @@
 #include "unfold/Unfold.hh"
 
 #include "http/HttpClient.hh"
+#include "utils/DateUtils.hh"
 #include "utils/Logging.hh"
 #include "unfold/coro/IOContext.hh"
 #include "utils/OneShotTimer.hh"
+#include "utils/TimeSource.hh"
 
 #include "Platform.hh"
 #include "UpgradeInstaller.hh"
@@ -55,6 +57,7 @@ public:
                  std::shared_ptr<SettingsStorage> storage,
                  std::shared_ptr<Installer> installer,
                  std::shared_ptr<Checker> checker,
+                 std::shared_ptr<unfold::utils::TimeSource> time_source,
                  unfold::coro::IOContext &io_context);
 
   outcome::std_result<void> set_appcast(const std::string &url) override;
@@ -85,13 +88,14 @@ public:
   void set_custom_proxy(const std::string &proxy) override;
 
   int get_priority() const;
-  boost::asio::awaitable<outcome::std_result<void>> check_for_update_and_notify(bool ignore_skip_version);
+  boost::asio::awaitable<outcome::std_result<void>> check_for_update_and_notify(bool manual);
 
 private:
   void init_periodic_update_check();
   void update_last_update_check_time();
   void update_check_timer();
   void init_priority();
+  bool is_ready_for_rollout();
 
 private:
   std::shared_ptr<Platform> platform;
@@ -102,6 +106,7 @@ private:
   std::shared_ptr<Settings> state;
   std::shared_ptr<Installer> installer;
   std::shared_ptr<Checker> checker;
+  std::shared_ptr<unfold::utils::TimeSource> time_source;
 
   unfold::utils::OneShotTimer check_timer;
   std::chrono::seconds periodic_update_check_interval{60 * 60 * 24};

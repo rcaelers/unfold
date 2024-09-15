@@ -45,6 +45,7 @@
 #include "crypto/SignatureVerifier.hh"
 #include "http/HttpClient.hh"
 #include "utils/TempDirectory.hh"
+#include "utils/TimeSource.hh"
 
 // TODO: move to different file
 #if defined(WIN32)
@@ -66,6 +67,7 @@ UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform, unfold::coro:
   , state(std::make_shared<Settings>(storage))
   , installer(std::make_shared<UpgradeInstaller>(platform, http, verifier, hooks))
   , checker(std::make_shared<UpgradeChecker>(platform, http, hooks))
+  , time_source(std::make_shared<unfold::utils::RealTimeSource>())
   , check_timer(io_context.get_io_context())
 {
   http->options().set_timeout(std::chrono::seconds(30));
@@ -81,6 +83,7 @@ UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform,
                                std::shared_ptr<SettingsStorage> storage,
                                std::shared_ptr<Installer> installer,
                                std::shared_ptr<Checker> checker,
+                               std::shared_ptr<unfold::utils::TimeSource> time_source,
                                unfold::coro::IOContext &io_context)
   : platform(std::move(platform))
   , http(std::move(http))
@@ -90,6 +93,7 @@ UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform,
   , state(std::make_shared<Settings>(storage))
   , installer(std::move(installer))
   , checker(std::move(checker))
+  , time_source(std::move(time_source))
   , check_timer(io_context.get_io_context())
 {
   init_periodic_update_check();
@@ -202,7 +206,7 @@ UpgradeControl::get_last_update_check_time()
 void
 UpgradeControl::update_last_update_check_time()
 {
-  state->set_last_update_check_time(std::chrono::system_clock::now());
+  state->set_last_update_check_time(time_source->now());
 }
 
 boost::asio::awaitable<outcome::std_result<bool>>
@@ -226,7 +230,7 @@ UpgradeControl::check_for_update_and_notify()
 }
 
 boost::asio::awaitable<outcome::std_result<void>>
-UpgradeControl::check_for_update_and_notify(bool ignore_skip_version)
+UpgradeControl::check_for_update_and_notify(bool manual)
 {
   logger->info("checking for updates");
   check_timer.cancel();
@@ -251,9 +255,15 @@ UpgradeControl::check_for_update_and_notify(bool ignore_skip_version)
       co_return outcome::failure(unfold::UnfoldErrc::InternalError);
     }
 
-  if (!ignore_skip_version && state->get_skip_version() == info->version)
+  if (!manual && state->get_skip_version() == info->version)
     {
       logger->info("skipping update to version {}", info->version);
+      co_return outcome::success();
+    }
+
+  if (!manual && !is_ready_for_rollout())
+    {
+      logger->info("postponing update to version {}", info->version);
       co_return outcome::success();
     }
 
@@ -321,7 +331,7 @@ UpgradeControl::update_check_timer()
       return;
     }
 
-  auto now = std::chrono::system_clock::now();
+  auto now = time_source->now();
   auto last_check = get_last_update_check_time();
   if (!last_check || *last_check > now)
     {
@@ -385,6 +395,15 @@ UpgradeControl::get_priority() const
       return *custom_priority;
     }
   return state->get_priority();
+}
+
+bool
+UpgradeControl::is_ready_for_rollout()
+{
+  auto priority = get_priority();
+  auto earliest_time = checker->get_earliest_rollout_time_for_priority(priority);
+
+  return time_source->now() >= earliest_time;
 }
 
 void

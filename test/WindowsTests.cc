@@ -44,7 +44,7 @@ TEST(Windows, windows_settings_string)
   EXPECT_EQ(SettingValueToType(s.value()), SettingType::String);
 }
 
-TEST(Windows, windows_settings_int64)
+TEST(WindowsTest, windows_settings_int64)
 {
   WindowsSettingsStorage storage;
 
@@ -62,7 +62,7 @@ TEST(Windows, windows_settings_int64)
   EXPECT_EQ(SettingValueToType(s.value()), SettingType::Int64);
 }
 
-TEST(Windows, windows_settings_int32)
+TEST(WindowsTest, windows_settings_int32)
 {
   WindowsSettingsStorage storage;
 
@@ -79,7 +79,7 @@ TEST(Windows, windows_settings_int32)
   EXPECT_EQ(SettingValueToType(s.value()), SettingType::Int32);
 }
 
-TEST(Windows, windows_settings_bool)
+TEST(WindowsTest, windows_settings_bool)
 {
   WindowsSettingsStorage storage;
 
@@ -101,7 +101,7 @@ TEST(Windows, windows_settings_bool)
   EXPECT_EQ(SettingValueToType(s.value()), SettingType::Boolean);
 }
 
-TEST(Windows, windows_settings_remove)
+TEST(WindowsTest, windows_settings_remove)
 {
   WindowsSettingsStorage storage;
 
@@ -113,7 +113,7 @@ TEST(Windows, windows_settings_remove)
   EXPECT_EQ(rc.has_error(), false);
 }
 
-TEST(Windows, windows_settings_invalid_subkey)
+TEST(WindowsTest, windows_settings_invalid_subkey)
 {
   WindowsSettingsStorage storage;
 
@@ -151,7 +151,7 @@ namespace
   auto very_long_string = std::string(20 * 1024, 'a');
 }
 
-TEST(Windows, windows_settings_get_invalid_key)
+TEST(WindowsTest, windows_settings_get_invalid_key)
 {
   WindowsSettingsStorage storage;
 
@@ -172,7 +172,7 @@ TEST(Windows, windows_settings_get_invalid_key)
   EXPECT_EQ(rc.has_error(), false); // Windows return "no such key"
 }
 
-TEST(Windows, windows_settings_set_invalid_key)
+TEST(WindowsTest, windows_settings_set_invalid_key)
 {
   WindowsSettingsStorage storage;
 
@@ -190,7 +190,7 @@ TEST(Windows, windows_settings_set_invalid_key)
   EXPECT_EQ(rc.has_error(), true);
 }
 
-TEST(Windows, windows_platform_is_supported)
+TEST(WindowsTest, windows_platform_is_supported)
 {
   WindowsPlatform platform;
 
@@ -214,7 +214,7 @@ TEST(Windows, windows_platform_is_supported)
 #endif
 }
 
-// TEST(Windows, windows_platform_is_supported_os_version)
+// TEST(WindowsTest, windows_platform_is_supported_os_version)
 // {
 //   WindowsPlatform platform;
 

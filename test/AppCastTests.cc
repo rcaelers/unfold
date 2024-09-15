@@ -25,7 +25,7 @@
 
 #include "AppCast.hh"
 
-TEST(AppCast, appcast_load_from_string)
+TEST(AppCastTest, appcast_load_from_string)
 {
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
 
@@ -75,7 +75,7 @@ TEST(AppCast, appcast_load_from_string)
   EXPECT_EQ(appcast->items[0]->canary_rollout_intervals.size(), 0);
 }
 
-TEST(AppCast, appcast_load_from_file)
+TEST(AppCastTest, appcast_load_from_file)
 {
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
 
@@ -119,7 +119,7 @@ TEST(AppCast, appcast_load_from_file)
   EXPECT_EQ(appcast->items[1]->canary_rollout_intervals.size(), 0);
 }
 
-TEST(AppCast, appcast_load_invalid_from_string)
+TEST(AppCastTest, appcast_load_invalid_from_string)
 {
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
 
@@ -129,7 +129,7 @@ TEST(AppCast, appcast_load_invalid_from_string)
   EXPECT_EQ(appcast.get(), nullptr);
 }
 
-TEST(AppCast, appcast_load_invalid_from_file)
+TEST(AppCastTest, appcast_load_invalid_from_file)
 {
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
 
@@ -137,7 +137,7 @@ TEST(AppCast, appcast_load_invalid_from_file)
   EXPECT_EQ(appcast.get(), nullptr);
 }
 
-TEST(AppCast, appcast_canary)
+TEST(AppCastTest, appcast_canary)
 {
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
 
@@ -191,7 +191,7 @@ TEST(AppCast, appcast_canary)
   EXPECT_EQ(appcast->items[1]->canary_rollout_intervals.size(), 3);
 }
 
-TEST(AppCast, appcast_canary_error)
+TEST(AppCastTest, appcast_canary_error)
 {
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
 
@@ -200,7 +200,7 @@ TEST(AppCast, appcast_canary_error)
   EXPECT_EQ(appcast->items[0]->canary_rollout_intervals.size(), 3);
 }
 
-TEST(AppCast, appcast_canary_sparkle)
+TEST(AppCastTest, appcast_canary_sparkle)
 {
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
 

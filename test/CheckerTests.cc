@@ -54,7 +54,7 @@ namespace
     "-----END CERTIFICATE-----\n";
 } // namespace
 
-TEST(Checker, checker_appcast_not_found)
+TEST(CheckerTest, checker_appcast_not_found)
 {
   unfold::http::HttpServer server;
   server.add_file("/appcast.xml", "appcast.xml");
@@ -96,7 +96,7 @@ TEST(Checker, checker_appcast_not_found)
   server.stop();
 }
 
-TEST(Checker, checker_invalid_host)
+TEST(CheckerTest, checker_invalid_host)
 {
   unfold::http::HttpServer server;
   server.add_file("/appcast.xml", "appcast.xml");
@@ -138,7 +138,7 @@ TEST(Checker, checker_invalid_host)
   server.stop();
 }
 
-TEST(Checker, checker_invalid_version)
+TEST(CheckerTest, checker_invalid_version)
 {
   auto http = std::make_shared<unfold::http::HttpClient>();
   auto &options = http->options();
@@ -152,7 +152,7 @@ TEST(Checker, checker_invalid_version)
   EXPECT_EQ(rc.has_error(), true);
 }
 
-TEST(Checker, checker_invalid_appcast)
+TEST(CheckerTest, checker_invalid_appcast)
 {
   unfold::http::HttpServer server;
   server.add_file("/appcast.xml", "invalidappcast.xml");
@@ -194,7 +194,7 @@ TEST(Checker, checker_invalid_appcast)
   server.stop();
 }
 
-TEST(Checker, checker_empty_appcast)
+TEST(CheckerTest, checker_empty_appcast)
 {
   unfold::http::HttpServer server;
   server.add("/appcast.xml", "");
@@ -236,7 +236,7 @@ TEST(Checker, checker_empty_appcast)
   server.stop();
 }
 
-TEST(Checker, checker_invalid_items_in_appcast)
+TEST(CheckerTest, checker_invalid_items_in_appcast)
 {
   std::string appcast_str =
     "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
@@ -341,7 +341,7 @@ TEST(Checker, checker_invalid_items_in_appcast)
   server.stop();
 }
 
-TEST(Checker, checker_no_upgrade)
+TEST(CheckerTest, checker_no_upgrade)
 {
   unfold::http::HttpServer server;
   server.add_file("/appcast.xml", "appcast.xml");
@@ -388,7 +388,7 @@ TEST(Checker, checker_no_upgrade)
   server.stop();
 }
 
-TEST(Checker, checker_has_upgrade)
+TEST(CheckerTest, checker_has_upgrade)
 {
   unfold::http::HttpServer server;
   server.add_file("/appcast.xml", "appcast.xml");
@@ -444,7 +444,7 @@ TEST(Checker, checker_has_upgrade)
   server.stop();
 }
 
-TEST(Checker, checker_delay)
+TEST(CheckerTest, checker_delay)
 {
   unfold::http::HttpServer server;
   server.add_file("/appcast.xml", "appcast-canary.xml");
@@ -542,7 +542,7 @@ TEST(Checker, checker_delay)
   server.stop();
 }
 
-TEST(Checker, checker_earliest_rollout)
+TEST(CheckerTest, checker_earliest_rollout)
 {
   unfold::http::HttpServer server;
   server.add_file("/appcast.xml", "appcast-canary.xml");
@@ -622,7 +622,7 @@ TEST(Checker, checker_earliest_rollout)
   server.stop();
 }
 
-TEST(Checker, checker_channels_allowed_none)
+TEST(CheckerTest, checker_channels_allowed_none)
 {
   unfold::http::HttpServer server;
   server.add_file("/appcast.xml", "appcast-channels.xml");
@@ -678,7 +678,7 @@ TEST(Checker, checker_channels_allowed_none)
   server.stop();
 }
 
-TEST(Checker, checker_channels_allowed_alpha)
+TEST(CheckerTest, checker_channels_allowed_alpha)
 {
   unfold::http::HttpServer server;
   server.add_file("/appcast.xml", "appcast-channels.xml");
@@ -737,7 +737,7 @@ TEST(Checker, checker_channels_allowed_alpha)
   server.stop();
 }
 
-TEST(Checker, checker_channels_allowed_release)
+TEST(CheckerTest, checker_channels_allowed_release)
 {
   unfold::http::HttpServer server;
   server.add_file("/appcast.xml", "appcast-channels.xml");
@@ -796,7 +796,7 @@ TEST(Checker, checker_channels_allowed_release)
   server.stop();
 }
 
-TEST(Checker, checker_channels_allowed_empty)
+TEST(CheckerTest, checker_channels_allowed_empty)
 {
   unfold::http::HttpServer server;
   server.add_file("/appcast.xml", "appcast-channels.xml");

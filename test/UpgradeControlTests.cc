@@ -67,16 +67,16 @@ namespace
     "-----END CERTIFICATE-----\n";
 } // namespace
 
-struct UpgradeControlFixture : public ::testing::Test
+struct UpgradeControlTest : public ::testing::Test
 {
-  ~UpgradeControlFixture() = default;
+  ~UpgradeControlTest() = default;
 
-  UpgradeControlFixture(const UpgradeControlFixture &) = delete;
-  UpgradeControlFixture &operator=(const UpgradeControlFixture &) = delete;
-  UpgradeControlFixture(UpgradeControlFixture &&) = delete;
-  UpgradeControlFixture &operator=(UpgradeControlFixture &&) = delete;
+  UpgradeControlTest(const UpgradeControlTest &) = delete;
+  UpgradeControlTest &operator=(const UpgradeControlTest &) = delete;
+  UpgradeControlTest(UpgradeControlTest &&) = delete;
+  UpgradeControlTest &operator=(UpgradeControlTest &&) = delete;
 
-  UpgradeControlFixture()
+  UpgradeControlTest()
   {
     platform = std::make_shared<TestPlatform>();
 
@@ -124,7 +124,7 @@ namespace unfold
   }
 } // namespace unfold
 
-TEST_F(UpgradeControlFixture, upgrade_control_periodic_check_later)
+TEST_F(UpgradeControlTest, upgrade_control_periodic_check_later)
 {
   EXPECT_CALL(*checker, set_appcast("https://127.0.0.1:1337/appcast.xml")).Times(1).WillOnce(Return(outcome::success()));
 
@@ -193,7 +193,7 @@ TEST_F(UpgradeControlFixture, upgrade_control_periodic_check_later)
   io_context.wait();
 }
 
-TEST_F(UpgradeControlFixture, upgrade_control_periodic_check_later_last_check_in_future)
+TEST_F(UpgradeControlTest, upgrade_control_periodic_check_later_last_check_in_future)
 {
   EXPECT_CALL(*checker, set_appcast("https://127.0.0.1:1337/appcast.xml")).Times(1).WillOnce(Return(outcome::success()));
 
@@ -264,7 +264,7 @@ TEST_F(UpgradeControlFixture, upgrade_control_periodic_check_later_last_check_in
   io_context.wait();
 }
 
-TEST_F(UpgradeControlFixture, upgrade_control_periodic_check_error)
+TEST_F(UpgradeControlTest, upgrade_control_periodic_check_error)
 {
   EXPECT_CALL(*checker, set_appcast("https://127.0.0.1:1337/appcast.xml")).Times(1).WillOnce(Return(outcome::success()));
 
@@ -322,7 +322,7 @@ TEST_F(UpgradeControlFixture, upgrade_control_periodic_check_error)
   io_context.wait();
 }
 
-TEST_F(UpgradeControlFixture, upgrade_control_checker_failed)
+TEST_F(UpgradeControlTest, upgrade_control_checker_failed)
 {
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
 
@@ -371,7 +371,7 @@ TEST_F(UpgradeControlFixture, upgrade_control_checker_failed)
   EXPECT_EQ(status->error(), unfold::UnfoldErrc::AppcastDownloadFailed);
 }
 
-TEST_F(UpgradeControlFixture, upgrade_control_no_upgrade_available)
+TEST_F(UpgradeControlTest, upgrade_control_no_upgrade_available)
 {
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
 
@@ -418,7 +418,7 @@ TEST_F(UpgradeControlFixture, upgrade_control_no_upgrade_available)
   EXPECT_EQ(status.has_value(), false);
 }
 
-TEST_F(UpgradeControlFixture, upgrade_control_no_upgrade_info)
+TEST_F(UpgradeControlTest, upgrade_control_no_upgrade_info)
 {
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
 
@@ -469,7 +469,7 @@ TEST_F(UpgradeControlFixture, upgrade_control_no_upgrade_info)
   EXPECT_EQ(status->error(), unfold::UnfoldErrc::InternalError);
 }
 
-TEST_F(UpgradeControlFixture, upgrade_control_skip_version)
+TEST_F(UpgradeControlTest, upgrade_control_skip_version)
 {
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
 
@@ -532,7 +532,7 @@ TEST_F(UpgradeControlFixture, upgrade_control_skip_version)
   EXPECT_EQ(status.has_value(), false);
 }
 
-TEST_F(UpgradeControlFixture, upgrade_control_skip_version_ignore)
+TEST_F(UpgradeControlTest, upgrade_control_skip_version_ignore)
 {
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
 
@@ -593,7 +593,7 @@ TEST_F(UpgradeControlFixture, upgrade_control_skip_version_ignore)
   EXPECT_EQ(status.has_value(), false);
 }
 
-TEST_F(UpgradeControlFixture, upgrade_control_no_callback)
+TEST_F(UpgradeControlTest, upgrade_control_no_callback)
 {
   std::optional<outcome::std_result<void>> status;
   control->set_update_status_callback([&](outcome::std_result<void> rc) {
@@ -645,7 +645,7 @@ TEST_F(UpgradeControlFixture, upgrade_control_no_callback)
   EXPECT_EQ(status->error(), unfold::UnfoldErrc::InvalidArgument);
 }
 
-TEST_F(UpgradeControlFixture, upgrade_control_callback_later)
+TEST_F(UpgradeControlTest, upgrade_control_callback_later)
 {
   EXPECT_CALL(*storage, set_value("SkipVersion", SettingValue{""})).Times(1).WillOnce(Return(outcome::success()));
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
@@ -704,7 +704,7 @@ TEST_F(UpgradeControlFixture, upgrade_control_callback_later)
   EXPECT_EQ(available, true);
 }
 
-TEST_F(UpgradeControlFixture, upgrade_control_callback_skip)
+TEST_F(UpgradeControlTest, upgrade_control_callback_skip)
 {
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
 
@@ -769,7 +769,7 @@ TEST_F(UpgradeControlFixture, upgrade_control_callback_skip)
   EXPECT_EQ(status.has_value(), false);
 }
 
-TEST_F(UpgradeControlFixture, upgrade_control_callback_install)
+TEST_F(UpgradeControlTest, upgrade_control_callback_install)
 {
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
 
@@ -838,7 +838,7 @@ TEST_F(UpgradeControlFixture, upgrade_control_callback_install)
   EXPECT_EQ(status.has_value(), false);
 }
 
-TEST_F(UpgradeControlFixture, upgrade_control_callback_install_failed)
+TEST_F(UpgradeControlTest, upgrade_control_callback_install_failed)
 {
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
 
@@ -910,7 +910,7 @@ TEST_F(UpgradeControlFixture, upgrade_control_callback_install_failed)
   EXPECT_EQ(status->error(), unfold::UnfoldErrc::InternalError);
 }
 
-TEST_F(UpgradeControlFixture, upgrade_control_proxy)
+TEST_F(UpgradeControlTest, upgrade_control_proxy)
 {
   control->set_proxy(unfold::ProxyType::None);
   EXPECT_EQ(http->options().get_proxy(), unfold::http::Options::ProxyType::None);
@@ -924,7 +924,7 @@ TEST_F(UpgradeControlFixture, upgrade_control_proxy)
   EXPECT_EQ(http->options().get_proxy(), unfold::http::Options::ProxyType::None);
 }
 
-TEST_F(UpgradeControlFixture, upgrade_control_priority)
+TEST_F(UpgradeControlTest, upgrade_control_priority)
 {
   EXPECT_CALL(*storage, get_value("Priority", SettingType::Int32)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success(10)));
 

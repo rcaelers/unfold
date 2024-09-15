@@ -65,7 +65,7 @@ public:
 
 ::testing::Environment *const global_env = ::testing::AddGlobalTestEnvironment(new GlobalFixture);
 
-TEST(Unfold, unfold_error_code)
+TEST(UnfoldTest, unfold_error_code)
 {
   auto error = unfold::make_error_code(unfold::UnfoldErrc::InternalError);
   EXPECT_EQ(error.message(), "internal error");
@@ -100,7 +100,7 @@ TEST(Unfold, unfold_error_code)
   EXPECT_STREQ(error.category().name(), "unfold");
 }
 
-TEST(Unfold, unfold_internal_error_code)
+TEST(UnfoldTest, unfold_internal_error_code)
 {
   auto error = make_error_code(UnfoldInternalErrc::InternalError);
   EXPECT_EQ(error.message(), "internal error");

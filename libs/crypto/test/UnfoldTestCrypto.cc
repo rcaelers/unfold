@@ -52,7 +52,7 @@ struct GlobalCryptoTest : public ::testing::Environment
   GlobalCryptoTest(GlobalCryptoTest &&) = delete;
   GlobalCryptoTest &operator=(GlobalCryptoTest &&) = delete;
 
-  void SetUp()
+  void SetUp() override
   {
     const auto *log_file = "unfold-test-utils.log";
 

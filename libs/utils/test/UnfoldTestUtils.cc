@@ -51,7 +51,7 @@ struct GlobalFixture : public ::testing::Environment
   GlobalFixture(GlobalFixture &&) = delete;
   GlobalFixture &operator=(GlobalFixture &&) = delete;
 
-  void SetUp()
+  void SetUp() override
   {
     const auto *log_file = "unfold-test-utils.log";
 

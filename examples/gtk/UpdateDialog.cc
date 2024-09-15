@@ -114,7 +114,7 @@ UpdateDialog::UpdateDialog(std::shared_ptr<unfold::UpdateInfo> info)
       std::string body;
       for (auto note: info->release_notes)
         {
-          body += fmt::format(_("<h3>Version {}</h3>\n"), note.version);
+          body += fmt::format("<h3>Version {}</h3>\n", note.version);
           auto html = cmark_markdown_to_html(note.markdown.c_str(), note.markdown.length(), CMARK_OPT_DEFAULT);
           ;
           if (html != nullptr)

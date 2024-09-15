@@ -3,7 +3,7 @@ if (HAVE_TESTS)
   target_code_coverage(unfold-test-utils ALL AUTO EXCLUDE _build test/)
 
   target_link_libraries(unfold-test-utils PRIVATE unfold-utils)
-  target_link_libraries(unfold-test-utils PRIVATE Boost::test_exec_monitor)
+  target_link_libraries(unfold-test-utils PRIVATE gtest_main gmock_main)
   target_link_libraries(unfold-test-utils PRIVATE spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto)
   target_link_libraries(unfold-test-utils PRIVATE ${EXTRA_LIBRARIES})
 

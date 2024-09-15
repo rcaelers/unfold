@@ -87,11 +87,6 @@ if (WIN32)
   endif()
 endif()
 
-if (HAVE_TESTS)
-  set(Boost_USE_STATIC_LIBS ON)
-  set(BOOST_COMPONENTS ${BOOST_COMPONENTS} unit_test_framework test_exec_monitor)
-endif()
-
 find_package(Boost 1.83.0 REQUIRED COMPONENTS ${BOOST_COMPONENTS})
 include_directories(${Boost_INCLUDE_DIR})
 link_directories(${Boost_LIBRARY_DIR})

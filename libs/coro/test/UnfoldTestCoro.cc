@@ -18,7 +18,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "http/Options.hh"
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
+
 #include <exception>
 #include <memory>
 #include <fstream>
@@ -33,6 +35,7 @@
 #  include <spdlog/cfg/env.h>
 #endif
 
+#include "http/Options.hh"
 #include "http/HttpServer.hh"
 #include "http/HttpClient.hh"
 #include "http/HttpClientErrors.hh"
@@ -40,9 +43,6 @@
 #include "unfold/coro/IOContext.hh"
 
 #include "unfold/coro/gtask.hh"
-
-#define BOOST_TEST_MODULE "unfold"
-#include <boost/test/unit_test.hpp>
 
 using namespace unfold::http;
 using namespace unfold::utils;
@@ -70,7 +70,7 @@ namespace
     "-----END CERTIFICATE-----\n";
 } // namespace
 
-struct GlobalFixture
+struct GlobalFixture : public ::testing::Environment
 {
   GlobalFixture() = default;
   ~GlobalFixture() = default;
@@ -80,7 +80,7 @@ struct GlobalFixture
   GlobalFixture(GlobalFixture &&) = delete;
   GlobalFixture &operator=(GlobalFixture &&) = delete;
 
-  void setup()
+  void SetUp() override
   {
     const auto *log_file = "unfold-test-coro.log";
 
@@ -99,28 +99,31 @@ struct GlobalFixture
 #endif
   }
 
-private:
+  void TearDown() override
+  {
+    spdlog::drop_all();
+  }
 };
 
-struct Fixture
+struct CoroTest : public ::testing::Test
 {
-  Fixture()
+  CoroTest()
     : context(g_main_context_new())
     , loop(g_main_loop_new(context, TRUE))
     , scheduler(context, io_context.get_io_context())
   {
   }
 
-  ~Fixture()
+  ~CoroTest()
   {
     g_main_loop_unref(loop);
     g_main_context_unref(context);
   }
 
-  Fixture(const Fixture &) = delete;
-  Fixture &operator=(const Fixture &) = delete;
-  Fixture(Fixture &&) = delete;
-  Fixture &operator=(Fixture &&) = delete;
+  CoroTest(const CoroTest &) = delete;
+  CoroTest &operator=(const CoroTest &) = delete;
+  CoroTest(CoroTest &&) = delete;
+  CoroTest &operator=(CoroTest &&) = delete;
 
   enum class SubTest
   {
@@ -140,7 +143,7 @@ struct Fixture
 };
 
 unfold::coro::gtask<int>
-Fixture::coro_test_throws_int()
+CoroTest::coro_test_throws_int()
 {
   co_await scheduler.sleep(100);
   throw std::runtime_error("error");
@@ -148,7 +151,7 @@ Fixture::coro_test_throws_int()
 }
 
 unfold::coro::gtask<void>
-Fixture::coro_test_throws_void()
+CoroTest::coro_test_throws_void()
 {
   co_await scheduler.sleep(100);
   throw std::runtime_error("error");
@@ -156,7 +159,7 @@ Fixture::coro_test_throws_void()
 }
 
 unfold::coro::gtask<void>
-Fixture::coro_test_throws_task(GMainLoop *loop, SubTest subtest)
+CoroTest::coro_test_throws_task(GMainLoop *loop, SubTest subtest)
 {
   try
     {
@@ -169,19 +172,15 @@ Fixture::coro_test_throws_task(GMainLoop *loop, SubTest subtest)
           co_await coro_test_throws_void();
           break;
         }
-      BOOST_CHECK(false);
+      EXPECT_TRUE(false);
     }
   catch (std::exception &e)
     {
-      BOOST_CHECK_EQUAL(e.what(), "error");
+      EXPECT_STREQ(e.what(), "error");
     }
   g_main_loop_quit(loop);
   co_return;
 }
-
-BOOST_TEST_GLOBAL_FIXTURE(GlobalFixture);
-
-BOOST_FIXTURE_TEST_SUITE(unfold_coro_test, Fixture)
 
 boost::asio::awaitable<outcome::std_result<std::string>>
 download_appcast()
@@ -192,12 +191,12 @@ download_appcast()
 
   auto rc = co_await http->get("https://127.0.0.1:1337/foo");
 
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   auto [result, content] = rc.value();
 
-  BOOST_CHECK_EQUAL(result, 200);
-  BOOST_CHECK_EQUAL(content, "foo\n");
+  EXPECT_EQ(result, 200);
+  EXPECT_EQ(content, "foo\n");
 
   co_return content;
 }
@@ -207,11 +206,11 @@ coro1_sub_task1()
 {
   using namespace std::literals::chrono_literals;
   auto rc = co_await download_appcast();
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   auto content = rc.value();
 
-  BOOST_CHECK_EQUAL(content, "foo\n");
+  EXPECT_EQ(content, "foo\n");
   co_return 42;
 }
 
@@ -225,12 +224,12 @@ unfold::coro::gtask<void>
 coro1_main_task(GMainLoop *loop)
 {
   auto i = co_await coro1_sub_task1();
-  BOOST_CHECK_EQUAL(i, 42);
+  EXPECT_EQ(i, 42);
   g_main_loop_quit(loop);
   co_return;
 }
 
-BOOST_AUTO_TEST_CASE(coro1)
+TEST_F(CoroTest, coro1)
 {
   HttpServer server;
   server.add("/foo", "foo\n");
@@ -243,18 +242,16 @@ BOOST_AUTO_TEST_CASE(coro1)
   server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(coro_test_throws_int)
+TEST_F(CoroTest, coro_test_throws_int)
 {
-  unfold::coro::gtask<void> task = coro_test_throws_task(loop, Fixture::SubTest::ThrowIntRet);
+  unfold::coro::gtask<void> task = coro_test_throws_task(loop, CoroTest::SubTest::ThrowIntRet);
   scheduler.spawn(std::move(task));
   g_main_loop_run(loop);
 }
 
-BOOST_AUTO_TEST_CASE(coro_test_throws_void)
+TEST_F(CoroTest, coro_test_throws_void)
 {
-  unfold::coro::gtask<void> task = coro_test_throws_task(loop, Fixture::SubTest::ThrowVoidRet);
+  unfold::coro::gtask<void> task = coro_test_throws_task(loop, CoroTest::SubTest::ThrowVoidRet);
   scheduler.spawn(std::move(task));
   g_main_loop_run(loop);
 }
-
-BOOST_AUTO_TEST_SUITE_END()

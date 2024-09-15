@@ -2,7 +2,7 @@ if (HAVE_TESTS)
   add_executable(unfold-test-crypto UnfoldTestCrypto.cc)
 
   target_link_libraries(unfold-test-crypto PRIVATE unfold unfold-crypto unfold-utils)
-  target_link_libraries(unfold-test-crypto PRIVATE Boost::test_exec_monitor)
+  target_link_libraries(unfold-test-crypto PRIVATE gtest_main gmock_main)
   target_link_libraries(unfold-test-crypto PRIVATE spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto)
   target_link_libraries(unfold-test-crypto PRIVATE ${EXTRA_LIBRARIES})
 

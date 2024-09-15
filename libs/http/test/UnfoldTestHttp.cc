@@ -18,9 +18,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <boost/test/tools/old/interface.hpp>
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
+
 #include <memory>
-#include <fstream>
 
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -38,9 +39,6 @@
 #include "http/HttpClientErrors.hh"
 #include "http/Options.hh"
 #include "utils/Logging.hh"
-
-#define BOOST_TEST_MODULE "unfold"
-#include <boost/test/unit_test.hpp>
 
 using namespace unfold::http;
 using namespace unfold::utils;
@@ -68,7 +66,7 @@ namespace
     "-----END CERTIFICATE-----\n";
 } // namespace
 
-struct GlobalFixture
+struct GlobalFixture : public ::testing::Environment
 {
   GlobalFixture() = default;
   ~GlobalFixture() = default;
@@ -78,7 +76,7 @@ struct GlobalFixture
   GlobalFixture(GlobalFixture &&) = delete;
   GlobalFixture &operator=(GlobalFixture &&) = delete;
 
-  void setup()
+  void SetUp() override
   {
     const auto *log_file = "unfold-test-http.log";
 
@@ -89,7 +87,7 @@ struct GlobalFixture
     logger->flush_on(spdlog::level::critical);
     spdlog::set_default_logger(logger);
 
-    spdlog::set_level(spdlog::level::debug);
+    spdlog::set_level(spdlog::level::info);
     spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [%n] [%^%-5l%$] %v");
 
 #if SPDLOG_VERSION >= 10801
@@ -97,18 +95,21 @@ struct GlobalFixture
 #endif
   }
 
-private:
+  void TearDown() override
+  {
+    spdlog::drop_all();
+  }
 };
 
-struct Fixture
+struct HttpTest : public ::testing::Test
 {
-  Fixture() = default;
-  ~Fixture() = default;
+  HttpTest() = default;
+  ~HttpTest() = default;
 
-  Fixture(const Fixture &) = delete;
-  Fixture &operator=(const Fixture &) = delete;
-  Fixture(Fixture &&) = delete;
-  Fixture &operator=(Fixture &&) = delete;
+  HttpTest(const HttpTest &) = delete;
+  HttpTest &operator=(const HttpTest &) = delete;
+  HttpTest(HttpTest &&) = delete;
+  HttpTest &operator=(HttpTest &&) = delete;
 
   outcome::std_result<Response> get_sync(std::shared_ptr<HttpClient> http, std::string url, std::string file, ProgressCallback cb)
   {
@@ -128,10 +129,7 @@ struct Fixture
     boost::asio::io_context ioc;
     outcome::std_result<Response> ret = outcome::failure(HttpClientErrc::InternalError);
 
-    boost::asio::co_spawn(
-      ioc,
-      [&]() -> boost::asio::awaitable<void> { ret = co_await http->get(url); },
-      boost::asio::detached);
+    boost::asio::co_spawn(ioc, [&]() -> boost::asio::awaitable<void> { ret = co_await http->get(url); }, boost::asio::detached);
     ioc.run();
     ioc.restart();
     return ret;
@@ -141,11 +139,7 @@ private:
   std::shared_ptr<spdlog::logger> logger{Logging::create("test")};
 };
 
-BOOST_TEST_GLOBAL_FIXTURE(GlobalFixture);
-
-BOOST_FIXTURE_TEST_SUITE(unfold_test, Fixture)
-
-BOOST_AUTO_TEST_CASE(http_client_get_secure)
+TEST_F(HttpTest, http_client_get_secure)
 {
   HttpServer server;
   server.add("/foo", "foo\n");
@@ -157,19 +151,19 @@ BOOST_AUTO_TEST_CASE(http_client_get_secure)
 
   auto rc = get_sync(http, "https://127.0.0.1:1337/foo");
 
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   if (!rc.has_error())
     {
       auto [result, content] = rc.value();
-      BOOST_CHECK_EQUAL(result, 200);
-      BOOST_CHECK_EQUAL(content, "foo\n");
+      EXPECT_EQ(result, 200);
+      EXPECT_EQ(content, "foo\n");
     }
 
   server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(http_client_get_secure_many)
+TEST_F(HttpTest, http_client_get_secure_many)
 {
   HttpServer server1;
   server1.add("/foo", "foo\n");
@@ -187,64 +181,64 @@ BOOST_AUTO_TEST_CASE(http_client_get_secure_many)
 
   auto rc = get_sync(http, "https://127.0.0.1:1337/foo");
 
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   if (!rc.has_error())
     {
       auto [result, content] = rc.value();
-      BOOST_CHECK_EQUAL(result, 200);
-      BOOST_CHECK_EQUAL(content, "foo\n");
+      EXPECT_EQ(result, 200);
+      EXPECT_EQ(content, "foo\n");
     }
 
   rc = get_sync(http, "https://127.0.0.1:1337/bar");
 
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   if (!rc.has_error())
     {
       auto [result, content] = rc.value();
-      BOOST_CHECK_EQUAL(result, 200);
-      BOOST_CHECK_EQUAL(content, "bar\n");
+      EXPECT_EQ(result, 200);
+      EXPECT_EQ(content, "bar\n");
     }
 
   rc = get_sync(http, "https://127.0.0.1:1338/foo");
 
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   if (!rc.has_error())
     {
       auto [result, content] = rc.value();
-      BOOST_CHECK_EQUAL(result, 200);
-      BOOST_CHECK_EQUAL(content, "foo\n");
+      EXPECT_EQ(result, 200);
+      EXPECT_EQ(content, "foo\n");
     }
 
   rc = get_sync(http, "https://127.0.0.1:1338/bar");
 
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   if (!rc.has_error())
     {
       auto [result, content] = rc.value();
-      BOOST_CHECK_EQUAL(result, 200);
-      BOOST_CHECK_EQUAL(content, "bar\n");
+      EXPECT_EQ(result, 200);
+      EXPECT_EQ(content, "bar\n");
     }
 
   rc = get_sync(http, "https://127.0.0.1:1337/bar");
 
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   if (!rc.has_error())
     {
       auto [result, content] = rc.value();
-      BOOST_CHECK_EQUAL(result, 200);
-      BOOST_CHECK_EQUAL(content, "bar\n");
+      EXPECT_EQ(result, 200);
+      EXPECT_EQ(content, "bar\n");
     }
 
   server1.stop();
   server2.stop();
 }
 
-BOOST_AUTO_TEST_CASE(http_client_get_plain)
+TEST_F(HttpTest, http_client_get_plain)
 {
   HttpServer server(Protocol::Plain);
   server.add("/foo", "foo\n");
@@ -256,19 +250,19 @@ BOOST_AUTO_TEST_CASE(http_client_get_plain)
 
   auto rc = get_sync(http, "http://127.0.0.1:1337/foo");
 
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   if (!rc.has_error())
     {
       auto [result, content] = rc.value();
-      BOOST_CHECK_EQUAL(result, 200);
-      BOOST_CHECK_EQUAL(content, "foo\n");
+      EXPECT_EQ(result, 200);
+      EXPECT_EQ(content, "foo\n");
     }
 
   server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(http_client_get_plain_many)
+TEST_F(HttpTest, http_client_get_plain_many)
 {
   HttpServer server1(Protocol::Plain);
   server1.add("/foo", "foo\n");
@@ -286,50 +280,50 @@ BOOST_AUTO_TEST_CASE(http_client_get_plain_many)
 
   auto rc = get_sync(http, "http://127.0.0.1:1337/foo");
 
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   if (!rc.has_error())
     {
       auto [result, content] = rc.value();
-      BOOST_CHECK_EQUAL(result, 200);
-      BOOST_CHECK_EQUAL(content, "foo\n");
+      EXPECT_EQ(result, 200);
+      EXPECT_EQ(content, "foo\n");
     }
 
   rc = get_sync(http, "http://127.0.0.1:1337/bar");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   if (!rc.has_error())
     {
       auto [result, content] = rc.value();
-      BOOST_CHECK_EQUAL(result, 200);
-      BOOST_CHECK_EQUAL(content, "bar\n");
+      EXPECT_EQ(result, 200);
+      EXPECT_EQ(content, "bar\n");
     }
 
   rc = get_sync(http, "http://127.0.0.1:1338/foo");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   if (!rc.has_error())
     {
       auto [result, content] = rc.value();
-      BOOST_CHECK_EQUAL(result, 200);
-      BOOST_CHECK_EQUAL(content, "foo\n");
+      EXPECT_EQ(result, 200);
+      EXPECT_EQ(content, "foo\n");
     }
 
   rc = get_sync(http, "http://127.0.0.1:1337/bar");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   if (!rc.has_error())
     {
       auto [result, content] = rc.value();
-      BOOST_CHECK_EQUAL(result, 200);
-      BOOST_CHECK_EQUAL(content, "bar\n");
+      EXPECT_EQ(result, 200);
+      EXPECT_EQ(content, "bar\n");
     }
 
   server1.stop();
   server2.stop();
 }
 
-BOOST_AUTO_TEST_CASE(http_client_get_plain_special_characters)
+TEST_F(HttpTest, http_client_get_plain_special_characters)
 {
   HttpServer server(Protocol::Plain);
   server.add("/foo?x=%2f&b=2&c=3", "foo\n");
@@ -341,19 +335,19 @@ BOOST_AUTO_TEST_CASE(http_client_get_plain_special_characters)
 
   auto rc = get_sync(http, "http://127.0.0.1:1337/foo?x=%2f&b=2&c=3");
 
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   if (!rc.has_error())
     {
       auto [result, content] = rc.value();
-      BOOST_CHECK_EQUAL(result, 200);
-      BOOST_CHECK_EQUAL(content, "foo\n");
+      EXPECT_EQ(result, 200);
+      EXPECT_EQ(content, "foo\n");
     }
 
   server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(http_client_not_found)
+TEST_F(HttpTest, http_client_not_found)
 {
   HttpServer server;
   server.add("/foo", "foo\n");
@@ -365,77 +359,77 @@ BOOST_AUTO_TEST_CASE(http_client_not_found)
 
   auto rc = get_sync(http, "https://127.0.0.1:1337/bar");
 
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
   if (!rc.has_error())
     {
       auto [result, content] = rc.value();
-      BOOST_CHECK_EQUAL(result, 404);
-      BOOST_CHECK_EQUAL(content, "The resource '/bar' was not found.");
+      EXPECT_EQ(result, 404);
+      EXPECT_EQ(content, "The resource '/bar' was not found.");
     }
   server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(http_client_host_not_found)
+TEST_F(HttpTest, http_client_host_not_found)
 {
   auto http = std::make_shared<unfold::http::HttpClient>();
   auto &options = http->options();
   options.add_ca_cert(cert);
 
   auto rc = get_sync(http, "https://does-not-exist:1337/bar");
-  BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::NameResolutionFailed);
+  EXPECT_EQ(rc.error(), HttpClientErrc::NameResolutionFailed);
 }
 
-BOOST_AUTO_TEST_CASE(http_client_connection_refused)
+TEST_F(HttpTest, http_client_connection_refused)
 {
   auto http = std::make_shared<unfold::http::HttpClient>();
   auto &options = http->options();
   options.add_ca_cert(cert);
 
   auto rc = get_sync(http, "https://127.0.0.1:1338/bar");
-  BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::ConnectionRefused);
+  EXPECT_EQ(rc.error(), HttpClientErrc::ConnectionRefused);
 }
 
-BOOST_AUTO_TEST_CASE(http_client_get_file_connection_refused)
+TEST_F(HttpTest, http_client_get_file_connection_refused)
 {
   auto http = std::make_shared<unfold::http::HttpClient>();
   auto &options = http->options();
   options.add_ca_cert(cert);
 
-  auto rc = get_sync(http, "https://127.0.0.1:1338/foo", "foo.txt", [&](double progress) { BOOST_CHECK(false); });
-  BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::ConnectionRefused);
+  auto rc = get_sync(http, "https://127.0.0.1:1338/foo", "foo.txt", [&](double progress) { EXPECT_TRUE(false); });
+  EXPECT_EQ(rc.error(), HttpClientErrc::ConnectionRefused);
 }
 
-BOOST_AUTO_TEST_CASE(http_client_invalid_ip_in_url)
+TEST_F(HttpTest, http_client_invalid_ip_in_url)
 {
   auto http = std::make_shared<unfold::http::HttpClient>();
   auto &options = http->options();
   options.add_ca_cert(cert);
 
   auto rc = get_sync(http, "https://300.1.1.1:1337/bar");
-  BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::NameResolutionFailed);
+  EXPECT_EQ(rc.error(), HttpClientErrc::NameResolutionFailed);
 }
 
-BOOST_AUTO_TEST_CASE(http_client_invalid_url)
+TEST_F(HttpTest, http_client_invalid_url)
 {
   auto http = std::make_shared<unfold::http::HttpClient>();
   auto &options = http->options();
   options.add_ca_cert(cert);
 
   auto rc = get_sync(http, "//300.1.1.1:1337:foo:/bar");
-  BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::MalformedURL);
+  EXPECT_EQ(rc.error(), HttpClientErrc::MalformedURL);
 }
 
-BOOST_AUTO_TEST_CASE(http_client_get_file_invalid_url)
+TEST_F(HttpTest, http_client_get_file_invalid_url)
 {
   auto http = std::make_shared<unfold::http::HttpClient>();
   auto &options = http->options();
   options.add_ca_cert(cert);
 
-  auto rc = get_sync(http, "//127.0.0.1:1337:1337/foo", "foo.txt", [&](double progress) { BOOST_CHECK(false); });
-  BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::MalformedURL);
+  auto rc = get_sync(http, "//127.0.0.1:1337:1337/foo", "foo.txt", [&](double progress) { EXPECT_TRUE(false); });
+  EXPECT_EQ(rc.error(), HttpClientErrc::MalformedURL);
 }
 
-BOOST_AUTO_TEST_CASE(http_client_get_file_secure)
+TEST_F(HttpTest, http_client_get_file_secure)
 {
   HttpServer server;
 
@@ -450,22 +444,22 @@ BOOST_AUTO_TEST_CASE(http_client_get_file_secure)
 
   double previous_progress = 0.0;
   auto rc = get_sync(http, "https://127.0.0.1:1337/foo", "foo.txt", [&](double progress) {
-    BOOST_CHECK_GE(progress, previous_progress);
+    EXPECT_GE(progress, previous_progress);
     previous_progress = progress;
   });
 
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
   if (!rc.has_error())
     {
       auto [result, content] = rc.value();
 
-      BOOST_CHECK_EQUAL(result, 200);
-      BOOST_CHECK_GE(previous_progress + 0.0001, 1.0);
+      EXPECT_EQ(result, 200);
+      EXPECT_GE(previous_progress + 0.0001, 1.0);
     }
   server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(http_client_get_file_plain)
+TEST_F(HttpTest, http_client_get_file_plain)
 {
   HttpServer server(Protocol::Plain);
 
@@ -480,22 +474,22 @@ BOOST_AUTO_TEST_CASE(http_client_get_file_plain)
 
   double previous_progress = 0.0;
   auto rc = get_sync(http, "http://127.0.0.1:1337/foo", "foo.txt", [&](double progress) {
-    BOOST_CHECK_GE(progress, previous_progress);
+    EXPECT_GE(progress, previous_progress);
     previous_progress = progress;
   });
 
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
   if (!rc.has_error())
     {
       auto [result, content] = rc.value();
 
-      BOOST_CHECK_EQUAL(result, 200);
-      BOOST_CHECK_GE(previous_progress + 0.0001, 1.0);
+      EXPECT_EQ(result, 200);
+      EXPECT_GE(previous_progress + 0.0001, 1.0);
     }
   server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(http_client_get_file_not_found)
+TEST_F(HttpTest, http_client_get_file_not_found)
 {
   HttpServer server;
 
@@ -510,22 +504,22 @@ BOOST_AUTO_TEST_CASE(http_client_get_file_not_found)
 
   double previous_progress = 0.0;
   auto rc = get_sync(http, "https://127.0.0.1:1337/bar", "foo.txt", [&](double progress) {
-    BOOST_CHECK_GE(progress, previous_progress);
+    EXPECT_GE(progress, previous_progress);
     previous_progress = progress;
   });
 
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
   if (!rc.has_error())
     {
       auto [result, content] = rc.value();
 
-      BOOST_CHECK_EQUAL(result, 404);
-      BOOST_CHECK_LE(previous_progress, 1);
+      EXPECT_EQ(result, 404);
+      EXPECT_LE(previous_progress, 1);
     }
   server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(http_client_redirect_plain_to_secure)
+TEST_F(HttpTest, http_client_redirect_plain_to_secure)
 {
   HttpServer plain_server(Protocol::Plain, 1338);
   HttpServer secure_server;
@@ -544,17 +538,17 @@ BOOST_AUTO_TEST_CASE(http_client_redirect_plain_to_secure)
 
   auto rc = get_sync(http, "http://127.0.0.1:1338/foo");
 
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
   if (!rc.has_error())
     {
       auto [result, content] = rc.value();
-      BOOST_CHECK_EQUAL(result, 200);
+      EXPECT_EQ(result, 200);
     }
   secure_server.stop();
   plain_server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(http_client_redirect_plain_to_plain_same_server)
+TEST_F(HttpTest, http_client_redirect_plain_to_plain_same_server)
 {
   HttpServer plain_server("plain1", Protocol::Plain, 1338);
 
@@ -568,16 +562,16 @@ BOOST_AUTO_TEST_CASE(http_client_redirect_plain_to_plain_same_server)
 
   auto rc = get_sync(http, "http://127.0.0.1:1338/foo");
 
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
   if (!rc.has_error())
     {
       auto [result, content] = rc.value();
-      BOOST_CHECK_EQUAL(result, 200);
+      EXPECT_EQ(result, 200);
     }
   plain_server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(http_client_redirect_plain_to_plain_same_server_absolute_url)
+TEST_F(HttpTest, http_client_redirect_plain_to_plain_same_server_absolute_url)
 {
   HttpServer plain_server("plain1", Protocol::Plain, 1338);
 
@@ -591,16 +585,16 @@ BOOST_AUTO_TEST_CASE(http_client_redirect_plain_to_plain_same_server_absolute_ur
 
   auto rc = get_sync(http, "http://127.0.0.1:1338/foo");
 
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
   if (!rc.has_error())
     {
       auto [result, content] = rc.value();
-      BOOST_CHECK_EQUAL(result, 200);
+      EXPECT_EQ(result, 200);
     }
   plain_server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(http_client_redirect_plain_to_plain_same_server_complex_url)
+TEST_F(HttpTest, http_client_redirect_plain_to_plain_same_server_complex_url)
 {
   HttpServer plain_server("plain1", Protocol::Plain, 1338);
 
@@ -618,16 +612,16 @@ BOOST_AUTO_TEST_CASE(http_client_redirect_plain_to_plain_same_server_complex_url
 
   auto rc = get_sync(http, "http://127.0.0.1:1338/foo");
 
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
   if (!rc.has_error())
     {
       auto [result, content] = rc.value();
-      BOOST_CHECK_EQUAL(result, 200);
+      EXPECT_EQ(result, 200);
     }
   plain_server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(http_client_redirect_malformed)
+TEST_F(HttpTest, http_client_redirect_malformed)
 {
   HttpServer plain_server("plain1", Protocol::Plain, 1338);
 
@@ -641,13 +635,13 @@ BOOST_AUTO_TEST_CASE(http_client_redirect_malformed)
 
   auto rc = get_sync(http, "http://127.0.0.1:1338/foo");
 
-  BOOST_CHECK_EQUAL(rc.has_error(), true);
-  BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::InvalidRedirect);
+  EXPECT_EQ(rc.has_error(), true);
+  EXPECT_EQ(rc.error(), HttpClientErrc::InvalidRedirect);
 
   plain_server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(http_client_redirect_empty)
+TEST_F(HttpTest, http_client_redirect_empty)
 {
   HttpServer plain_server("plain1", Protocol::Plain, 1338);
 
@@ -661,13 +655,13 @@ BOOST_AUTO_TEST_CASE(http_client_redirect_empty)
 
   auto rc = get_sync(http, "http://127.0.0.1:1338/foo");
 
-  BOOST_CHECK_EQUAL(rc.has_error(), true);
-  BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::InvalidRedirect);
+  EXPECT_EQ(rc.has_error(), true);
+  EXPECT_EQ(rc.error(), HttpClientErrc::InvalidRedirect);
 
   plain_server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(http_client_redirect_exceed_max)
+TEST_F(HttpTest, http_client_redirect_exceed_max)
 {
   HttpServer plain_server(Protocol::Plain, 1338);
 
@@ -687,13 +681,13 @@ BOOST_AUTO_TEST_CASE(http_client_redirect_exceed_max)
 
   auto rc = get_sync(http, "http://127.0.0.1:1338/a");
 
-  BOOST_CHECK_EQUAL(rc.has_error(), true);
-  BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::TooManyRedirects);
+  EXPECT_EQ(rc.has_error(), true);
+  EXPECT_EQ(rc.error(), HttpClientErrc::TooManyRedirects);
 
   plain_server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(http_client_redirect_below_max)
+TEST_F(HttpTest, http_client_redirect_below_max)
 {
   HttpServer plain_server(Protocol::Plain, 1338);
 
@@ -713,17 +707,17 @@ BOOST_AUTO_TEST_CASE(http_client_redirect_below_max)
 
   auto rc = get_sync(http, "http://127.0.0.1:1338/a");
 
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
   if (!rc.has_error())
     {
       auto [result, content] = rc.value();
-      BOOST_CHECK_EQUAL(result, 200);
+      EXPECT_EQ(result, 200);
     }
 
   plain_server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(http_client_redirect_diabled)
+TEST_F(HttpTest, http_client_redirect_diabled)
 {
   HttpServer plain_server(Protocol::Plain, 1338);
 
@@ -738,13 +732,13 @@ BOOST_AUTO_TEST_CASE(http_client_redirect_diabled)
 
   auto rc = get_sync(http, "http://127.0.0.1:1338/a");
 
-  BOOST_CHECK_EQUAL(rc.has_error(), true);
-  BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::TooManyRedirects);
+  EXPECT_EQ(rc.has_error(), true);
+  EXPECT_EQ(rc.error(), HttpClientErrc::TooManyRedirects);
 
   plain_server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(http_client_proxy_get_plain)
+TEST_F(HttpTest, http_client_proxy_get_plain)
 {
   HttpServer proxy_server("proxy", Protocol::Plain, 1338);
   HttpServer plain_server("http", Protocol::Plain, 1339);
@@ -762,20 +756,20 @@ BOOST_AUTO_TEST_CASE(http_client_proxy_get_plain)
 
   auto rc = get_sync(http, "http://127.0.0.1:1339/foo");
 
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   if (!rc.has_error())
     {
       auto [result, content] = rc.value();
-      BOOST_CHECK_EQUAL(result, 200);
-      BOOST_CHECK_EQUAL(content, "foo\n");
+      EXPECT_EQ(result, 200);
+      EXPECT_EQ(content, "foo\n");
     }
 
   plain_server.stop();
   proxy_server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(http_client_proxy_get_plain_special_character)
+TEST_F(HttpTest, http_client_proxy_get_plain_special_character)
 {
   HttpServer proxy_server("proxy", Protocol::Plain, 1338);
   HttpServer plain_server("http", Protocol::Plain, 1339);
@@ -788,25 +782,25 @@ BOOST_AUTO_TEST_CASE(http_client_proxy_get_plain_special_character)
   auto http = std::make_shared<unfold::http::HttpClient>();
   auto &options = http->options();
   options.add_ca_cert(cert);
-    options.set_proxy(unfold::http::Options::ProxyType::Custom);
-options.set_custom_proxy("http://127.0.0.1:1338");
+  options.set_proxy(unfold::http::Options::ProxyType::Custom);
+  options.set_custom_proxy("http://127.0.0.1:1338");
 
   auto rc = get_sync(http, "http://127.0.0.1:1339/foo?x=%2f&b=2&c=3");
 
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   if (!rc.has_error())
     {
       auto [result, content] = rc.value();
-      BOOST_CHECK_EQUAL(result, 200);
-      BOOST_CHECK_EQUAL(content, "foo\n");
+      EXPECT_EQ(result, 200);
+      EXPECT_EQ(content, "foo\n");
     }
 
   plain_server.stop();
   proxy_server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(http_client_proxy_get_secure)
+TEST_F(HttpTest, http_client_proxy_get_secure)
 {
   HttpServer proxy_server(Protocol::Plain, 1338);
   HttpServer secure_server;
@@ -819,25 +813,25 @@ BOOST_AUTO_TEST_CASE(http_client_proxy_get_secure)
   auto http = std::make_shared<unfold::http::HttpClient>();
   auto &options = http->options();
   options.add_ca_cert(cert);
-   options.set_proxy(unfold::http::Options::ProxyType::Custom);
- options.set_custom_proxy("http://127.0.0.1:1338");
+  options.set_proxy(unfold::http::Options::ProxyType::Custom);
+  options.set_custom_proxy("http://127.0.0.1:1338");
 
   auto rc = get_sync(http, "https://127.0.0.1:1337/foo");
 
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   if (!rc.has_error())
     {
       auto [result, content] = rc.value();
-      BOOST_CHECK_EQUAL(result, 200);
-      BOOST_CHECK_EQUAL(content, "foo\n");
+      EXPECT_EQ(result, 200);
+      EXPECT_EQ(content, "foo\n");
     }
 
   proxy_server.stop();
   secure_server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(http_client_proxy_not_found)
+TEST_F(HttpTest, http_client_proxy_not_found)
 {
   HttpServer proxy_server(Protocol::Plain, 1338);
   HttpServer secure_server;
@@ -850,18 +844,18 @@ BOOST_AUTO_TEST_CASE(http_client_proxy_not_found)
   auto http = std::make_shared<unfold::http::HttpClient>();
   auto &options = http->options();
   options.add_ca_cert(cert);
-   options.set_proxy(unfold::http::Options::ProxyType::Custom);
- options.set_custom_proxy("http://127.0.0.1:3338");
+  options.set_proxy(unfold::http::Options::ProxyType::Custom);
+  options.set_custom_proxy("http://127.0.0.1:3338");
 
   auto rc = get_sync(http, "https://127.0.0.1:1337/foo");
 
-  BOOST_CHECK_EQUAL(rc.has_error(), true);
-  BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::ConnectionRefused);
+  EXPECT_EQ(rc.has_error(), true);
+  EXPECT_EQ(rc.error(), HttpClientErrc::ConnectionRefused);
   proxy_server.stop();
   secure_server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(http_client_invalid_cert)
+TEST_F(HttpTest, http_client_invalid_cert)
 {
   HttpServer server;
   server.add("/foo", "foo\n");
@@ -873,9 +867,8 @@ BOOST_AUTO_TEST_CASE(http_client_invalid_cert)
 
   auto rc = get_sync(http, "https://127.0.0.1:1337/foo");
 
-  BOOST_CHECK_EQUAL(rc.has_error(), true);
-  BOOST_CHECK_EQUAL(rc.error(), HttpClientErrc::InvalidCertificate);
+  EXPECT_EQ(rc.has_error(), true);
+  EXPECT_EQ(rc.error(), HttpClientErrc::InvalidCertificate);
 
   server.stop();
 }
-BOOST_AUTO_TEST_SUITE_END()

@@ -18,7 +18,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <boost/test/tools/old/interface.hpp>
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
+
 #include <memory>
 #include <fstream>
 
@@ -37,12 +39,9 @@
 #include "utils/DateUtils.hh"
 #include "utils/Base64.hh"
 
-#define BOOST_TEST_MODULE "unfold"
-#include <boost/test/unit_test.hpp>
-
 using namespace unfold::utils;
 
-struct GlobalFixture
+struct GlobalFixture : public ::testing::Environment
 {
   GlobalFixture() = default;
   ~GlobalFixture() = default;
@@ -52,7 +51,7 @@ struct GlobalFixture
   GlobalFixture(GlobalFixture &&) = delete;
   GlobalFixture &operator=(GlobalFixture &&) = delete;
 
-  void setup()
+  void SetUp()
   {
     const auto *log_file = "unfold-test-utils.log";
 
@@ -71,64 +70,51 @@ struct GlobalFixture
 #endif
   }
 
-private:
+  void TearDown() override
+  {
+    spdlog::drop_all();
+  }
 };
 
-struct Fixture
-{
-  Fixture() = default;
-  ~Fixture() = default;
+::testing::Environment *const global_env = ::testing::AddGlobalTestEnvironment(new GlobalFixture);
 
-  Fixture(const Fixture &) = delete;
-  Fixture &operator=(const Fixture &) = delete;
-  Fixture(Fixture &&) = delete;
-  Fixture &operator=(Fixture &&) = delete;
-
-private:
-  std::shared_ptr<spdlog::logger> logger{Logging::create("test")};
-};
-
-BOOST_TEST_GLOBAL_FIXTURE(GlobalFixture);
-
-BOOST_FIXTURE_TEST_SUITE(unfold_test, Fixture)
-
-BOOST_AUTO_TEST_CASE(utils_string_utf16_to_utf8)
+TEST(UtilsTest, utils_string_utf16_to_utf8)
 {
   std::string s = unfold::utils::utf16_to_utf8(L"Hello World");
-  BOOST_CHECK_EQUAL(s, "Hello World");
+  EXPECT_EQ(s, "Hello World");
 }
 
-BOOST_AUTO_TEST_CASE(utils_string_utf8_to_utf16)
+TEST(UtilsTest, utils_string_utf8_to_utf16)
 {
   std::wstring s = unfold::utils::utf8_to_utf16("Hello World");
-  BOOST_CHECK(s == L"Hello World");
+  EXPECT_STREQ(s.c_str(), L"Hello World");
 }
 
-BOOST_AUTO_TEST_CASE(utils_empty_string_utf16_to_utf8)
+TEST(UtilsTest, utils_empty_string_utf16_to_utf8)
 {
   std::string s = unfold::utils::utf16_to_utf8(L"");
-  BOOST_CHECK_EQUAL(s, "");
+  EXPECT_EQ(s, "");
 }
 
-BOOST_AUTO_TEST_CASE(utils_empty_string_utf8_to_utf16)
+TEST(UtilsTest, utils_empty_string_utf8_to_utf16)
 {
   std::wstring s = unfold::utils::utf8_to_utf16("");
-  BOOST_CHECK(s == L"");
+  EXPECT_STREQ(s.c_str(), L"");
 }
 
-BOOST_AUTO_TEST_CASE(utils_base64_encode)
+TEST(UtilsTest, utils_base64_encode)
 {
   std::string s = unfold::utils::Base64::encode("Hello World");
-  BOOST_CHECK_EQUAL(s, "SGVsbG8gV29ybGQ=");
+  EXPECT_EQ(s, "SGVsbG8gV29ybGQ=");
 }
 
-BOOST_AUTO_TEST_CASE(utils_base64_decode)
+TEST(UtilsTest, utils_base64_decode)
 {
   std::string s = unfold::utils::Base64::decode("SGVsbG8gV29ybGQ=");
-  BOOST_CHECK_EQUAL(s, "Hello World");
+  EXPECT_EQ(s, "Hello World");
 }
 
-BOOST_AUTO_TEST_CASE(utils_base64_decode_0_terminated)
+TEST(UtilsTest, utils_base64_decode_0_terminated)
 {
   std::string ref = {'\xe3', '\xeb', '\x54', '\x77', '\x79', '\x46', '\xba', '\x72', '\xfa', '\x85', '\x96', '\x60', '\x02',
                      '\x31', '\xb5', '\x85', '\xea', '\xe6', '\xaf', '\x8c', '\x43', '\x18', '\xf3', '\x5e', '\xaa', '\x52',
@@ -139,11 +125,11 @@ BOOST_AUTO_TEST_CASE(utils_base64_decode_0_terminated)
   std::string decoded = unfold::utils::Base64::decode(
     "4+tUd3lGunL6hZZgAjG1hermr4xDGPNeqlIPQPvd4k/c3UytGZ0iH9QksrsuJ7MNw6X8HHavdhCwxe2DQztVAA==");
 
-  BOOST_CHECK_EQUAL(decoded.size(), 64);
-  BOOST_CHECK_EQUAL(decoded, ref);
+  EXPECT_EQ(decoded.size(), 64);
+  EXPECT_EQ(decoded, ref);
 }
 
-BOOST_AUTO_TEST_CASE(utils_base64_encode_0_terminated)
+TEST(UtilsTest, utils_base64_encode_0_terminated)
 {
   std::string ref = "4+tUd3lGunL6hZZgAjG1hermr4xDGPNeqlIPQPvd4k/c3UytGZ0iH9QksrsuJ7MNw6X8HHavdhCwxe2DQztVAA==";
 
@@ -155,10 +141,10 @@ BOOST_AUTO_TEST_CASE(utils_base64_encode_0_terminated)
 
   std::string encoded = unfold::utils::Base64::encode(decoded);
 
-  BOOST_CHECK_EQUAL(encoded, ref);
+  EXPECT_EQ(encoded, ref);
 }
 
-BOOST_AUTO_TEST_CASE(utils_dateutils_rfc)
+TEST(UtilsTest, utils_dateutils_rfc)
 {
   std::string date_str_rfc = "Wed, 13 Sep 2023 15:35:22 +0000";
   std::chrono::system_clock::time_point tp = unfold::utils::DateUtils::parse_time_point(date_str_rfc);
@@ -166,15 +152,15 @@ BOOST_AUTO_TEST_CASE(utils_dateutils_rfc)
   std::time_t time = std::chrono::system_clock::to_time_t(tp);
   std::tm *tm = std::gmtime(&time);
 
-  BOOST_CHECK_EQUAL(tm->tm_year + 1900, 2023);
-  BOOST_CHECK_EQUAL(tm->tm_mon + 1, 9);
-  BOOST_CHECK_EQUAL(tm->tm_mday, 13);
-  BOOST_CHECK_EQUAL(tm->tm_hour, 15);
-  BOOST_CHECK_EQUAL(tm->tm_min, 35);
-  BOOST_CHECK_EQUAL(tm->tm_sec, 22);
+  EXPECT_EQ(tm->tm_year + 1900, 2023);
+  EXPECT_EQ(tm->tm_mon + 1, 9);
+  EXPECT_EQ(tm->tm_mday, 13);
+  EXPECT_EQ(tm->tm_hour, 15);
+  EXPECT_EQ(tm->tm_min, 35);
+  EXPECT_EQ(tm->tm_sec, 22);
 }
 
-BOOST_AUTO_TEST_CASE(utils_dateutils_rfc_tz)
+TEST(UtilsTest, utils_dateutils_rfc_tz)
 {
   std::string date_str_rfc = "Wed, 13 Sep 2023 15:35:22 +0200";
   std::chrono::system_clock::time_point tp = unfold::utils::DateUtils::parse_time_point(date_str_rfc);
@@ -182,15 +168,15 @@ BOOST_AUTO_TEST_CASE(utils_dateutils_rfc_tz)
   std::time_t time = std::chrono::system_clock::to_time_t(tp);
   std::tm *tm = std::gmtime(&time);
 
-  BOOST_CHECK_EQUAL(tm->tm_year + 1900, 2023);
-  BOOST_CHECK_EQUAL(tm->tm_mon + 1, 9);
-  BOOST_CHECK_EQUAL(tm->tm_mday, 13);
-  BOOST_CHECK_EQUAL(tm->tm_hour, 15);
-  BOOST_CHECK_EQUAL(tm->tm_min, 35);
-  BOOST_CHECK_EQUAL(tm->tm_sec, 22);
+  EXPECT_EQ(tm->tm_year + 1900, 2023);
+  EXPECT_EQ(tm->tm_mon + 1, 9);
+  EXPECT_EQ(tm->tm_mday, 13);
+  EXPECT_EQ(tm->tm_hour, 15);
+  EXPECT_EQ(tm->tm_min, 35);
+  EXPECT_EQ(tm->tm_sec, 22);
 }
 
-BOOST_AUTO_TEST_CASE(utils_dateutils_iso)
+TEST(UtilsTest, utils_dateutils_iso)
 {
   std::string date_str_rfc = "2023-09-13T15:35:22Z";
   std::chrono::system_clock::time_point tp = unfold::utils::DateUtils::parse_time_point(date_str_rfc);
@@ -198,15 +184,15 @@ BOOST_AUTO_TEST_CASE(utils_dateutils_iso)
   std::time_t time = std::chrono::system_clock::to_time_t(tp);
   std::tm *tm = std::gmtime(&time);
 
-  BOOST_CHECK_EQUAL(tm->tm_year + 1900, 2023);
-  BOOST_CHECK_EQUAL(tm->tm_mon + 1, 9);
-  BOOST_CHECK_EQUAL(tm->tm_mday, 13);
-  BOOST_CHECK_EQUAL(tm->tm_hour, 15);
-  BOOST_CHECK_EQUAL(tm->tm_min, 35);
-  BOOST_CHECK_EQUAL(tm->tm_sec, 22);
+  EXPECT_EQ(tm->tm_year + 1900, 2023);
+  EXPECT_EQ(tm->tm_mon + 1, 9);
+  EXPECT_EQ(tm->tm_mday, 13);
+  EXPECT_EQ(tm->tm_hour, 15);
+  EXPECT_EQ(tm->tm_min, 35);
+  EXPECT_EQ(tm->tm_sec, 22);
 }
 
-BOOST_AUTO_TEST_CASE(utils_dateutils_iso_np_z)
+TEST(UtilsTest, utils_dateutils_iso_np_z)
 {
   std::string date_str_rfc = "2023-09-13T15:35:22";
   std::chrono::system_clock::time_point tp = unfold::utils::DateUtils::parse_time_point(date_str_rfc);
@@ -214,18 +200,16 @@ BOOST_AUTO_TEST_CASE(utils_dateutils_iso_np_z)
   std::time_t time = std::chrono::system_clock::to_time_t(tp);
   std::tm *tm = std::gmtime(&time);
 
-  BOOST_CHECK_EQUAL(tm->tm_year + 1900, 2023);
-  BOOST_CHECK_EQUAL(tm->tm_mon + 1, 9);
-  BOOST_CHECK_EQUAL(tm->tm_mday, 13);
-  BOOST_CHECK_EQUAL(tm->tm_hour, 15);
-  BOOST_CHECK_EQUAL(tm->tm_min, 35);
-  BOOST_CHECK_EQUAL(tm->tm_sec, 22);
+  EXPECT_EQ(tm->tm_year + 1900, 2023);
+  EXPECT_EQ(tm->tm_mon + 1, 9);
+  EXPECT_EQ(tm->tm_mday, 13);
+  EXPECT_EQ(tm->tm_hour, 15);
+  EXPECT_EQ(tm->tm_min, 35);
+  EXPECT_EQ(tm->tm_sec, 22);
 }
 
-BOOST_AUTO_TEST_CASE(utils_dateutils_incorrect_date)
+TEST(UtilsTest, utils_dateutils_incorrect_date)
 {
   std::string date_str_rfc = "2023-13-13T15:35:22";
-  BOOST_CHECK_THROW(unfold::utils::DateUtils::parse_time_point(date_str_rfc), std::runtime_error);
+  EXPECT_THROW(unfold::utils::DateUtils::parse_time_point(date_str_rfc), std::runtime_error);
 }
-
-BOOST_AUTO_TEST_SUITE_END()

@@ -6,7 +6,7 @@ if (HAVE_TESTS)
   add_executable(unfold-test-coro UnfoldTestCoro.cc)
 
   target_link_libraries(unfold-test-coro PRIVATE unfold-coro unfold-http unfold-utils)
-  target_link_libraries(unfold-test-coro PRIVATE Boost::test_exec_monitor)
+  target_link_libraries(unfold-test-coro PRIVATE gtest_main gmock_main)
   target_link_libraries(unfold-test-coro PRIVATE spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto)
   target_link_libraries(unfold-test-coro PRIVATE ${EXTRA_LIBRARIES})
 

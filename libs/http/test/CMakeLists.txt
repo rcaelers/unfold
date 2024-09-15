@@ -10,7 +10,7 @@ if (HAVE_TESTS)
   target_code_coverage(unfold-test-http ALL AUTO EXCLUDE _build libs/utils test/)
 
   target_link_libraries(unfold-test-http PRIVATE unfold-http unfold-utils)
-  target_link_libraries(unfold-test-http PRIVATE Boost::test_exec_monitor)
+  target_link_libraries(unfold-test-http PRIVATE gtest_main gmock_main)
   target_link_libraries(unfold-test-http PRIVATE spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto)
   target_link_libraries(unfold-test-http PRIVATE ${EXTRA_LIBRARIES})
 
@@ -29,7 +29,7 @@ if(CODE_COVERAGE)
 endif()
 
   target_link_libraries(unfold-test-http-server PRIVATE unfold-http unfold-utils)
-  target_link_libraries(unfold-test-http-server PRIVATE Boost::test_exec_monitor)
+  target_link_libraries(unfold-test-http-server PRIVATE gtest_main gmock_main)
   target_link_libraries(unfold-test-http-server PRIVATE spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto)
   target_link_libraries(unfold-test-http-server PRIVATE ${EXTRA_LIBRARIES})
 

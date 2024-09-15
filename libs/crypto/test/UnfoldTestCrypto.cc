@@ -18,6 +18,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
+
 #include <memory>
 #include <fstream>
 
@@ -36,25 +39,22 @@
 #include "crypto/SignatureVerifier.hh"
 #include "crypto/SignatureVerifierErrors.hh"
 
-#define BOOST_TEST_MODULE "unfold"
-#include <boost/test/unit_test.hpp>
-
 using namespace unfold::crypto;
 using namespace unfold::utils;
 
-struct GlobalFixture
+struct GlobalCryptoTest : public ::testing::Environment
 {
-  GlobalFixture() = default;
-  ~GlobalFixture() = default;
+  GlobalCryptoTest() = default;
+  ~GlobalCryptoTest() = default;
 
-  GlobalFixture(const GlobalFixture &) = delete;
-  GlobalFixture &operator=(const GlobalFixture &) = delete;
-  GlobalFixture(GlobalFixture &&) = delete;
-  GlobalFixture &operator=(GlobalFixture &&) = delete;
+  GlobalCryptoTest(const GlobalCryptoTest &) = delete;
+  GlobalCryptoTest &operator=(const GlobalCryptoTest &) = delete;
+  GlobalCryptoTest(GlobalCryptoTest &&) = delete;
+  GlobalCryptoTest &operator=(GlobalCryptoTest &&) = delete;
 
-  void setup()
+  void SetUp()
   {
-    const auto *log_file = "unfold-test-crypto.log";
+    const auto *log_file = "unfold-test-utils.log";
 
     auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(log_file, false);
     auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
@@ -71,28 +71,27 @@ struct GlobalFixture
 #endif
   }
 
-private:
+  void TearDown() override
+  {
+    spdlog::drop_all();
+  }
 };
 
-struct Fixture
+struct CryptoTest : public ::testing::Test
 {
-  Fixture() = default;
-  ~Fixture() = default;
+  CryptoTest() = default;
+  ~CryptoTest() = default;
 
-  Fixture(const Fixture &) = delete;
-  Fixture &operator=(const Fixture &) = delete;
-  Fixture(Fixture &&) = delete;
-  Fixture &operator=(Fixture &&) = delete;
+  CryptoTest(const CryptoTest &) = delete;
+  CryptoTest &operator=(const CryptoTest &) = delete;
+  CryptoTest(CryptoTest &&) = delete;
+  CryptoTest &operator=(CryptoTest &&) = delete;
 
 private:
   std::shared_ptr<spdlog::logger> logger{Logging::create("test")};
 };
 
-BOOST_TEST_GLOBAL_FIXTURE(GlobalFixture);
-
-BOOST_FIXTURE_TEST_SUITE(unfold_test_crypto, Fixture)
-
-BOOST_AUTO_TEST_CASE(signature_verify_file_ok_pem)
+TEST_F(CryptoTest, signature_verify_file_ok_pem)
 {
   // openssl genpkey -algorithm Ed25519 -out ed25519key.pem
   // openssl pkey -in ed25519key.pem -pubout >ed25519pub.pem
@@ -108,12 +107,12 @@ BOOST_AUTO_TEST_CASE(signature_verify_file_ok_pem)
 
   SignatureVerifier verifier;
   auto result = verifier.set_key(SignatureAlgorithmType::ECDSA, pub_key);
-  BOOST_CHECK_EQUAL(result.has_error(), false);
+  EXPECT_EQ(result.has_error(), false);
   result = verifier.verify("junk", signature);
-  BOOST_CHECK_EQUAL(result.has_error(), false);
+  EXPECT_EQ(result.has_error(), false);
 }
 
-BOOST_AUTO_TEST_CASE(signature_verify_invalid_pem)
+TEST_F(CryptoTest, signature_verify_invalid_pem)
 {
   std::string signature = "aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==";
   std::string pub_key =
@@ -123,11 +122,11 @@ BOOST_AUTO_TEST_CASE(signature_verify_invalid_pem)
 
   SignatureVerifier verifier;
   auto result = verifier.set_key(SignatureAlgorithmType::ECDSA, pub_key);
-  BOOST_CHECK_EQUAL(result.has_error(), true);
-  BOOST_CHECK_EQUAL(result.error(), SignatureVerifierErrc::InvalidPublicKey);
+  EXPECT_EQ(result.has_error(), true);
+  EXPECT_EQ(result.error(), SignatureVerifierErrc::InvalidPublicKey);
 }
 
-BOOST_AUTO_TEST_CASE(signature_verify_file_ok_der)
+TEST_F(CryptoTest, signature_verify_file_ok_der)
 {
   // openssl genpkey -algorithm Ed25519 -out ed25519key.pem
   // openssl pkey -in ed25519key.pem -pubout >ed25519pub.pem
@@ -140,35 +139,35 @@ BOOST_AUTO_TEST_CASE(signature_verify_file_ok_der)
 
   SignatureVerifier verifier;
   auto result = verifier.set_key(SignatureAlgorithmType::ECDSA, pub_key);
-  BOOST_CHECK_EQUAL(result.has_error(), false);
+  EXPECT_EQ(result.has_error(), false);
   result = verifier.verify("junk", signature);
-  BOOST_CHECK_EQUAL(result.has_error(), false);
+  EXPECT_EQ(result.has_error(), false);
 }
 
-BOOST_AUTO_TEST_CASE(signature_verify_invalid_der)
+TEST_F(CryptoTest, signature_verify_invalid_der)
 {
   std::string signature = "aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==";
   std::string pub_key = "xxxxMCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=xxx";
 
   SignatureVerifier verifier;
   auto result = verifier.set_key(SignatureAlgorithmType::ECDSA, pub_key);
-  BOOST_CHECK_EQUAL(result.has_error(), true);
-  BOOST_CHECK_EQUAL(result.error(), SignatureVerifierErrc::InvalidPublicKey);
+  EXPECT_EQ(result.has_error(), true);
+  EXPECT_EQ(result.error(), SignatureVerifierErrc::InvalidPublicKey);
 }
 
-BOOST_AUTO_TEST_CASE(signature_verify_invalid_signature)
+TEST_F(CryptoTest, signature_verify_invalid_signature)
 {
   std::string signature;
   std::string pub_key = "MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=";
 
   SignatureVerifier verifier;
   auto result = verifier.set_key(SignatureAlgorithmType::ECDSA, pub_key);
-  BOOST_CHECK_EQUAL(result.has_error(), false);
+  EXPECT_EQ(result.has_error(), false);
   result = verifier.verify("junk", signature);
-  BOOST_CHECK_EQUAL(result.error(), SignatureVerifierErrc::InvalidSignature);
+  EXPECT_EQ(result.error(), SignatureVerifierErrc::InvalidSignature);
 }
 
-BOOST_AUTO_TEST_CASE(signature_verify_file_nok)
+TEST_F(CryptoTest, signature_verify_file_nok)
 {
   std::string signature = "aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==";
   std::string pub_key =
@@ -178,12 +177,12 @@ BOOST_AUTO_TEST_CASE(signature_verify_file_nok)
 
   SignatureVerifier verifier;
   auto result = verifier.set_key(SignatureAlgorithmType::ECDSA, pub_key);
-  BOOST_CHECK_EQUAL(result.has_error(), false);
+  EXPECT_EQ(result.has_error(), false);
   result = verifier.verify("morejunk", signature);
-  BOOST_CHECK_EQUAL(result.error(), SignatureVerifierErrc::Mismatch);
+  EXPECT_EQ(result.error(), SignatureVerifierErrc::Mismatch);
 }
 
-BOOST_AUTO_TEST_CASE(signature_verify_file_not_found)
+TEST_F(CryptoTest, signature_verify_file_not_found)
 {
   std::string signature = "aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==";
   std::string pub_key =
@@ -193,21 +192,21 @@ BOOST_AUTO_TEST_CASE(signature_verify_file_not_found)
 
   SignatureVerifier verifier;
   auto result = verifier.set_key(SignatureAlgorithmType::ECDSA, pub_key);
-  BOOST_CHECK_EQUAL(result.has_error(), false);
+  EXPECT_EQ(result.has_error(), false);
   result = verifier.verify("notfound", signature);
-  BOOST_CHECK_EQUAL(result.error(), SignatureVerifierErrc::NotFound);
+  EXPECT_EQ(result.error(), SignatureVerifierErrc::NotFound);
 }
 
-BOOST_AUTO_TEST_CASE(signature_verify_without_algorithm)
+TEST_F(CryptoTest, signature_verify_without_algorithm)
 {
   std::string signature = "aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==";
 
   SignatureVerifier verifier;
   auto result = verifier.verify("junk", signature);
-  BOOST_CHECK_EQUAL(result.error(), SignatureVerifierErrc::InvalidPublicKey);
+  EXPECT_EQ(result.error(), SignatureVerifierErrc::InvalidPublicKey);
 }
 
-BOOST_AUTO_TEST_CASE(signature_verify_without_valid_pubkey)
+TEST_F(CryptoTest, signature_verify_without_valid_pubkey)
 {
   std::string signature = "aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==";
 
@@ -215,11 +214,9 @@ BOOST_AUTO_TEST_CASE(signature_verify_without_valid_pubkey)
   std::string pub_key = "xxxxMCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=xxx";
 
   auto result = verifier.set_key(SignatureAlgorithmType::ECDSA, pub_key);
-  BOOST_CHECK_EQUAL(result.has_error(), true);
-  BOOST_CHECK_EQUAL(result.error(), SignatureVerifierErrc::InvalidPublicKey);
+  EXPECT_EQ(result.has_error(), true);
+  EXPECT_EQ(result.error(), SignatureVerifierErrc::InvalidPublicKey);
 
   result = verifier.verify("junk", signature);
-  BOOST_CHECK_EQUAL(result.error(), SignatureVerifierErrc::InvalidPublicKey);
+  EXPECT_EQ(result.error(), SignatureVerifierErrc::InvalidPublicKey);
 }
-
-BOOST_AUTO_TEST_SUITE_END()

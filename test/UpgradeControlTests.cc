@@ -18,13 +18,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <fstream>
-#include <algorithm>
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
-#include <boost/test/unit_test.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/outcome/success_failure.hpp>
-#include <gmock/gmock-cardinalities.h>
+#include <chrono>
 #include <memory>
 #include <optional>
 #include <spdlog/spdlog.h>
@@ -68,16 +67,16 @@ namespace
     "-----END CERTIFICATE-----\n";
 } // namespace
 
-struct MockedTestFixture
+struct UpgradeControlFixture : public ::testing::Test
 {
-  ~MockedTestFixture() = default;
+  ~UpgradeControlFixture() = default;
 
-  MockedTestFixture(const MockedTestFixture &) = delete;
-  MockedTestFixture &operator=(const MockedTestFixture &) = delete;
-  MockedTestFixture(MockedTestFixture &&) = delete;
-  MockedTestFixture &operator=(MockedTestFixture &&) = delete;
+  UpgradeControlFixture(const UpgradeControlFixture &) = delete;
+  UpgradeControlFixture &operator=(const UpgradeControlFixture &) = delete;
+  UpgradeControlFixture(UpgradeControlFixture &&) = delete;
+  UpgradeControlFixture &operator=(UpgradeControlFixture &&) = delete;
 
-  MockedTestFixture()
+  UpgradeControlFixture()
   {
     platform = std::make_shared<TestPlatform>();
 
@@ -86,10 +85,8 @@ struct MockedTestFixture
     storage = std::make_shared<SettingsStorageMock>();
     checker = std::make_shared<CheckerMock>();
     installer = std::make_shared<InstallerMock>();
-
     EXPECT_CALL(*storage, get_value("Priority", SettingType::Int32)).Times(1).WillOnce(Return(outcome::success(0)));
     EXPECT_CALL(*storage, set_value("Priority", _)).Times(1).WillRepeatedly(Return(outcome::success()));
-    ;
 
     control = std::make_shared<UpgradeControl>(platform, http, verifier, storage, installer, checker, io_context);
   }
@@ -127,14 +124,12 @@ namespace unfold
   }
 } // namespace unfold
 
-BOOST_FIXTURE_TEST_SUITE(unfold_upgrade_control_test, MockedTestFixture)
-
-BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_later)
+TEST_F(UpgradeControlFixture, upgrade_control_periodic_check_later)
 {
   EXPECT_CALL(*checker, set_appcast("https://127.0.0.1:1337/appcast.xml")).Times(1).WillOnce(Return(outcome::success()));
 
   auto rc = control->set_appcast("https://127.0.0.1:1337/appcast.xml");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_FALSE(rc.has_error());
 
   control->set_certificate(cert);
 
@@ -145,12 +140,12 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_later)
     .WillOnce(Return(outcome::success()));
 
   rc = control->set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_FALSE(rc.has_error());
 
   EXPECT_CALL(*checker, set_current_version("1.10.45")).Times(1).WillOnce(Return(outcome::success()));
 
   rc = control->set_current_version("1.10.45");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_FALSE(rc.has_error());
 
   EXPECT_CALL(*storage, set_prefix("some\\prefix")).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*storage, set_prefix("some\\wrong\\prefix"))
@@ -198,12 +193,12 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_later)
   io_context.wait();
 }
 
-BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_later_last_check_in_future)
+TEST_F(UpgradeControlFixture, upgrade_control_periodic_check_later_last_check_in_future)
 {
   EXPECT_CALL(*checker, set_appcast("https://127.0.0.1:1337/appcast.xml")).Times(1).WillOnce(Return(outcome::success()));
 
   auto rc = control->set_appcast("https://127.0.0.1:1337/appcast.xml");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_FALSE(rc.has_error());
 
   control->set_certificate(cert);
 
@@ -214,12 +209,12 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_later_last_check_in_future)
     .WillOnce(Return(outcome::success()));
 
   rc = control->set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_FALSE(rc.has_error());
 
   EXPECT_CALL(*checker, set_current_version("1.10.45")).Times(1).WillOnce(Return(outcome::success()));
 
   rc = control->set_current_version("1.10.45");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_FALSE(rc.has_error());
 
   EXPECT_CALL(*storage, set_prefix("some\\prefix")).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*storage, set_prefix("some\\wrong\\prefix"))
@@ -269,12 +264,12 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_later_last_check_in_future)
   io_context.wait();
 }
 
-BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_error)
+TEST_F(UpgradeControlFixture, upgrade_control_periodic_check_error)
 {
   EXPECT_CALL(*checker, set_appcast("https://127.0.0.1:1337/appcast.xml")).Times(1).WillOnce(Return(outcome::success()));
 
   auto rc = control->set_appcast("https://127.0.0.1:1337/appcast.xml");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_FALSE(rc.has_error());
 
   control->set_certificate(cert);
 
@@ -285,12 +280,12 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_error)
     .WillOnce(Return(outcome::success()));
 
   rc = control->set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_FALSE(rc.has_error());
 
   EXPECT_CALL(*checker, set_current_version("1.10.45")).Times(1).WillOnce(Return(outcome::success()));
 
   rc = control->set_current_version("1.10.45");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_FALSE(rc.has_error());
 
   EXPECT_CALL(*storage, set_prefix("some\\prefix")).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*storage, set_prefix("some\\wrong\\prefix"))
@@ -304,10 +299,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_error)
     .WillRepeatedly(Return(outcome::success(32LL)));
 
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(*storage, get_value("SkipVersion", SettingType::String))
-    .Times(AtLeast(1))
-    .WillRepeatedly(Return(outcome::success("")));
-  EXPECT_CALL(*storage, set_value("SkipVersion", SettingValue{""})).Times(2).WillRepeatedly(Return(outcome::success()));
+  EXPECT_CALL(*storage, set_value("SkipVersion", SettingValue{""})).Times(1).WillRepeatedly(Return(outcome::success()));
 
   control->reset_skip_version();
   control->set_periodic_update_check_interval(std::chrono::seconds{1});
@@ -330,7 +322,7 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_error)
   io_context.wait();
 }
 
-BOOST_AUTO_TEST_CASE(upgrade_control_checker_failed)
+TEST_F(UpgradeControlFixture, upgrade_control_checker_failed)
 {
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
 
@@ -363,23 +355,23 @@ BOOST_AUTO_TEST_CASE(upgrade_control_checker_failed)
       try
         {
           auto rc = co_await control->check_for_update_and_notify();
-          BOOST_CHECK_EQUAL(rc.has_error(), true);
+          EXPECT_TRUE(rc.has_error());
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
   ioc.run();
-  BOOST_CHECK_EQUAL(available, false);
-  BOOST_CHECK_EQUAL(status.has_value(), true);
-  BOOST_CHECK_EQUAL(status->has_error(), true);
-  BOOST_CHECK_EQUAL(status->error(), unfold::UnfoldErrc::AppcastDownloadFailed);
+  EXPECT_EQ(available, false);
+  EXPECT_EQ(status.has_value(), true);
+  EXPECT_EQ(status->has_error(), true);
+  EXPECT_EQ(status->error(), unfold::UnfoldErrc::AppcastDownloadFailed);
 }
 
-BOOST_AUTO_TEST_CASE(upgrade_control_no_upgrade_available)
+TEST_F(UpgradeControlFixture, upgrade_control_no_upgrade_available)
 {
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
 
@@ -412,21 +404,21 @@ BOOST_AUTO_TEST_CASE(upgrade_control_no_upgrade_available)
       try
         {
           auto rc = co_await control->check_for_update_and_notify();
-          BOOST_CHECK_EQUAL(rc.has_error(), false);
+          EXPECT_FALSE(rc.has_error());
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
   ioc.run();
-  BOOST_CHECK_EQUAL(available, false);
-  BOOST_CHECK_EQUAL(status.has_value(), false);
+  EXPECT_EQ(available, false);
+  EXPECT_EQ(status.has_value(), false);
 }
 
-BOOST_AUTO_TEST_CASE(upgrade_control_no_upgrade_info)
+TEST_F(UpgradeControlFixture, upgrade_control_no_upgrade_info)
 {
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
 
@@ -461,23 +453,23 @@ BOOST_AUTO_TEST_CASE(upgrade_control_no_upgrade_info)
       try
         {
           auto rc = co_await control->check_for_update_and_notify();
-          BOOST_CHECK_EQUAL(rc.has_error(), true);
+          EXPECT_TRUE(rc.has_error());
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
   ioc.run();
-  BOOST_CHECK_EQUAL(available, false);
-  BOOST_CHECK_EQUAL(status.has_value(), true);
-  BOOST_CHECK_EQUAL(status->has_error(), true);
-  BOOST_CHECK_EQUAL(status->error(), unfold::UnfoldErrc::InternalError);
+  EXPECT_EQ(available, false);
+  EXPECT_EQ(status.has_value(), true);
+  EXPECT_EQ(status->has_error(), true);
+  EXPECT_EQ(status->error(), unfold::UnfoldErrc::InternalError);
 }
 
-BOOST_AUTO_TEST_CASE(upgrade_control_skip_version)
+TEST_F(UpgradeControlFixture, upgrade_control_skip_version)
 {
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
 
@@ -526,21 +518,21 @@ BOOST_AUTO_TEST_CASE(upgrade_control_skip_version)
       try
         {
           auto rc = co_await control->check_for_update_and_notify(false);
-          BOOST_CHECK_EQUAL(rc.has_error(), false);
+          EXPECT_FALSE(rc.has_error());
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
   ioc.run();
-  BOOST_CHECK_EQUAL(available, false);
-  BOOST_CHECK_EQUAL(status.has_value(), false);
+  EXPECT_EQ(available, false);
+  EXPECT_EQ(status.has_value(), false);
 }
 
-BOOST_AUTO_TEST_CASE(upgrade_control_skip_version_ignore)
+TEST_F(UpgradeControlFixture, upgrade_control_skip_version_ignore)
 {
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
 
@@ -587,21 +579,21 @@ BOOST_AUTO_TEST_CASE(upgrade_control_skip_version_ignore)
       try
         {
           auto rc = co_await control->check_for_update_and_notify();
-          BOOST_CHECK_EQUAL(rc.has_error(), false);
+          EXPECT_FALSE(rc.has_error());
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
   ioc.run();
-  BOOST_CHECK_EQUAL(available, true);
-  BOOST_CHECK_EQUAL(status.has_value(), false);
+  EXPECT_EQ(available, true);
+  EXPECT_EQ(status.has_value(), false);
 }
 
-BOOST_AUTO_TEST_CASE(upgrade_control_no_callback)
+TEST_F(UpgradeControlFixture, upgrade_control_no_callback)
 {
   std::optional<outcome::std_result<void>> status;
   control->set_update_status_callback([&](outcome::std_result<void> rc) {
@@ -638,22 +630,22 @@ BOOST_AUTO_TEST_CASE(upgrade_control_no_callback)
       try
         {
           auto rc = co_await control->check_for_update_and_notify();
-          BOOST_CHECK_EQUAL(rc.has_error(), true);
+          EXPECT_TRUE(rc.has_error());
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
   ioc.run();
-  BOOST_CHECK_EQUAL(status.has_value(), true);
-  BOOST_CHECK_EQUAL(status->has_error(), true);
-  BOOST_CHECK_EQUAL(status->error(), unfold::UnfoldErrc::InvalidArgument);
+  EXPECT_EQ(status.has_value(), true);
+  EXPECT_EQ(status->has_error(), true);
+  EXPECT_EQ(status->error(), unfold::UnfoldErrc::InvalidArgument);
 }
 
-BOOST_AUTO_TEST_CASE(upgrade_control_callback_later)
+TEST_F(UpgradeControlFixture, upgrade_control_callback_later)
 {
   EXPECT_CALL(*storage, set_value("SkipVersion", SettingValue{""})).Times(1).WillOnce(Return(outcome::success()));
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
@@ -699,20 +691,20 @@ BOOST_AUTO_TEST_CASE(upgrade_control_callback_later)
       try
         {
           auto rc = co_await control->check_for_update_and_notify();
-          BOOST_CHECK_EQUAL(rc.has_error(), false);
+          EXPECT_FALSE(rc.has_error());
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
   ioc.run();
-  BOOST_CHECK_EQUAL(available, true);
+  EXPECT_EQ(available, true);
 }
 
-BOOST_AUTO_TEST_CASE(upgrade_control_callback_skip)
+TEST_F(UpgradeControlFixture, upgrade_control_callback_skip)
 {
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
 
@@ -763,21 +755,21 @@ BOOST_AUTO_TEST_CASE(upgrade_control_callback_skip)
       try
         {
           auto rc = co_await control->check_for_update_and_notify(false);
-          BOOST_CHECK_EQUAL(rc.has_error(), false);
+          EXPECT_FALSE(rc.has_error());
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
   ioc.run();
-  BOOST_CHECK_EQUAL(available, true);
-  BOOST_CHECK_EQUAL(status.has_value(), false);
+  EXPECT_EQ(available, true);
+  EXPECT_EQ(status.has_value(), false);
 }
 
-BOOST_AUTO_TEST_CASE(upgrade_control_callback_install)
+TEST_F(UpgradeControlFixture, upgrade_control_callback_install)
 {
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
 
@@ -832,21 +824,21 @@ BOOST_AUTO_TEST_CASE(upgrade_control_callback_install)
       try
         {
           auto rc = co_await control->check_for_update_and_notify();
-          BOOST_CHECK_EQUAL(rc.has_error(), false);
+          EXPECT_FALSE(rc.has_error());
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
   ioc.run();
-  BOOST_CHECK_EQUAL(available, true);
-  BOOST_CHECK_EQUAL(status.has_value(), false);
+  EXPECT_EQ(available, true);
+  EXPECT_EQ(status.has_value(), false);
 }
 
-BOOST_AUTO_TEST_CASE(upgrade_control_callback_install_failed)
+TEST_F(UpgradeControlFixture, upgrade_control_callback_install_failed)
 {
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
 
@@ -902,52 +894,50 @@ BOOST_AUTO_TEST_CASE(upgrade_control_callback_install_failed)
       try
         {
           auto rc = co_await control->check_for_update_and_notify();
-          BOOST_CHECK_EQUAL(rc.has_error(), true);
+          EXPECT_TRUE(rc.has_error());
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
   ioc.run();
-  BOOST_CHECK_EQUAL(available, true);
-  BOOST_CHECK_EQUAL(status.has_value(), true);
-  BOOST_CHECK_EQUAL(status->has_error(), true);
-  BOOST_CHECK_EQUAL(status->error(), unfold::UnfoldErrc::InternalError);
+  EXPECT_EQ(available, true);
+  EXPECT_EQ(status.has_value(), true);
+  EXPECT_EQ(status->has_error(), true);
+  EXPECT_EQ(status->error(), unfold::UnfoldErrc::InternalError);
 }
 
-BOOST_AUTO_TEST_CASE(upgrade_control_proxy)
+TEST_F(UpgradeControlFixture, upgrade_control_proxy)
 {
   control->set_proxy(unfold::ProxyType::None);
-  BOOST_CHECK_EQUAL(http->options().get_proxy(), unfold::http::Options::ProxyType::None);
+  EXPECT_EQ(http->options().get_proxy(), unfold::http::Options::ProxyType::None);
   control->set_proxy(unfold::ProxyType::System);
-  BOOST_CHECK_EQUAL(http->options().get_proxy(), unfold::http::Options::ProxyType::System);
+  EXPECT_EQ(http->options().get_proxy(), unfold::http::Options::ProxyType::System);
   control->set_proxy(unfold::ProxyType::Custom);
-  BOOST_CHECK_EQUAL(http->options().get_proxy(), unfold::http::Options::ProxyType::Custom);
+  EXPECT_EQ(http->options().get_proxy(), unfold::http::Options::ProxyType::Custom);
   control->set_custom_proxy("http://proxy:8080");
-  BOOST_CHECK_EQUAL(http->options().get_custom_proxy(), "http://proxy:8080");
+  EXPECT_EQ(http->options().get_custom_proxy(), "http://proxy:8080");
   control->set_proxy(unfold::ProxyType::None);
-  BOOST_CHECK_EQUAL(http->options().get_proxy(), unfold::http::Options::ProxyType::None);
+  EXPECT_EQ(http->options().get_proxy(), unfold::http::Options::ProxyType::None);
 }
 
-BOOST_AUTO_TEST_CASE(upgrade_control_priority)
+TEST_F(UpgradeControlFixture, upgrade_control_priority)
 {
   EXPECT_CALL(*storage, get_value("Priority", SettingType::Int32)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success(10)));
 
-  BOOST_CHECK_EQUAL(control->get_priority(), 10);
+  EXPECT_EQ(control->get_priority(), 10);
   auto ret = control->set_priority(5);
-  BOOST_CHECK_EQUAL(ret.has_error(), false);
-  BOOST_CHECK_EQUAL(control->get_priority(), 5);
+  EXPECT_EQ(ret.has_error(), false);
+  EXPECT_EQ(control->get_priority(), 5);
   control->unset_priority();
-  BOOST_CHECK_EQUAL(control->get_priority(), 10);
+  EXPECT_EQ(control->get_priority(), 10);
   ret = control->set_priority(101);
-  BOOST_CHECK_EQUAL(ret.has_error(), true);
+  EXPECT_EQ(ret.has_error(), true);
   ret = control->set_priority(0);
-  BOOST_CHECK_EQUAL(ret.has_error(), true);
+  EXPECT_EQ(ret.has_error(), true);
   ret = control->set_priority(-1);
-  BOOST_CHECK_EQUAL(ret.has_error(), true);
+  EXPECT_EQ(ret.has_error(), true);
 }
-
-BOOST_AUTO_TEST_SUITE_END()

@@ -18,11 +18,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <algorithm>
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
+
 #include <fstream>
 #include <memory>
 
-#include <boost/test/unit_test.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/outcome/success_failure.hpp>
 #include <spdlog/spdlog.h>
@@ -149,7 +150,7 @@ namespace
 
 } // namespace
 
-struct IntegrationTestFixture
+struct IntegrationTestFixture : public ::testing::Test
 {
   IntegrationTestFixture()
   {
@@ -192,30 +193,28 @@ struct IntegrationTestFixture
   std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("test")};
 };
 
-BOOST_FIXTURE_TEST_SUITE(unfold_integration_test, IntegrationTestFixture)
-
-BOOST_AUTO_TEST_CASE(upgrade_control_invalid_key)
+TEST_F(IntegrationTestFixture, upgrade_control_invalid_key)
 {
   unfold::coro::IOContext io_context;
   UpgradeControl control(platform, io_context);
 
   auto rc = control.set_signature_verification_key("xxxxMCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=xxx");
-  BOOST_CHECK_EQUAL(rc.has_error(), true);
-  BOOST_CHECK_EQUAL(rc.error(), unfold::UnfoldErrc::InvalidArgument);
+  EXPECT_EQ(rc.has_error(), true);
+  EXPECT_EQ(rc.error(), unfold::UnfoldErrc::InvalidArgument);
 }
 
 // TODO: detect invalid cert
-// BOOST_AUTO_TEST_CASE(upgrade_control_invalid_cert)
+// TEST_F(IntegrationTestFixture, upgrade_control_invalid_cert)
 // {
 //   unfold::coro::IOContext io_context;
 //   UpgradeControl control(platform, io_context);
 
 //   auto rc = control.set_certificate("cert");
-//   BOOST_CHECK_EQUAL(rc.has_error(), true);
-//   BOOST_CHECK_EQUAL(rc.error(), unfold::UnfoldErrc::InvalidArgument);
+//   EXPECT_EQ(rc.has_error(), true);
+//   EXPECT_EQ(rc.error(), unfold::UnfoldErrc::InvalidArgument);
 // }
 
-BOOST_AUTO_TEST_CASE(upgrade_control_check_alpha)
+TEST_F(IntegrationTestFixture, upgrade_control_check_alpha)
 {
   unfold::coro::IOContext io_context;
   UpgradeControl control(platform, io_context);
@@ -224,39 +223,39 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check_alpha)
   control.set_configuration_prefix("Software\\Unfold\\Test");
 
   auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   control.set_certificate(cert);
 
   rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   rc = control.set_current_version("1.10.45");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   rc = control.set_allowed_channels({"alpha"});
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   double last_progress = 0.0;
   std::optional<unfold::UpdateStage> last_stage;
   control.set_download_progress_callback([&last_stage, &last_progress](unfold::UpdateStage stage, auto progress) {
     if (stage == unfold::UpdateStage::DownloadInstaller)
       {
-        BOOST_CHECK_GE(progress, last_progress);
+        EXPECT_GE(progress, last_progress);
         last_progress = progress;
       }
 
     if (!last_stage)
       {
-        BOOST_CHECK_EQUAL(stage, unfold::UpdateStage::DownloadInstaller);
+        EXPECT_EQ(stage, unfold::UpdateStage::DownloadInstaller);
       }
     else if (*last_stage == unfold::UpdateStage::DownloadInstaller)
       {
-        BOOST_CHECK(stage == unfold::UpdateStage::DownloadInstaller || stage == unfold::UpdateStage::VerifyInstaller);
+        EXPECT_TRUE(stage == unfold::UpdateStage::DownloadInstaller || stage == unfold::UpdateStage::VerifyInstaller);
       }
     else
       {
-        BOOST_CHECK_EQUAL(stage, *last_stage + 1);
+        EXPECT_EQ(stage, *last_stage + 1);
       }
     last_stage = stage;
   });
@@ -279,19 +278,19 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check_alpha)
       try
         {
           auto rc = co_await control.check_for_update();
-          BOOST_CHECK_EQUAL(rc.has_error(), false);
+          EXPECT_EQ(rc.has_error(), false);
 
           auto update_info = control.get_update_info();
-          BOOST_CHECK_EQUAL(update_info->title, "Workrave");
-          BOOST_CHECK_EQUAL(update_info->current_version, "1.10.45");
-          BOOST_CHECK_EQUAL(update_info->version, "1.11.0-alpha.1");
-          BOOST_CHECK_EQUAL(update_info->release_notes.size(), 4);
-          BOOST_CHECK_EQUAL(update_info->release_notes.front().version, "1.11.0-alpha.1");
+          EXPECT_EQ(update_info->title, "Workrave");
+          EXPECT_EQ(update_info->current_version, "1.10.45");
+          EXPECT_EQ(update_info->version, "1.11.0-alpha.1");
+          EXPECT_EQ(update_info->release_notes.size(), 4);
+          EXPECT_EQ(update_info->release_notes.front().version, "1.11.0-alpha.1");
 
           std::filesystem::remove("installer.log");
 
           auto ri = co_await control.install_update();
-          BOOST_CHECK_EQUAL(ri.has_error(), false);
+          EXPECT_EQ(ri.has_error(), false);
           int tries = 100;
           bool found = false;
           do
@@ -301,23 +300,23 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check_alpha)
               tries--;
             }
           while (tries > 0 && !found);
-          BOOST_CHECK(found);
-          BOOST_CHECK_GE(100, last_progress);
-          BOOST_CHECK_EQUAL(platform->is_terminated(), false);
+          EXPECT_TRUE(found);
+          EXPECT_GE(100, last_progress);
+          EXPECT_EQ(platform->is_terminated(), false);
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
   ioc.run();
-  BOOST_CHECK_EQUAL(status.has_value(), false);
-  BOOST_CHECK_EQUAL(*last_stage, unfold::UpdateStage::RunInstaller);
+  EXPECT_EQ(status.has_value(), false);
+  EXPECT_EQ(*last_stage, unfold::UpdateStage::RunInstaller);
 }
 
-BOOST_AUTO_TEST_CASE(upgrade_control_check_release)
+TEST_F(IntegrationTestFixture, upgrade_control_check_release)
 {
   unfold::coro::IOContext io_context;
   UpgradeControl control(platform, io_context);
@@ -326,39 +325,39 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check_release)
   control.set_configuration_prefix("Software\\Unfold\\Test");
 
   auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   control.set_certificate(cert);
 
   rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   rc = control.set_current_version("1.10.45");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   rc = control.set_allowed_channels({"release"});
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   double last_progress = 0.0;
   std::optional<unfold::UpdateStage> last_stage;
   control.set_download_progress_callback([&last_stage, &last_progress](unfold::UpdateStage stage, auto progress) {
     if (stage == unfold::UpdateStage::DownloadInstaller)
       {
-        BOOST_CHECK_GE(progress, last_progress);
+        EXPECT_GE(progress, last_progress);
         last_progress = progress;
       }
 
     if (!last_stage)
       {
-        BOOST_CHECK_EQUAL(stage, unfold::UpdateStage::DownloadInstaller);
+        EXPECT_EQ(stage, unfold::UpdateStage::DownloadInstaller);
       }
     else if (*last_stage == unfold::UpdateStage::DownloadInstaller)
       {
-        BOOST_CHECK(stage == unfold::UpdateStage::DownloadInstaller || stage == unfold::UpdateStage::VerifyInstaller);
+        EXPECT_TRUE(stage == unfold::UpdateStage::DownloadInstaller || stage == unfold::UpdateStage::VerifyInstaller);
       }
     else
       {
-        BOOST_CHECK_EQUAL(stage, *last_stage + 1);
+        EXPECT_EQ(stage, *last_stage + 1);
       }
     last_stage = stage;
   });
@@ -381,19 +380,19 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check_release)
       try
         {
           auto rc = co_await control.check_for_update();
-          BOOST_CHECK_EQUAL(rc.has_error(), false);
+          EXPECT_EQ(rc.has_error(), false);
 
           auto update_info = control.get_update_info();
-          BOOST_CHECK_EQUAL(update_info->title, "Workrave");
-          BOOST_CHECK_EQUAL(update_info->current_version, "1.10.45");
-          BOOST_CHECK_EQUAL(update_info->version, "1.10.49");
-          BOOST_CHECK_EQUAL(update_info->release_notes.size(), 3);
-          BOOST_CHECK_EQUAL(update_info->release_notes.front().version, "1.10.49");
+          EXPECT_EQ(update_info->title, "Workrave");
+          EXPECT_EQ(update_info->current_version, "1.10.45");
+          EXPECT_EQ(update_info->version, "1.10.49");
+          EXPECT_EQ(update_info->release_notes.size(), 3);
+          EXPECT_EQ(update_info->release_notes.front().version, "1.10.49");
 
           std::filesystem::remove("installer.log");
 
           auto ri = co_await control.install_update();
-          BOOST_CHECK_EQUAL(ri.has_error(), false);
+          EXPECT_EQ(ri.has_error(), false);
           int tries = 100;
           bool found = false;
           do
@@ -403,23 +402,23 @@ BOOST_AUTO_TEST_CASE(upgrade_control_check_release)
               tries--;
             }
           while (tries > 0 && !found);
-          BOOST_CHECK(found);
-          BOOST_CHECK_GE(100, last_progress);
-          BOOST_CHECK_EQUAL(platform->is_terminated(), false);
+          EXPECT_TRUE(found);
+          EXPECT_GE(100, last_progress);
+          EXPECT_EQ(platform->is_terminated(), false);
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
   ioc.run();
-  BOOST_CHECK_EQUAL(status.has_value(), false);
-  BOOST_CHECK_EQUAL(*last_stage, unfold::UpdateStage::RunInstaller);
+  EXPECT_EQ(status.has_value(), false);
+  EXPECT_EQ(*last_stage, unfold::UpdateStage::RunInstaller);
 }
 
-BOOST_AUTO_TEST_CASE(upgrade_last_upgrade_time)
+TEST_F(IntegrationTestFixture, upgrade_last_upgrade_time)
 {
   init_appcast();
   unfold::coro::IOContext io_context;
@@ -428,16 +427,16 @@ BOOST_AUTO_TEST_CASE(upgrade_last_upgrade_time)
   control.set_configuration_prefix("Software\\Unfold\\Test");
 
   auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   control.set_certificate(cert);
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   rc = control.set_current_version("1.10.45");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -446,28 +445,28 @@ BOOST_AUTO_TEST_CASE(upgrade_last_upgrade_time)
       try
         {
           auto rc = co_await control.check_for_update();
-          BOOST_CHECK_EQUAL(rc.has_error(), false);
+          EXPECT_EQ(rc.has_error(), false);
 
           auto l1 = control.get_last_update_check_time();
           sleep(1);
 
           rc = co_await control.check_for_update();
-          BOOST_CHECK_EQUAL(rc.has_error(), false);
+          EXPECT_EQ(rc.has_error(), false);
 
           auto l2 = control.get_last_update_check_time();
-          BOOST_CHECK_GE((*l2).time_since_epoch().count(), (*l1).time_since_epoch().count());
+          EXPECT_GE((*l2).time_since_epoch().count(), (*l1).time_since_epoch().count());
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
   ioc.run();
 }
 
-BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_later)
+TEST_F(IntegrationTestFixture, upgrade_control_periodic_check_later)
 {
   init_appcast();
 
@@ -475,15 +474,15 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_later)
   UpgradeControl control(platform, io_context);
 
   auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   control.set_certificate(cert);
 
   rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   rc = control.set_current_version("1.10.45");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   control.reset_skip_version();
   control.set_periodic_update_check_interval(std::chrono::seconds{1});
@@ -505,10 +504,10 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_later)
   control.set_periodic_update_check_enabled(true);
 
   io_context.wait();
-  BOOST_CHECK_EQUAL(status.has_value(), false);
+  EXPECT_EQ(status.has_value(), false);
 }
 
-BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_skip)
+TEST_F(IntegrationTestFixture, upgrade_control_periodic_check_skip)
 {
   init_appcast();
 
@@ -516,15 +515,15 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_skip)
   UpgradeControl control(platform, io_context);
 
   auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   control.set_certificate(cert);
 
   rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   rc = control.set_current_version("1.10.45");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   control.reset_skip_version();
   control.set_periodic_update_check_interval(std::chrono::seconds{1});
@@ -547,11 +546,11 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_skip)
 
   io_context.wait();
 
-  BOOST_CHECK_EQUAL(control.get_skip_version(), "1.11.0-alpha.1");
-  BOOST_CHECK_EQUAL(status.has_value(), false);
+  EXPECT_EQ(control.get_skip_version(), "1.11.0-alpha.1");
+  EXPECT_EQ(status.has_value(), false);
 }
 
-BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_install_now)
+TEST_F(IntegrationTestFixture, upgrade_control_periodic_check_install_now)
 {
   init_appcast();
 
@@ -559,15 +558,15 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_install_now)
   UpgradeControl control(platform, io_context);
 
   auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   control.set_certificate(cert);
 
   rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   rc = control.set_current_version("1.10.45");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   control.reset_skip_version();
   control.set_periodic_update_check_interval(std::chrono::seconds{1});
@@ -605,7 +604,5 @@ BOOST_AUTO_TEST_CASE(upgrade_control_periodic_check_install_now)
       tries--;
     }
   while (tries > 0 && !found);
-  BOOST_CHECK(found);
+  EXPECT_TRUE(found);
 }
-
-BOOST_AUTO_TEST_SUITE_END()

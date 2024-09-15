@@ -18,15 +18,16 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
+
 #include <boost/outcome/success_failure.hpp>
-#include <boost/test/unit_test.hpp>
 #include <chrono>
 #include <spdlog/spdlog.h>
 #include <string>
 #include <sstream>
 
 #include "Settings.hh"
-#include "TestBase.hh"
 #include "SettingsStorage.hh"
 #include "SettingsStorageMock.hh"
 #include "UnfoldInternalErrors.hh"
@@ -35,9 +36,7 @@ using ::testing::_;
 using ::testing::AtLeast;
 using ::testing::Return;
 
-BOOST_FIXTURE_TEST_SUITE(unfold_settings_test, Fixture)
-
-BOOST_AUTO_TEST_CASE(settings_get_last_update_check_time)
+TEST(Settings, settings_get_last_update_check_time)
 {
   auto storage = std::make_shared<SettingsStorageMock>();
 
@@ -51,13 +50,13 @@ BOOST_AUTO_TEST_CASE(settings_get_last_update_check_time)
 
   Settings settings(storage);
   auto rc = settings.get_last_update_check_time();
-  BOOST_CHECK(rc.has_value());
-  BOOST_CHECK_EQUAL(rc.value().time_since_epoch().count(), 32);
+  EXPECT_TRUE(rc.has_value());
+  EXPECT_EQ(rc.value().time_since_epoch().count(), 32);
   rc = settings.get_last_update_check_time();
-  BOOST_CHECK(!rc.has_value());
+  EXPECT_FALSE(rc.has_value());
 }
 
-BOOST_AUTO_TEST_CASE(settings_set_last_update_check_time)
+TEST(Settings, settings_set_last_update_check_time)
 {
   auto storage = std::make_shared<SettingsStorageMock>();
 
@@ -76,7 +75,7 @@ BOOST_AUTO_TEST_CASE(settings_set_last_update_check_time)
   settings.set_last_update_check_time(std::chrono::system_clock::time_point(std::chrono::seconds(857)));
 }
 
-BOOST_AUTO_TEST_CASE(settings_get_periodic_update_check_interval)
+TEST(Settings, settings_get_periodic_update_check_interval)
 {
   auto storage = std::make_shared<SettingsStorageMock>();
 
@@ -90,12 +89,12 @@ BOOST_AUTO_TEST_CASE(settings_get_periodic_update_check_interval)
 
   Settings settings(storage);
   auto rc = settings.get_periodic_update_check_interval();
-  BOOST_CHECK_EQUAL(rc.count(), 56);
+  EXPECT_EQ(rc.count(), 56);
   rc = settings.get_periodic_update_check_interval();
-  BOOST_CHECK_EQUAL(rc.count(), 0);
+  EXPECT_EQ(rc.count(), 0);
 }
 
-BOOST_AUTO_TEST_CASE(settings_set_periodic_update_check_interval)
+TEST(Settings, settings_set_periodic_update_check_interval)
 {
   auto storage = std::make_shared<SettingsStorageMock>();
 
@@ -114,7 +113,7 @@ BOOST_AUTO_TEST_CASE(settings_set_periodic_update_check_interval)
   settings.set_periodic_update_check_interval(std::chrono::seconds(8678));
 }
 
-BOOST_AUTO_TEST_CASE(settings_get_periodic_update_check_enabled)
+TEST(Settings, settings_get_periodic_update_check_enabled)
 {
   auto storage = std::make_shared<SettingsStorageMock>();
 
@@ -129,14 +128,14 @@ BOOST_AUTO_TEST_CASE(settings_get_periodic_update_check_enabled)
 
   Settings settings(storage);
   auto rc = settings.get_periodic_update_check_enabled();
-  BOOST_CHECK_EQUAL(rc, true);
+  EXPECT_EQ(rc, true);
   rc = settings.get_periodic_update_check_enabled();
-  BOOST_CHECK_EQUAL(rc, false);
+  EXPECT_EQ(rc, false);
   rc = settings.get_periodic_update_check_enabled();
-  BOOST_CHECK_EQUAL(rc, false);
+  EXPECT_EQ(rc, false);
 }
 
-BOOST_AUTO_TEST_CASE(settings_set_periodic_update_check_enabled)
+TEST(Settings, settings_set_periodic_update_check_enabled)
 {
   auto storage = std::make_shared<SettingsStorageMock>();
 
@@ -156,7 +155,7 @@ BOOST_AUTO_TEST_CASE(settings_set_periodic_update_check_enabled)
   settings.set_periodic_update_check_enabled(false);
 }
 
-BOOST_AUTO_TEST_CASE(settings_get_skip_verion)
+TEST(Settings, settings_get_skip_verion)
 {
   auto storage = std::make_shared<SettingsStorageMock>();
 
@@ -170,12 +169,12 @@ BOOST_AUTO_TEST_CASE(settings_get_skip_verion)
 
   Settings settings(storage);
   auto rc = settings.get_skip_version();
-  BOOST_CHECK_EQUAL(rc, "1.10.56");
+  EXPECT_EQ(rc, "1.10.56");
   rc = settings.get_skip_version();
-  BOOST_CHECK_EQUAL(rc, "");
+  EXPECT_EQ(rc, "");
 }
 
-BOOST_AUTO_TEST_CASE(settings_set_skip_verion)
+TEST(Settings, settings_set_skip_verion)
 {
   auto storage = std::make_shared<SettingsStorageMock>();
 
@@ -192,7 +191,7 @@ BOOST_AUTO_TEST_CASE(settings_set_skip_verion)
   settings.set_skip_version("2.30.75");
 }
 
-BOOST_AUTO_TEST_CASE(settings_get_priority)
+TEST(Settings, settings_get_priority)
 {
   auto storage = std::make_shared<SettingsStorageMock>();
 
@@ -203,10 +202,10 @@ BOOST_AUTO_TEST_CASE(settings_get_priority)
 
   Settings settings(storage);
   auto rc = settings.get_priority();
-  BOOST_CHECK_EQUAL(rc, 10);
+  EXPECT_EQ(rc, 10);
 }
 
-BOOST_AUTO_TEST_CASE(settings_set_priority)
+TEST(Settings, settings_set_priority)
 {
   auto storage = std::make_shared<SettingsStorageMock>();
 
@@ -234,20 +233,18 @@ namespace
   }
 } // namespace
 
-BOOST_AUTO_TEST_CASE(settings_value)
+TEST(Settings, settings_value)
 {
   SettingValue i64{478LL};
-  BOOST_CHECK_EQUAL(to_string(i64), "478");
-  BOOST_CHECK_EQUAL(to_string(SettingValueToType(i64)), "Int64");
+  EXPECT_EQ(to_string(i64), "478");
+  EXPECT_EQ(to_string(SettingValueToType(i64)), "Int64");
   SettingValue i32{41248};
-  BOOST_CHECK_EQUAL(to_string(i32), "41248");
-  BOOST_CHECK_EQUAL(to_string(SettingValueToType(i32)), "Int32");
+  EXPECT_EQ(to_string(i32), "41248");
+  EXPECT_EQ(to_string(SettingValueToType(i32)), "Int32");
   SettingValue b{true};
-  BOOST_CHECK_EQUAL(to_string(b), "1");
-  BOOST_CHECK_EQUAL(to_string(SettingValueToType(b)), "Boolean");
+  EXPECT_EQ(to_string(b), "1");
+  EXPECT_EQ(to_string(SettingValueToType(b)), "Boolean");
   SettingValue s{"foo"};
-  BOOST_CHECK_EQUAL(to_string(s), "foo");
-  BOOST_CHECK_EQUAL(to_string(SettingValueToType(s)), "String");
+  EXPECT_EQ(to_string(s), "foo");
+  EXPECT_EQ(to_string(SettingValueToType(s)), "String");
 }
-
-BOOST_AUTO_TEST_SUITE_END()

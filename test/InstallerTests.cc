@@ -18,10 +18,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
+
 #include <boost/outcome/success_failure.hpp>
-#include <boost/test/unit_test.hpp>
-#include <boost/test/data/test_case.hpp>
-#include <boost/test/data/monomorphic.hpp>
 #include <spdlog/spdlog.h>
 
 #include "http/HttpServer.hh"
@@ -62,9 +62,7 @@ namespace
     "-----END CERTIFICATE-----\n";
 } // namespace
 
-BOOST_FIXTURE_TEST_SUITE(unfold_installer_test, Fixture)
-
-BOOST_AUTO_TEST_CASE(installer_missing_url)
+TEST(Installer, installer_missing_url)
 {
   std::string appcast_str =
     "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
@@ -106,20 +104,20 @@ BOOST_AUTO_TEST_CASE(installer_missing_url)
       try
         {
           auto rc = co_await installer.install(appcast->items.front());
-          BOOST_CHECK_EQUAL(rc.has_error(), true);
-          BOOST_CHECK_EQUAL(rc.error(), unfold::UnfoldErrc::InstallerDownloadFailed);
+          EXPECT_EQ(rc.has_error(), true);
+          EXPECT_EQ(rc.error(), unfold::UnfoldErrc::InstallerDownloadFailed);
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
   ioc.run();
 }
 
-BOOST_AUTO_TEST_CASE(installer_missing_length)
+TEST(Installer, installer_missing_length)
 {
   unfold::http::HttpServer server;
   server.add_file("/workrave-1.11.0-alpha.1.exe", "junk");
@@ -165,13 +163,13 @@ BOOST_AUTO_TEST_CASE(installer_missing_length)
       try
         {
           auto rc = co_await installer.install(appcast->items.front());
-          BOOST_CHECK_EQUAL(rc.has_error(), true);
-          BOOST_CHECK_EQUAL(rc.error(), unfold::UnfoldErrc::InstallerVerificationFailed);
+          EXPECT_EQ(rc.has_error(), true);
+          EXPECT_EQ(rc.error(), unfold::UnfoldErrc::InstallerVerificationFailed);
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
@@ -180,7 +178,7 @@ BOOST_AUTO_TEST_CASE(installer_missing_length)
   server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(installer_incorrect_length)
+TEST(Installer, installer_incorrect_length)
 {
   unfold::http::HttpServer server;
   server.add_file("/workrave-1.11.0-alpha.1.exe", "junk");
@@ -226,13 +224,13 @@ BOOST_AUTO_TEST_CASE(installer_incorrect_length)
       try
         {
           auto rc = co_await installer.install(appcast->items.front());
-          BOOST_CHECK_EQUAL(rc.has_error(), true);
-          BOOST_CHECK_EQUAL(rc.error(), unfold::UnfoldErrc::InstallerVerificationFailed);
+          EXPECT_EQ(rc.has_error(), true);
+          EXPECT_EQ(rc.error(), unfold::UnfoldErrc::InstallerVerificationFailed);
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
@@ -241,7 +239,7 @@ BOOST_AUTO_TEST_CASE(installer_incorrect_length)
   server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(installer_not_found)
+TEST(Installer, installer_not_found)
 {
   unfold::http::HttpServer server;
   server.run();
@@ -266,13 +264,13 @@ BOOST_AUTO_TEST_CASE(installer_not_found)
       try
         {
           auto rc = co_await installer.install(appcast->items.front());
-          BOOST_CHECK_EQUAL(rc.has_error(), true);
-          BOOST_CHECK_EQUAL(rc.error(), unfold::UnfoldErrc::InstallerDownloadFailed);
+          EXPECT_EQ(rc.has_error(), true);
+          EXPECT_EQ(rc.error(), unfold::UnfoldErrc::InstallerDownloadFailed);
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
@@ -281,7 +279,7 @@ BOOST_AUTO_TEST_CASE(installer_not_found)
   server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(installer_invalid_host)
+TEST(Installer, installer_invalid_host)
 {
   unfold::http::HttpServer server;
   server.run();
@@ -326,13 +324,13 @@ BOOST_AUTO_TEST_CASE(installer_invalid_host)
       try
         {
           auto rc = co_await installer.install(appcast->items.front());
-          BOOST_CHECK_EQUAL(rc.has_error(), true);
-          BOOST_CHECK_EQUAL(rc.error(), unfold::UnfoldErrc::InstallerDownloadFailed);
+          EXPECT_EQ(rc.has_error(), true);
+          EXPECT_EQ(rc.error(), unfold::UnfoldErrc::InstallerDownloadFailed);
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
@@ -341,7 +339,7 @@ BOOST_AUTO_TEST_CASE(installer_invalid_host)
   server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(installer_invalid_signature)
+TEST(Installer, installer_invalid_signature)
 {
   unfold::http::HttpServer server;
   server.add_file("/installer.exe", "test-installer.exe");
@@ -377,13 +375,13 @@ BOOST_AUTO_TEST_CASE(installer_invalid_signature)
       try
         {
           auto rc = co_await installer.install(appcast->items.front());
-          BOOST_CHECK_EQUAL(rc.has_error(), true);
-          BOOST_CHECK_EQUAL(rc.error(), unfold::UnfoldErrc::InstallerVerificationFailed);
+          EXPECT_EQ(rc.has_error(), true);
+          EXPECT_EQ(rc.error(), unfold::UnfoldErrc::InstallerVerificationFailed);
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
@@ -392,7 +390,7 @@ BOOST_AUTO_TEST_CASE(installer_invalid_signature)
   server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(installer_failed_to_install)
+TEST(Installer, installer_failed_to_install)
 {
   unfold::http::HttpServer server;
   server.add_file("/installer.exe", "junk");
@@ -426,13 +424,13 @@ BOOST_AUTO_TEST_CASE(installer_failed_to_install)
       try
         {
           auto rc = co_await installer.install(appcast->items.front());
-          BOOST_CHECK_EQUAL(rc.has_error(), true);
-          BOOST_CHECK_EQUAL(rc.error(), unfold::UnfoldErrc::InstallerExecutionFailed);
+          EXPECT_EQ(rc.has_error(), true);
+          EXPECT_EQ(rc.error(), unfold::UnfoldErrc::InstallerExecutionFailed);
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
@@ -465,11 +463,15 @@ operator<<(std::ostream &os, TerminateHookType type)
   return os;
 }
 
-BOOST_DATA_TEST_CASE(installer_started_installer,
-                     boost::unit_test::data::make(
-                       {TerminateHookType::NoTerminateHook, TerminateHookType::NoTerminate, TerminateHookType::Terminate}),
-                     do_terminate)
+class InstallerTest : public ::testing::TestWithParam<TerminateHookType>
+
 {
+};
+
+TEST_P(InstallerTest, InstallerStartedInstaller)
+{
+  TerminateHookType do_terminate = GetParam();
+
   unfold::http::HttpServer server;
   server.add_file("/installer.exe", "test-installer.exe");
   server.run();
@@ -525,21 +527,21 @@ BOOST_DATA_TEST_CASE(installer_started_installer,
   installer.set_download_progress_callback([&last_stage, &last_progress](unfold::UpdateStage stage, auto progress) {
     if (stage == unfold::UpdateStage::DownloadInstaller)
       {
-        BOOST_CHECK_GE(progress, last_progress);
+        EXPECT_GE(progress, last_progress);
         last_progress = progress;
       }
 
     if (!last_stage)
       {
-        BOOST_CHECK_EQUAL(stage, unfold::UpdateStage::DownloadInstaller);
+        EXPECT_EQ(stage, unfold::UpdateStage::DownloadInstaller);
       }
     else if (*last_stage == unfold::UpdateStage::DownloadInstaller)
       {
-        BOOST_CHECK(stage == unfold::UpdateStage::DownloadInstaller || stage == unfold::UpdateStage::VerifyInstaller);
+        EXPECT_TRUE(stage == unfold::UpdateStage::DownloadInstaller || stage == unfold::UpdateStage::VerifyInstaller);
       }
     else
       {
-        BOOST_CHECK_EQUAL(stage, *last_stage + 1);
+        EXPECT_EQ(stage, *last_stage + 1);
       }
     last_stage = stage;
   });
@@ -551,17 +553,17 @@ BOOST_DATA_TEST_CASE(installer_started_installer,
       try
         {
           auto rc = co_await installer.install(appcast->items.front());
-          BOOST_CHECK_EQUAL(rc.has_error(), false);
+          EXPECT_EQ(rc.has_error(), false);
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
   ioc.run();
-  BOOST_CHECK_GE(100, last_progress);
+  EXPECT_GE(100, last_progress);
 
   int tries = 100;
   bool found = false;
@@ -572,14 +574,20 @@ BOOST_DATA_TEST_CASE(installer_started_installer,
       tries--;
     }
   while (tries > 0 && !found);
-  BOOST_CHECK(found);
+  EXPECT_TRUE(found);
 
-  BOOST_CHECK_EQUAL(platform->is_terminated(), do_terminate != TerminateHookType::NoTerminate);
+  EXPECT_EQ(platform->is_terminated(), do_terminate != TerminateHookType::NoTerminate);
 
   server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(installer_started_installer_with_args)
+INSTANTIATE_TEST_SUITE_P(TerminateHookTypes,
+                         InstallerTest,
+                         ::testing::Values(TerminateHookType::NoTerminateHook,
+                                           TerminateHookType::NoTerminate,
+                                           TerminateHookType::Terminate));
+
+TEST(Installer, installer_started_installer_with_args)
 {
   unfold::http::HttpServer server;
   server.add_file("/installer.exe", "test-installer.exe");
@@ -632,21 +640,21 @@ BOOST_AUTO_TEST_CASE(installer_started_installer_with_args)
   installer.set_download_progress_callback([&last_stage, &last_progress](unfold::UpdateStage stage, auto progress) {
     if (stage == unfold::UpdateStage::DownloadInstaller)
       {
-        BOOST_CHECK_GE(progress, last_progress);
+        EXPECT_GE(progress, last_progress);
         last_progress = progress;
       }
 
     if (!last_stage)
       {
-        BOOST_CHECK_EQUAL(stage, unfold::UpdateStage::DownloadInstaller);
+        EXPECT_EQ(stage, unfold::UpdateStage::DownloadInstaller);
       }
     else if (*last_stage == unfold::UpdateStage::DownloadInstaller)
       {
-        BOOST_CHECK(stage == unfold::UpdateStage::DownloadInstaller || stage == unfold::UpdateStage::VerifyInstaller);
+        EXPECT_TRUE(stage == unfold::UpdateStage::DownloadInstaller || stage == unfold::UpdateStage::VerifyInstaller);
       }
     else
       {
-        BOOST_CHECK_EQUAL(stage, *last_stage + 1);
+        EXPECT_EQ(stage, *last_stage + 1);
       }
     last_stage = stage;
   });
@@ -658,17 +666,17 @@ BOOST_AUTO_TEST_CASE(installer_started_installer_with_args)
       try
         {
           auto rc = co_await installer.install(appcast->items.front());
-          BOOST_CHECK_EQUAL(rc.has_error(), false);
+          EXPECT_EQ(rc.has_error(), false);
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
   ioc.run();
-  BOOST_CHECK_GE(100, last_progress);
+  EXPECT_GE(100, last_progress);
 
   int tries = 100;
   bool found = false;
@@ -679,7 +687,7 @@ BOOST_AUTO_TEST_CASE(installer_started_installer_with_args)
       tries--;
     }
   while (tries > 0 && !found);
-  BOOST_CHECK(found);
+  EXPECT_TRUE(found);
 
   if (found)
     {
@@ -690,12 +698,10 @@ BOOST_AUTO_TEST_CASE(installer_started_installer_with_args)
         {
           lines.push_back(s);
         }
-      BOOST_CHECK_EQUAL(lines[0], "Hello world!");
-      BOOST_CHECK_EQUAL(lines[2], "/SILENT");
-      BOOST_CHECK_EQUAL(lines[3], "/SP-");
-      BOOST_CHECK_EQUAL(lines[4], "/NOICONS");
+      EXPECT_EQ(lines[0], "Hello world!");
+      EXPECT_EQ(lines[2], "/SILENT");
+      EXPECT_EQ(lines[3], "/SP-");
+      EXPECT_EQ(lines[4], "/NOICONS");
     }
   server.stop();
 }
-
-BOOST_AUTO_TEST_SUITE_END()

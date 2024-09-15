@@ -22,8 +22,6 @@
 #define SIGNATURE_VERIFIER_MOCK_HH
 
 #include <string>
-#include <string_view>
-#include <memory>
 
 #include "gmock/gmock.h"
 
@@ -31,8 +29,6 @@
 
 #include "crypto/SignatureAlgorithmType.hh"
 #include "crypto/SignatureVerifier.hh"
-#include "crypto/SignatureVerifierErrors.hh"
-#include "utils/Logging.hh"
 
 namespace outcome = boost::outcome_v2;
 

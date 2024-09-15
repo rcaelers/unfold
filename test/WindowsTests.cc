@@ -18,57 +18,51 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <boost/test/unit_test.hpp>
-#include <spdlog/spdlog.h>
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
 
-#include "unfold/Unfold.hh"
-#include "unfold/UnfoldErrors.hh"
+#include <spdlog/spdlog.h>
 
 #include "windows/WindowsSettingsStorage.hh"
 #include "windows/WindowsPlatform.hh"
 
-#include "SignatureVerifierMock.hh"
-#include "TestBase.hh"
-
-BOOST_FIXTURE_TEST_SUITE(unfold_windows_test, Fixture)
-
-BOOST_AUTO_TEST_CASE(windows_settings_string)
+TEST(Windows, windows_settings_string)
 {
   WindowsSettingsStorage storage;
 
   auto rc = storage.set_prefix("Software\\UnfoldTest");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
   rc = storage.remove_key("foo");
 
   auto s = storage.get_value("foo", SettingType::String);
-  BOOST_CHECK_EQUAL(s.has_value(), false);
+  EXPECT_EQ(s.has_value(), false);
   rc = storage.set_value("foo", "bar");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
   s = storage.get_value("foo", SettingType::String);
-  BOOST_CHECK_EQUAL(s.has_value(), true);
-  BOOST_CHECK_EQUAL(std::get<std::string>(s.value()), "bar");
-  BOOST_CHECK_EQUAL(SettingValueToType(s.value()), SettingType::String);
+  EXPECT_EQ(s.has_value(), true);
+  EXPECT_EQ(std::get<std::string>(s.value()), "bar");
+  EXPECT_EQ(SettingValueToType(s.value()), SettingType::String);
 }
 
-BOOST_AUTO_TEST_CASE(windows_settings_int64)
+TEST(Windows, windows_settings_int64)
 {
   WindowsSettingsStorage storage;
 
   auto rc = storage.set_prefix("Software\\UnfoldTest");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
   rc = storage.remove_key("foo");
 
   auto s = storage.get_value("foo", SettingType::Int64);
-  BOOST_CHECK_EQUAL(s.has_value(), false);
+  EXPECT_EQ(s.has_value(), false);
   rc = storage.set_value("foo", 42LL);
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
   s = storage.get_value("foo", SettingType::Int64);
-  BOOST_CHECK_EQUAL(s.has_value(), true);
-  BOOST_CHECK_EQUAL(std::get<int64_t>(s.value()), 42LL);
-  BOOST_CHECK_EQUAL(SettingValueToType(s.value()), SettingType::Int64);
+  EXPECT_EQ(s.has_value(), true);
+  EXPECT_EQ(std::get<int64_t>(s.value()), 42LL);
+  EXPECT_EQ(SettingValueToType(s.value()), SettingType::Int64);
 }
 
-BOOST_AUTO_TEST_CASE(windows_settings_int32)
+TEST(Windows, windows_settings_int32)
 {
   WindowsSettingsStorage storage;
 
@@ -76,16 +70,16 @@ BOOST_AUTO_TEST_CASE(windows_settings_int32)
   rc = storage.remove_key("foo");
 
   auto s = storage.get_value("foo", SettingType::Int32);
-  BOOST_CHECK_EQUAL(s.has_value(), false);
+  EXPECT_EQ(s.has_value(), false);
   rc = storage.set_value("foo", 43);
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
   s = storage.get_value("foo", SettingType::Int32);
-  BOOST_CHECK_EQUAL(s.has_value(), true);
-  BOOST_CHECK_EQUAL(std::get<int32_t>(s.value()), 43);
-  BOOST_CHECK_EQUAL(SettingValueToType(s.value()), SettingType::Int32);
+  EXPECT_EQ(s.has_value(), true);
+  EXPECT_EQ(std::get<int32_t>(s.value()), 43);
+  EXPECT_EQ(SettingValueToType(s.value()), SettingType::Int32);
 }
 
-BOOST_AUTO_TEST_CASE(windows_settings_bool)
+TEST(Windows, windows_settings_bool)
 {
   WindowsSettingsStorage storage;
 
@@ -93,63 +87,63 @@ BOOST_AUTO_TEST_CASE(windows_settings_bool)
   rc = storage.remove_key("foo");
 
   auto s = storage.get_value("foo", SettingType::Boolean);
-  BOOST_CHECK_EQUAL(s.has_value(), false);
+  EXPECT_EQ(s.has_value(), false);
   rc = storage.set_value("foo", true);
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
   s = storage.get_value("foo", SettingType::Boolean);
-  BOOST_CHECK_EQUAL(s.has_value(), true);
-  BOOST_CHECK_EQUAL(std::get<bool>(s.value()), true);
+  EXPECT_EQ(s.has_value(), true);
+  EXPECT_EQ(std::get<bool>(s.value()), true);
   rc = storage.set_value("foo", false);
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
   s = storage.get_value("foo", SettingType::Boolean);
-  BOOST_CHECK_EQUAL(s.has_value(), true);
-  BOOST_CHECK_EQUAL(std::get<bool>(s.value()), false);
-  BOOST_CHECK_EQUAL(SettingValueToType(s.value()), SettingType::Boolean);
+  EXPECT_EQ(s.has_value(), true);
+  EXPECT_EQ(std::get<bool>(s.value()), false);
+  EXPECT_EQ(SettingValueToType(s.value()), SettingType::Boolean);
 }
 
-BOOST_AUTO_TEST_CASE(windows_settings_remove)
+TEST(Windows, windows_settings_remove)
 {
   WindowsSettingsStorage storage;
 
   auto rc = storage.set_prefix("Software\\UnfoldTest");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
   rc = storage.remove_key("foo");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
   rc = storage.remove_key("\n");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 }
 
-BOOST_AUTO_TEST_CASE(windows_settings_invalid_subkey)
+TEST(Windows, windows_settings_invalid_subkey)
 {
   WindowsSettingsStorage storage;
 
   auto rc = storage.set_prefix("\\\\");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   auto s = storage.get_value("foo", SettingType::Boolean);
-  BOOST_CHECK_EQUAL(s.has_error(), true);
+  EXPECT_EQ(s.has_error(), true);
   s = storage.get_value("foo", SettingType::Boolean);
-  BOOST_CHECK_EQUAL(s.has_error(), true);
+  EXPECT_EQ(s.has_error(), true);
   s = storage.get_value("foo", SettingType::Int32);
-  BOOST_CHECK_EQUAL(s.has_error(), true);
+  EXPECT_EQ(s.has_error(), true);
   s = storage.get_value("foo", SettingType::Int64);
-  BOOST_CHECK_EQUAL(s.has_error(), true);
+  EXPECT_EQ(s.has_error(), true);
   s = storage.get_value("foo", SettingType::String);
-  BOOST_CHECK_EQUAL(s.has_error(), true);
+  EXPECT_EQ(s.has_error(), true);
 
   rc = storage.remove_key("foo");
-  BOOST_CHECK_EQUAL(rc.has_error(), true);
+  EXPECT_EQ(rc.has_error(), true);
 
   rc = storage.set_value("foo", true);
-  BOOST_CHECK_EQUAL(rc.has_error(), true);
+  EXPECT_EQ(rc.has_error(), true);
   rc = storage.set_value("foo", false);
-  BOOST_CHECK_EQUAL(rc.has_error(), true);
+  EXPECT_EQ(rc.has_error(), true);
   rc = storage.set_value("foo", "bar");
-  BOOST_CHECK_EQUAL(rc.has_error(), true);
+  EXPECT_EQ(rc.has_error(), true);
   rc = storage.set_value("foo", 42);
-  BOOST_CHECK_EQUAL(rc.has_error(), true);
+  EXPECT_EQ(rc.has_error(), true);
   rc = storage.set_value("foo", 42LL);
-  BOOST_CHECK_EQUAL(rc.has_error(), true);
+  EXPECT_EQ(rc.has_error(), true);
 }
 
 namespace
@@ -157,84 +151,82 @@ namespace
   auto very_long_string = std::string(20 * 1024, 'a');
 }
 
-BOOST_AUTO_TEST_CASE(windows_settings_get_invalid_key)
+TEST(Windows, windows_settings_get_invalid_key)
 {
   WindowsSettingsStorage storage;
 
   auto rc = storage.set_prefix("Software\\UnfoldTest");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
   auto s = storage.get_value("foo", SettingType::Boolean);
-  BOOST_CHECK_EQUAL(s.has_error(), true);
+  EXPECT_EQ(s.has_error(), true);
   s = storage.get_value(very_long_string, SettingType::Boolean);
-  BOOST_CHECK_EQUAL(s.has_error(), true);
+  EXPECT_EQ(s.has_error(), true);
   s = storage.get_value(very_long_string, SettingType::String);
-  BOOST_CHECK_EQUAL(s.has_error(), true);
+  EXPECT_EQ(s.has_error(), true);
   s = storage.get_value(very_long_string, SettingType::Int32);
-  BOOST_CHECK_EQUAL(s.has_error(), true);
+  EXPECT_EQ(s.has_error(), true);
   s = storage.get_value(very_long_string, SettingType::Int64);
-  BOOST_CHECK_EQUAL(s.has_error(), true);
+  EXPECT_EQ(s.has_error(), true);
 
   rc = storage.remove_key(very_long_string);
-  BOOST_CHECK_EQUAL(rc.has_error(), false); // Windows return "no such key"
+  EXPECT_EQ(rc.has_error(), false); // Windows return "no such key"
 }
 
-BOOST_AUTO_TEST_CASE(windows_settings_set_invalid_key)
+TEST(Windows, windows_settings_set_invalid_key)
 {
   WindowsSettingsStorage storage;
 
   auto rc = storage.set_prefix("Software\\UnfoldTest");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
   rc = storage.set_value(very_long_string, true);
-  BOOST_CHECK_EQUAL(rc.has_error(), true);
+  EXPECT_EQ(rc.has_error(), true);
   rc = storage.set_value(very_long_string, false);
-  BOOST_CHECK_EQUAL(rc.has_error(), true);
+  EXPECT_EQ(rc.has_error(), true);
   rc = storage.set_value(very_long_string, "bar");
-  BOOST_CHECK_EQUAL(rc.has_error(), true);
+  EXPECT_EQ(rc.has_error(), true);
   rc = storage.set_value(very_long_string, 42);
-  BOOST_CHECK_EQUAL(rc.has_error(), true);
+  EXPECT_EQ(rc.has_error(), true);
   rc = storage.set_value(very_long_string, 42LL);
-  BOOST_CHECK_EQUAL(rc.has_error(), true);
+  EXPECT_EQ(rc.has_error(), true);
 }
 
-BOOST_AUTO_TEST_CASE(windows_platform_is_supported)
+TEST(Windows, windows_platform_is_supported)
 {
   WindowsPlatform platform;
 
   auto rc = platform.is_supported_os("foo");
-  BOOST_CHECK_EQUAL(rc, false);
+  EXPECT_EQ(rc, false);
   rc = platform.is_supported_os("windows");
-  BOOST_CHECK_EQUAL(rc, true);
+  EXPECT_EQ(rc, true);
   rc = platform.is_supported_os("linux");
-  BOOST_CHECK_EQUAL(rc, false);
+  EXPECT_EQ(rc, false);
   rc = platform.is_supported_os("macos");
-  BOOST_CHECK_EQUAL(rc, false);
+  EXPECT_EQ(rc, false);
 
   auto rc32 = platform.is_supported_os("windows-x86");
   auto rc64 = platform.is_supported_os("windows-x64");
 #ifdef _WIN64
-  BOOST_CHECK_EQUAL(rc32, false);
-  BOOST_CHECK_EQUAL(rc64, true);
+  EXPECT_EQ(rc32, false);
+  EXPECT_EQ(rc64, true);
 #else
-  BOOST_CHECK_EQUAL(rc32, true);
-  BOOST_CHECK_EQUAL(rc64, false);
+  EXPECT_EQ(rc32, true);
+  EXPECT_EQ(rc64, false);
 #endif
 }
 
-// BOOST_AUTO_TEST_CASE(windows_platform_is_supported_os_version)
+// TEST(Windows, windows_platform_is_supported_os_version)
 // {
 //   WindowsPlatform platform;
 
 //   auto rc = platform.is_supported_os_version("");
-//   BOOST_CHECK_EQUAL(rc, true);
+//   EXPECT_EQ(rc, true);
 
 //   rc = platform.is_supported_os_version("9.0.0");
-//   BOOST_CHECK_EQUAL(rc, true);
+//   EXPECT_EQ(rc, true);
 
 //   rc = platform.is_supported_os_version("10.0.0");
-//   BOOST_CHECK_EQUAL(rc, true);
+//   EXPECT_EQ(rc, true);
 
 //   rc = platform.is_supported_os_version("12.0.0");
-//   BOOST_CHECK_EQUAL(rc, false);
+//   EXPECT_EQ(rc, false);
 // }
-
-BOOST_AUTO_TEST_SUITE_END()

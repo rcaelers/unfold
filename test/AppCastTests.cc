@@ -18,15 +18,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <boost/test/unit_test.hpp>
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
+
 #include <spdlog/spdlog.h>
 
-#include "TestBase.hh"
 #include "AppCast.hh"
 
-BOOST_FIXTURE_TEST_SUITE(unfold_appcast_test, Fixture)
-
-BOOST_AUTO_TEST_CASE(appcast_load_from_string)
+TEST(AppCast, appcast_load_from_string)
 {
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
 
@@ -53,175 +52,173 @@ BOOST_AUTO_TEST_CASE(appcast_load_from_string)
 
   auto appcast = reader->load_from_string(appcast_str);
 
-  BOOST_CHECK_EQUAL(appcast->title, "Workrave Test Appcast");
-  BOOST_CHECK_EQUAL(appcast->description, "Most recent updates to Workrave Test");
-  BOOST_CHECK_EQUAL(appcast->language, "en");
-  BOOST_CHECK_EQUAL(appcast->link, "https://workrave.org/");
+  EXPECT_EQ(appcast->title, "Workrave Test Appcast");
+  EXPECT_EQ(appcast->description, "Most recent updates to Workrave Test");
+  EXPECT_EQ(appcast->language, "en");
+  EXPECT_EQ(appcast->link, "https://workrave.org/");
 
-  BOOST_CHECK_EQUAL(appcast->items.size(), 1);
+  EXPECT_EQ(appcast->items.size(), 1);
 
-  BOOST_CHECK_EQUAL(appcast->items[0]->channel, "release");
-  BOOST_CHECK_EQUAL(appcast->items[0]->title, "Version 1.0");
-  BOOST_CHECK_EQUAL(appcast->items[0]->link, "https://workrave.org");
-  BOOST_CHECK_EQUAL(appcast->items[0]->version, "1.0");
-  BOOST_CHECK_EQUAL(appcast->items[0]->short_version, "");
-  BOOST_CHECK_EQUAL(appcast->items[0]->description, "");
-  BOOST_CHECK_EQUAL(appcast->items[0]->release_notes_link, "https://workrave.org/v1.html");
-  BOOST_CHECK_EQUAL(appcast->items[0]->publication_date, "Sun, 17 Apr 2022 19:30:14 +0200");
-  BOOST_CHECK_EQUAL(appcast->items[0]->minimum_system_version, "");
-  BOOST_CHECK_EQUAL(appcast->items[0]->minimum_auto_update_version, "");
-  BOOST_CHECK_EQUAL(appcast->items[0]->ignore_skipped_upgrades_below_version, "");
-  BOOST_CHECK_EQUAL(appcast->items[0]->critical_update, false);
-  BOOST_CHECK_EQUAL(appcast->items[0]->critical_update_version, "");
-  BOOST_CHECK_EQUAL(appcast->items[0]->canary_rollout_intervals.size(), 0);
+  EXPECT_EQ(appcast->items[0]->channel, "release");
+  EXPECT_EQ(appcast->items[0]->title, "Version 1.0");
+  EXPECT_EQ(appcast->items[0]->link, "https://workrave.org");
+  EXPECT_EQ(appcast->items[0]->version, "1.0");
+  EXPECT_EQ(appcast->items[0]->short_version, "");
+  EXPECT_EQ(appcast->items[0]->description, "");
+  EXPECT_EQ(appcast->items[0]->release_notes_link, "https://workrave.org/v1.html");
+  EXPECT_EQ(appcast->items[0]->publication_date, "Sun, 17 Apr 2022 19:30:14 +0200");
+  EXPECT_EQ(appcast->items[0]->minimum_system_version, "");
+  EXPECT_EQ(appcast->items[0]->minimum_auto_update_version, "");
+  EXPECT_EQ(appcast->items[0]->ignore_skipped_upgrades_below_version, "");
+  EXPECT_EQ(appcast->items[0]->critical_update, false);
+  EXPECT_EQ(appcast->items[0]->critical_update_version, "");
+  EXPECT_EQ(appcast->items[0]->canary_rollout_intervals.size(), 0);
 }
 
-BOOST_AUTO_TEST_CASE(appcast_load_from_file)
+TEST(AppCast, appcast_load_from_file)
 {
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
 
   auto appcast = reader->load_from_file("okappcast.xml");
 
-  BOOST_CHECK_EQUAL(appcast->title, "Workrave Test Appcast");
-  BOOST_CHECK_EQUAL(appcast->description, "Most recent updates to Workrave Test");
-  BOOST_CHECK_EQUAL(appcast->language, "en");
-  BOOST_CHECK_EQUAL(appcast->link, "https://workrave.org/");
+  EXPECT_EQ(appcast->title, "Workrave Test Appcast");
+  EXPECT_EQ(appcast->description, "Most recent updates to Workrave Test");
+  EXPECT_EQ(appcast->language, "en");
+  EXPECT_EQ(appcast->link, "https://workrave.org/");
 
-  BOOST_CHECK_EQUAL(appcast->items.size(), 2);
+  EXPECT_EQ(appcast->items.size(), 2);
 
-  BOOST_CHECK_EQUAL(appcast->items[0]->channel, "");
-  BOOST_CHECK_EQUAL(appcast->items[0]->title, "Version 1.0");
-  BOOST_CHECK_EQUAL(appcast->items[0]->link, "https://workrave.org");
-  BOOST_CHECK_EQUAL(appcast->items[0]->version, "1.0");
-  BOOST_CHECK_EQUAL(appcast->items[0]->short_version, "");
-  BOOST_CHECK_EQUAL(appcast->items[0]->description, "");
-  BOOST_CHECK_EQUAL(appcast->items[0]->release_notes_link, "https://workrave.org/v1.html");
-  BOOST_CHECK_EQUAL(appcast->items[0]->publication_date, "Sun, 17 Apr 2022 19:30:14 +0200");
-  BOOST_CHECK_EQUAL(appcast->items[0]->minimum_system_version, "");
-  BOOST_CHECK_EQUAL(appcast->items[0]->minimum_auto_update_version, "");
-  BOOST_CHECK_EQUAL(appcast->items[0]->ignore_skipped_upgrades_below_version, "");
-  BOOST_CHECK_EQUAL(appcast->items[0]->critical_update, false);
-  BOOST_CHECK_EQUAL(appcast->items[0]->critical_update_version, "");
-  BOOST_CHECK_EQUAL(appcast->items[0]->canary_rollout_intervals.size(), 0);
+  EXPECT_EQ(appcast->items[0]->channel, "");
+  EXPECT_EQ(appcast->items[0]->title, "Version 1.0");
+  EXPECT_EQ(appcast->items[0]->link, "https://workrave.org");
+  EXPECT_EQ(appcast->items[0]->version, "1.0");
+  EXPECT_EQ(appcast->items[0]->short_version, "");
+  EXPECT_EQ(appcast->items[0]->description, "");
+  EXPECT_EQ(appcast->items[0]->release_notes_link, "https://workrave.org/v1.html");
+  EXPECT_EQ(appcast->items[0]->publication_date, "Sun, 17 Apr 2022 19:30:14 +0200");
+  EXPECT_EQ(appcast->items[0]->minimum_system_version, "");
+  EXPECT_EQ(appcast->items[0]->minimum_auto_update_version, "");
+  EXPECT_EQ(appcast->items[0]->ignore_skipped_upgrades_below_version, "");
+  EXPECT_EQ(appcast->items[0]->critical_update, false);
+  EXPECT_EQ(appcast->items[0]->critical_update_version, "");
+  EXPECT_EQ(appcast->items[0]->canary_rollout_intervals.size(), 0);
 
-  BOOST_CHECK_EQUAL(appcast->items[1]->channel, "");
-  BOOST_CHECK_EQUAL(appcast->items[1]->title, "Version 2.0");
-  BOOST_CHECK_EQUAL(appcast->items[1]->link, "");
-  BOOST_CHECK_EQUAL(appcast->items[1]->version, "");
-  BOOST_CHECK_EQUAL(appcast->items[1]->short_version, "");
-  BOOST_CHECK_EQUAL(appcast->items[1]->description, "Version 2 update");
-  BOOST_CHECK_EQUAL(appcast->items[1]->release_notes_link, "");
-  BOOST_CHECK_EQUAL(appcast->items[1]->publication_date, "Sun, 17 Apr 2022 19:30:14 +0200");
-  BOOST_CHECK_EQUAL(appcast->items[1]->minimum_system_version, "");
-  BOOST_CHECK_EQUAL(appcast->items[1]->minimum_auto_update_version, "");
-  BOOST_CHECK_EQUAL(appcast->items[1]->ignore_skipped_upgrades_below_version, "");
-  BOOST_CHECK_EQUAL(appcast->items[1]->critical_update, true);
-  BOOST_CHECK_EQUAL(appcast->items[1]->critical_update_version, "1.5");
-  BOOST_CHECK_EQUAL(appcast->items[1]->canary_rollout_intervals.size(), 0);
+  EXPECT_EQ(appcast->items[1]->channel, "");
+  EXPECT_EQ(appcast->items[1]->title, "Version 2.0");
+  EXPECT_EQ(appcast->items[1]->link, "");
+  EXPECT_EQ(appcast->items[1]->version, "");
+  EXPECT_EQ(appcast->items[1]->short_version, "");
+  EXPECT_EQ(appcast->items[1]->description, "Version 2 update");
+  EXPECT_EQ(appcast->items[1]->release_notes_link, "");
+  EXPECT_EQ(appcast->items[1]->publication_date, "Sun, 17 Apr 2022 19:30:14 +0200");
+  EXPECT_EQ(appcast->items[1]->minimum_system_version, "");
+  EXPECT_EQ(appcast->items[1]->minimum_auto_update_version, "");
+  EXPECT_EQ(appcast->items[1]->ignore_skipped_upgrades_below_version, "");
+  EXPECT_EQ(appcast->items[1]->critical_update, true);
+  EXPECT_EQ(appcast->items[1]->critical_update_version, "1.5");
+  EXPECT_EQ(appcast->items[1]->canary_rollout_intervals.size(), 0);
 }
 
-BOOST_AUTO_TEST_CASE(appcast_load_invalid_from_string)
+TEST(AppCast, appcast_load_invalid_from_string)
 {
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
 
   std::string appcast_str = "Foo\n";
 
   auto appcast = reader->load_from_string(appcast_str);
-  BOOST_CHECK_EQUAL(appcast.get(), nullptr);
+  EXPECT_EQ(appcast.get(), nullptr);
 }
 
-BOOST_AUTO_TEST_CASE(appcast_load_invalid_from_file)
+TEST(AppCast, appcast_load_invalid_from_file)
 {
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
 
   auto appcast = reader->load_from_file("invalidappcast.xml");
-  BOOST_CHECK_EQUAL(appcast.get(), nullptr);
+  EXPECT_EQ(appcast.get(), nullptr);
 }
 
-BOOST_AUTO_TEST_CASE(appcast_canary)
+TEST(AppCast, appcast_canary)
 {
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
 
   auto appcast = reader->load_from_file("appcast-canary.xml");
 
-  BOOST_CHECK_EQUAL(appcast->title, "Workrave Test Appcast");
-  BOOST_CHECK_EQUAL(appcast->description, "Most recent updates to Workrave Test");
-  BOOST_CHECK_EQUAL(appcast->language, "en");
-  BOOST_CHECK_EQUAL(appcast->link, "https://workrave.org/");
+  EXPECT_EQ(appcast->title, "Workrave Test Appcast");
+  EXPECT_EQ(appcast->description, "Most recent updates to Workrave Test");
+  EXPECT_EQ(appcast->language, "en");
+  EXPECT_EQ(appcast->link, "https://workrave.org/");
 
-  BOOST_CHECK_EQUAL(appcast->items.size(), 2);
+  EXPECT_EQ(appcast->items.size(), 2);
 
-  BOOST_CHECK_EQUAL(appcast->items[0]->channel, "");
-  BOOST_CHECK_EQUAL(appcast->items[0]->title, "Version 1.0");
-  BOOST_CHECK_EQUAL(appcast->items[0]->link, "https://workrave.org");
-  BOOST_CHECK_EQUAL(appcast->items[0]->version, "1.0.0");
-  BOOST_CHECK_EQUAL(appcast->items[0]->short_version, "");
-  BOOST_CHECK_EQUAL(appcast->items[0]->description, "");
-  BOOST_CHECK_EQUAL(appcast->items[0]->release_notes_link, "https://workrave.org/v1.html");
-  BOOST_CHECK_EQUAL(appcast->items[0]->publication_date, "Sun, 17 Apr 2022 19:30:14 +0200");
-  BOOST_CHECK_EQUAL(appcast->items[0]->minimum_system_version, "");
-  BOOST_CHECK_EQUAL(appcast->items[0]->minimum_auto_update_version, "");
-  BOOST_CHECK_EQUAL(appcast->items[0]->ignore_skipped_upgrades_below_version, "");
-  BOOST_CHECK_EQUAL(appcast->items[0]->critical_update, false);
-  BOOST_CHECK_EQUAL(appcast->items[0]->critical_update_version, "");
+  EXPECT_EQ(appcast->items[0]->channel, "");
+  EXPECT_EQ(appcast->items[0]->title, "Version 1.0");
+  EXPECT_EQ(appcast->items[0]->link, "https://workrave.org");
+  EXPECT_EQ(appcast->items[0]->version, "1.0.0");
+  EXPECT_EQ(appcast->items[0]->short_version, "");
+  EXPECT_EQ(appcast->items[0]->description, "");
+  EXPECT_EQ(appcast->items[0]->release_notes_link, "https://workrave.org/v1.html");
+  EXPECT_EQ(appcast->items[0]->publication_date, "Sun, 17 Apr 2022 19:30:14 +0200");
+  EXPECT_EQ(appcast->items[0]->minimum_system_version, "");
+  EXPECT_EQ(appcast->items[0]->minimum_auto_update_version, "");
+  EXPECT_EQ(appcast->items[0]->ignore_skipped_upgrades_below_version, "");
+  EXPECT_EQ(appcast->items[0]->critical_update, false);
+  EXPECT_EQ(appcast->items[0]->critical_update_version, "");
 
-  BOOST_CHECK_EQUAL(appcast->items[0]->canary_rollout_intervals.size(), 3);
-  BOOST_CHECK_EQUAL(appcast->items[0]->canary_rollout_intervals[0].first,
-                    std::chrono::seconds(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::days(2))));
-  BOOST_CHECK_EQUAL(appcast->items[0]->canary_rollout_intervals[0].second, 10);
-  BOOST_CHECK_EQUAL(appcast->items[0]->canary_rollout_intervals[1].first,
-                    std::chrono::seconds(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::days(5))));
-  BOOST_CHECK_EQUAL(appcast->items[0]->canary_rollout_intervals[1].second, 25);
-  BOOST_CHECK_EQUAL(appcast->items[0]->canary_rollout_intervals[2].first,
-                    std::chrono::seconds(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::days(10))));
-  BOOST_CHECK_EQUAL(appcast->items[0]->canary_rollout_intervals[2].second, 55);
+  EXPECT_EQ(appcast->items[0]->canary_rollout_intervals.size(), 3);
+  EXPECT_EQ(appcast->items[0]->canary_rollout_intervals[0].first,
+            std::chrono::seconds(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::days(2))));
+  EXPECT_EQ(appcast->items[0]->canary_rollout_intervals[0].second, 10);
+  EXPECT_EQ(appcast->items[0]->canary_rollout_intervals[1].first,
+            std::chrono::seconds(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::days(5))));
+  EXPECT_EQ(appcast->items[0]->canary_rollout_intervals[1].second, 25);
+  EXPECT_EQ(appcast->items[0]->canary_rollout_intervals[2].first,
+            std::chrono::seconds(std::chrono::duration_cast<std::chrono::seconds>(std::chrono::days(10))));
+  EXPECT_EQ(appcast->items[0]->canary_rollout_intervals[2].second, 55);
 
-  BOOST_CHECK_EQUAL(appcast->items[1]->channel, "");
-  BOOST_CHECK_EQUAL(appcast->items[1]->title, "Version 2.0");
-  BOOST_CHECK_EQUAL(appcast->items[1]->link, "");
-  BOOST_CHECK_EQUAL(appcast->items[1]->version, "2.0.0");
-  BOOST_CHECK_EQUAL(appcast->items[1]->short_version, "");
-  BOOST_CHECK_EQUAL(appcast->items[1]->description, "Version 2 update");
-  BOOST_CHECK_EQUAL(appcast->items[1]->release_notes_link, "");
-  BOOST_CHECK_EQUAL(appcast->items[1]->publication_date, "Sun, 17 Apr 2022 19:30:14 +0200");
-  BOOST_CHECK_EQUAL(appcast->items[1]->minimum_system_version, "");
-  BOOST_CHECK_EQUAL(appcast->items[1]->minimum_auto_update_version, "");
-  BOOST_CHECK_EQUAL(appcast->items[1]->ignore_skipped_upgrades_below_version, "");
-  BOOST_CHECK_EQUAL(appcast->items[1]->critical_update, true);
-  BOOST_CHECK_EQUAL(appcast->items[1]->critical_update_version, "1.5");
-  BOOST_CHECK_EQUAL(appcast->items[1]->canary_rollout_intervals.size(), 3);
+  EXPECT_EQ(appcast->items[1]->channel, "");
+  EXPECT_EQ(appcast->items[1]->title, "Version 2.0");
+  EXPECT_EQ(appcast->items[1]->link, "");
+  EXPECT_EQ(appcast->items[1]->version, "2.0.0");
+  EXPECT_EQ(appcast->items[1]->short_version, "");
+  EXPECT_EQ(appcast->items[1]->description, "Version 2 update");
+  EXPECT_EQ(appcast->items[1]->release_notes_link, "");
+  EXPECT_EQ(appcast->items[1]->publication_date, "Sun, 17 Apr 2022 19:30:14 +0200");
+  EXPECT_EQ(appcast->items[1]->minimum_system_version, "");
+  EXPECT_EQ(appcast->items[1]->minimum_auto_update_version, "");
+  EXPECT_EQ(appcast->items[1]->ignore_skipped_upgrades_below_version, "");
+  EXPECT_EQ(appcast->items[1]->critical_update, true);
+  EXPECT_EQ(appcast->items[1]->critical_update_version, "1.5");
+  EXPECT_EQ(appcast->items[1]->canary_rollout_intervals.size(), 3);
 }
 
-BOOST_AUTO_TEST_CASE(appcast_canary_error)
+TEST(AppCast, appcast_canary_error)
 {
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
 
   auto appcast = reader->load_from_file("appcast-canary-error.xml");
 
-  BOOST_CHECK_EQUAL(appcast->items[0]->canary_rollout_intervals.size(), 3);
+  EXPECT_EQ(appcast->items[0]->canary_rollout_intervals.size(), 3);
 }
 
-BOOST_AUTO_TEST_CASE(appcast_canary_sparkle)
+TEST(AppCast, appcast_canary_sparkle)
 {
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
 
   auto appcast = reader->load_from_file("appcast-canary-sparkle.xml");
 
-  BOOST_CHECK_EQUAL(appcast->items[0]->canary_rollout_intervals.size(), 7);
-  BOOST_CHECK_EQUAL(appcast->items[0]->canary_rollout_intervals[0].first, std::chrono::days(2));
-  BOOST_CHECK_EQUAL(appcast->items[0]->canary_rollout_intervals[0].second, 15);
-  BOOST_CHECK_EQUAL(appcast->items[0]->canary_rollout_intervals[1].first, std::chrono::days(4));
-  BOOST_CHECK_EQUAL(appcast->items[0]->canary_rollout_intervals[1].second, 30);
-  BOOST_CHECK_EQUAL(appcast->items[0]->canary_rollout_intervals[2].first, std::chrono::days(6));
-  BOOST_CHECK_EQUAL(appcast->items[0]->canary_rollout_intervals[2].second, 45);
-  BOOST_CHECK_EQUAL(appcast->items[0]->canary_rollout_intervals[3].first, std::chrono::days(8));
-  BOOST_CHECK_EQUAL(appcast->items[0]->canary_rollout_intervals[3].second, 60);
-  BOOST_CHECK_EQUAL(appcast->items[0]->canary_rollout_intervals[4].first, std::chrono::days(10));
-  BOOST_CHECK_EQUAL(appcast->items[0]->canary_rollout_intervals[4].second, 75);
-  BOOST_CHECK_EQUAL(appcast->items[0]->canary_rollout_intervals[5].first, std::chrono::days(12));
-  BOOST_CHECK_EQUAL(appcast->items[0]->canary_rollout_intervals[5].second, 90);
-  BOOST_CHECK_EQUAL(appcast->items[0]->canary_rollout_intervals[6].first, std::chrono::days(14));
-  BOOST_CHECK_EQUAL(appcast->items[0]->canary_rollout_intervals[6].second, 100);
+  EXPECT_EQ(appcast->items[0]->canary_rollout_intervals.size(), 7);
+  EXPECT_EQ(appcast->items[0]->canary_rollout_intervals[0].first, std::chrono::days(2));
+  EXPECT_EQ(appcast->items[0]->canary_rollout_intervals[0].second, 15);
+  EXPECT_EQ(appcast->items[0]->canary_rollout_intervals[1].first, std::chrono::days(4));
+  EXPECT_EQ(appcast->items[0]->canary_rollout_intervals[1].second, 30);
+  EXPECT_EQ(appcast->items[0]->canary_rollout_intervals[2].first, std::chrono::days(6));
+  EXPECT_EQ(appcast->items[0]->canary_rollout_intervals[2].second, 45);
+  EXPECT_EQ(appcast->items[0]->canary_rollout_intervals[3].first, std::chrono::days(8));
+  EXPECT_EQ(appcast->items[0]->canary_rollout_intervals[3].second, 60);
+  EXPECT_EQ(appcast->items[0]->canary_rollout_intervals[4].first, std::chrono::days(10));
+  EXPECT_EQ(appcast->items[0]->canary_rollout_intervals[4].second, 75);
+  EXPECT_EQ(appcast->items[0]->canary_rollout_intervals[5].first, std::chrono::days(12));
+  EXPECT_EQ(appcast->items[0]->canary_rollout_intervals[5].second, 90);
+  EXPECT_EQ(appcast->items[0]->canary_rollout_intervals[6].first, std::chrono::days(14));
+  EXPECT_EQ(appcast->items[0]->canary_rollout_intervals[6].second, 100);
 }
-
-BOOST_AUTO_TEST_SUITE_END()

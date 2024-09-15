@@ -27,20 +27,6 @@
 #include "utils/Enum.hh"
 #include "unfold/Unfold.hh"
 
-struct Fixture
-{
-  Fixture() = default;
-  ~Fixture() = default;
-
-  Fixture(const Fixture &) = delete;
-  Fixture &operator=(const Fixture &) = delete;
-  Fixture(Fixture &&) = delete;
-  Fixture &operator=(Fixture &&) = delete;
-
-private:
-  std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("test")};
-};
-
 template<>
 struct unfold::utils::enum_traits<unfold::UpdateStage>
 {

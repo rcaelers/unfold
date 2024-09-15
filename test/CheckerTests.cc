@@ -18,7 +18,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <boost/test/unit_test.hpp>
+#include <gtest/gtest.h>
+#include <gmock/gmock.h>
+
 #include <chrono>
 #include <spdlog/spdlog.h>
 
@@ -27,7 +29,6 @@
 #include "utils/DateUtils.hh"
 
 #include "TestPlatform.hh"
-#include "TestBase.hh"
 #include "UpgradeChecker.hh"
 
 namespace
@@ -53,9 +54,7 @@ namespace
     "-----END CERTIFICATE-----\n";
 } // namespace
 
-BOOST_FIXTURE_TEST_SUITE(unfold_checker_test, Fixture)
-
-BOOST_AUTO_TEST_CASE(checker_appcast_not_found)
+TEST(Checker, checker_appcast_not_found)
 {
   unfold::http::HttpServer server;
   server.add_file("/appcast.xml", "appcast.xml");
@@ -70,10 +69,10 @@ BOOST_AUTO_TEST_CASE(checker_appcast_not_found)
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcastxxx.xml");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   rc = checker.set_current_version("1.12.0");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -82,13 +81,13 @@ BOOST_AUTO_TEST_CASE(checker_appcast_not_found)
       try
         {
           auto check_result = co_await checker.check_for_update();
-          BOOST_CHECK_EQUAL(check_result.has_error(), true);
-          BOOST_CHECK_EQUAL(check_result.error(), unfold::UnfoldErrc::AppcastDownloadFailed);
+          EXPECT_EQ(check_result.has_error(), true);
+          EXPECT_EQ(check_result.error(), unfold::UnfoldErrc::AppcastDownloadFailed);
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
@@ -97,7 +96,7 @@ BOOST_AUTO_TEST_CASE(checker_appcast_not_found)
   server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(checker_invalid_host)
+TEST(Checker, checker_invalid_host)
 {
   unfold::http::HttpServer server;
   server.add_file("/appcast.xml", "appcast.xml");
@@ -112,10 +111,10 @@ BOOST_AUTO_TEST_CASE(checker_invalid_host)
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_appcast("https://300.0.0.1.2:1337/appcastxxx.xml");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   rc = checker.set_current_version("1.12.0");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -124,13 +123,13 @@ BOOST_AUTO_TEST_CASE(checker_invalid_host)
       try
         {
           auto check_result = co_await checker.check_for_update();
-          BOOST_CHECK_EQUAL(check_result.has_error(), true);
-          BOOST_CHECK_EQUAL(check_result.error(), unfold::UnfoldErrc::AppcastDownloadFailed);
+          EXPECT_EQ(check_result.has_error(), true);
+          EXPECT_EQ(check_result.error(), unfold::UnfoldErrc::AppcastDownloadFailed);
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
@@ -139,7 +138,7 @@ BOOST_AUTO_TEST_CASE(checker_invalid_host)
   server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(checker_invalid_version)
+TEST(Checker, checker_invalid_version)
 {
   auto http = std::make_shared<unfold::http::HttpClient>();
   auto &options = http->options();
@@ -150,10 +149,10 @@ BOOST_AUTO_TEST_CASE(checker_invalid_version)
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_current_version("1.12.0.1.2");
-  BOOST_CHECK_EQUAL(rc.has_error(), true);
+  EXPECT_EQ(rc.has_error(), true);
 }
 
-BOOST_AUTO_TEST_CASE(checker_invalid_appcast)
+TEST(Checker, checker_invalid_appcast)
 {
   unfold::http::HttpServer server;
   server.add_file("/appcast.xml", "invalidappcast.xml");
@@ -168,10 +167,10 @@ BOOST_AUTO_TEST_CASE(checker_invalid_appcast)
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   rc = checker.set_current_version("1.10.48");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -180,13 +179,13 @@ BOOST_AUTO_TEST_CASE(checker_invalid_appcast)
       try
         {
           auto check_result = co_await checker.check_for_update();
-          BOOST_CHECK_EQUAL(check_result.has_error(), true);
-          BOOST_CHECK_EQUAL(check_result.error(), unfold::UnfoldErrc::InvalidAppcast);
+          EXPECT_EQ(check_result.has_error(), true);
+          EXPECT_EQ(check_result.error(), unfold::UnfoldErrc::InvalidAppcast);
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
@@ -195,7 +194,7 @@ BOOST_AUTO_TEST_CASE(checker_invalid_appcast)
   server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(checker_empty_appcast)
+TEST(Checker, checker_empty_appcast)
 {
   unfold::http::HttpServer server;
   server.add("/appcast.xml", "");
@@ -210,10 +209,10 @@ BOOST_AUTO_TEST_CASE(checker_empty_appcast)
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   rc = checker.set_current_version("1.10.48");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -222,13 +221,13 @@ BOOST_AUTO_TEST_CASE(checker_empty_appcast)
       try
         {
           auto check_result = co_await checker.check_for_update();
-          BOOST_CHECK_EQUAL(check_result.has_error(), true);
-          BOOST_CHECK_EQUAL(check_result.error(), unfold::UnfoldErrc::InvalidAppcast);
+          EXPECT_EQ(check_result.has_error(), true);
+          EXPECT_EQ(check_result.error(), unfold::UnfoldErrc::InvalidAppcast);
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
@@ -237,7 +236,7 @@ BOOST_AUTO_TEST_CASE(checker_empty_appcast)
   server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(checker_invalid_items_in_appcast)
+TEST(Checker, checker_invalid_items_in_appcast)
 {
   std::string appcast_str =
     "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
@@ -306,10 +305,10 @@ BOOST_AUTO_TEST_CASE(checker_invalid_items_in_appcast)
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   rc = checker.set_current_version("1.0.0");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -318,22 +317,22 @@ BOOST_AUTO_TEST_CASE(checker_invalid_items_in_appcast)
       try
         {
           auto check_result = co_await checker.check_for_update();
-          BOOST_CHECK_EQUAL(check_result.has_error(), false);
-          BOOST_CHECK_EQUAL(check_result.value(), true);
+          EXPECT_EQ(check_result.has_error(), false);
+          EXPECT_EQ(check_result.value(), true);
 
           auto appcast = checker.get_selected_update();
-          BOOST_CHECK_EQUAL(appcast->version, "4.0.0");
+          EXPECT_EQ(appcast->version, "4.0.0");
           auto info = checker.get_update_info();
-          BOOST_CHECK_EQUAL(info->title, "Workrave Test Appcast");
-          BOOST_CHECK_EQUAL(info->current_version, "1.0.0");
-          BOOST_CHECK_EQUAL(info->version, "4.0.0");
-          BOOST_CHECK_EQUAL(info->release_notes.size(), 1);
-          BOOST_CHECK_EQUAL(info->release_notes.front().version, "4.0.0");
+          EXPECT_EQ(info->title, "Workrave Test Appcast");
+          EXPECT_EQ(info->current_version, "1.0.0");
+          EXPECT_EQ(info->version, "4.0.0");
+          EXPECT_EQ(info->release_notes.size(), 1);
+          EXPECT_EQ(info->release_notes.front().version, "4.0.0");
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
@@ -342,7 +341,7 @@ BOOST_AUTO_TEST_CASE(checker_invalid_items_in_appcast)
   server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(checker_no_upgrade)
+TEST(Checker, checker_no_upgrade)
 {
   unfold::http::HttpServer server;
   server.add_file("/appcast.xml", "appcast.xml");
@@ -357,10 +356,10 @@ BOOST_AUTO_TEST_CASE(checker_no_upgrade)
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   rc = checker.set_current_version("1.12.0");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -369,18 +368,18 @@ BOOST_AUTO_TEST_CASE(checker_no_upgrade)
       try
         {
           auto check_result = co_await checker.check_for_update();
-          BOOST_CHECK_EQUAL(check_result.has_error(), false);
-          BOOST_CHECK_EQUAL(check_result.value(), false);
+          EXPECT_EQ(check_result.has_error(), false);
+          EXPECT_EQ(check_result.value(), false);
 
           auto appcast = checker.get_selected_update();
-          BOOST_CHECK_EQUAL(appcast.get(), nullptr);
+          EXPECT_EQ(appcast.get(), nullptr);
           auto info = checker.get_update_info();
-          BOOST_CHECK_EQUAL(info.get(), nullptr);
+          EXPECT_EQ(info.get(), nullptr);
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
@@ -389,7 +388,7 @@ BOOST_AUTO_TEST_CASE(checker_no_upgrade)
   server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(checker_has_upgrade)
+TEST(Checker, checker_has_upgrade)
 {
   unfold::http::HttpServer server;
   server.add_file("/appcast.xml", "appcast.xml");
@@ -404,10 +403,10 @@ BOOST_AUTO_TEST_CASE(checker_has_upgrade)
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   rc = checker.set_current_version("1.10.48");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -416,27 +415,27 @@ BOOST_AUTO_TEST_CASE(checker_has_upgrade)
       try
         {
           auto check_result = co_await checker.check_for_update();
-          BOOST_CHECK_EQUAL(check_result.has_error(), false);
-          BOOST_CHECK_EQUAL(check_result.value(), true);
+          EXPECT_EQ(check_result.has_error(), false);
+          EXPECT_EQ(check_result.value(), true);
 
           auto appcast = checker.get_selected_update();
-          BOOST_CHECK_EQUAL(appcast->version, "1.11.0-alpha.1");
-          BOOST_CHECK_EQUAL(appcast->publication_date, "Sun, 27 Feb 2022 11:02:33 +0100");
-          BOOST_CHECK_EQUAL(appcast->title, "Workrave 1.11.0-alpha.1");
+          EXPECT_EQ(appcast->version, "1.11.0-alpha.1");
+          EXPECT_EQ(appcast->publication_date, "Sun, 27 Feb 2022 11:02:33 +0100");
+          EXPECT_EQ(appcast->title, "Workrave 1.11.0-alpha.1");
           auto info = checker.get_update_info();
-          BOOST_CHECK_EQUAL(info->title, "Workrave");
-          BOOST_CHECK_EQUAL(info->current_version, "1.10.48");
-          BOOST_CHECK_EQUAL(info->version, "1.11.0-alpha.1");
-          BOOST_CHECK_EQUAL(info->release_notes.size(), 2);
-          BOOST_CHECK_EQUAL(info->release_notes.front().version, "1.11.0-alpha.1");
-          BOOST_CHECK_EQUAL(info->release_notes.front().date, "Sun, 27 Feb 2022 11:02:33 +0100");
-          BOOST_CHECK_EQUAL(info->release_notes.back().version, "1.10.49");
-          BOOST_CHECK_EQUAL(info->release_notes.back().date, "Wed, 05 Jan 2022 03:05:19 +0100");
+          EXPECT_EQ(info->title, "Workrave");
+          EXPECT_EQ(info->current_version, "1.10.48");
+          EXPECT_EQ(info->version, "1.11.0-alpha.1");
+          EXPECT_EQ(info->release_notes.size(), 2);
+          EXPECT_EQ(info->release_notes.front().version, "1.11.0-alpha.1");
+          EXPECT_EQ(info->release_notes.front().date, "Sun, 27 Feb 2022 11:02:33 +0100");
+          EXPECT_EQ(info->release_notes.back().version, "1.10.49");
+          EXPECT_EQ(info->release_notes.back().date, "Wed, 05 Jan 2022 03:05:19 +0100");
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
@@ -445,7 +444,7 @@ BOOST_AUTO_TEST_CASE(checker_has_upgrade)
   server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(checker_delay)
+TEST(Checker, checker_delay)
 {
   unfold::http::HttpServer server;
   server.add_file("/appcast.xml", "appcast-canary.xml");
@@ -460,10 +459,10 @@ BOOST_AUTO_TEST_CASE(checker_delay)
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   rc = checker.set_current_version("1.0.0");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -472,11 +471,11 @@ BOOST_AUTO_TEST_CASE(checker_delay)
       try
         {
           auto delay = checker.get_rollout_delay_for_priority(0);
-          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(0));
+          EXPECT_EQ(delay, std::chrono::seconds(0));
 
           auto check_result = co_await checker.check_for_update();
-          BOOST_CHECK_EQUAL(check_result.has_error(), false);
-          BOOST_CHECK_EQUAL(check_result.value(), true);
+          EXPECT_EQ(check_result.has_error(), false);
+          EXPECT_EQ(check_result.value(), true);
 
           // <unfold:canary>
           //     <interval>
@@ -499,42 +498,42 @@ BOOST_AUTO_TEST_CASE(checker_delay)
           // </unfold:canary>
 
           delay = checker.get_rollout_delay_for_priority(0);
-          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(0));
+          EXPECT_EQ(delay, std::chrono::seconds(0));
           delay = checker.get_rollout_delay_for_priority(1);
-          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(0));
+          EXPECT_EQ(delay, std::chrono::seconds(0));
           delay = checker.get_rollout_delay_for_priority(9);
-          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(0));
+          EXPECT_EQ(delay, std::chrono::seconds(0));
           delay = checker.get_rollout_delay_for_priority(10);
-          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(0));
+          EXPECT_EQ(delay, std::chrono::seconds(0));
           delay = checker.get_rollout_delay_for_priority(11);
-          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(2 * 24 * 60 * 60));
+          EXPECT_EQ(delay, std::chrono::seconds(2 * 24 * 60 * 60));
           delay = checker.get_rollout_delay_for_priority(12);
-          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(2 * 24 * 60 * 60));
+          EXPECT_EQ(delay, std::chrono::seconds(2 * 24 * 60 * 60));
           delay = checker.get_rollout_delay_for_priority(24);
-          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(2 * 24 * 60 * 60));
+          EXPECT_EQ(delay, std::chrono::seconds(2 * 24 * 60 * 60));
           delay = checker.get_rollout_delay_for_priority(25);
-          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(2 * 24 * 60 * 60));
+          EXPECT_EQ(delay, std::chrono::seconds(2 * 24 * 60 * 60));
           delay = checker.get_rollout_delay_for_priority(26);
-          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(5 * 24 * 60 * 60));
+          EXPECT_EQ(delay, std::chrono::seconds(5 * 24 * 60 * 60));
           delay = checker.get_rollout_delay_for_priority(27);
-          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(5 * 24 * 60 * 60));
+          EXPECT_EQ(delay, std::chrono::seconds(5 * 24 * 60 * 60));
           delay = checker.get_rollout_delay_for_priority(54);
-          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(5 * 24 * 60 * 60));
+          EXPECT_EQ(delay, std::chrono::seconds(5 * 24 * 60 * 60));
           delay = checker.get_rollout_delay_for_priority(55);
-          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(5 * 24 * 60 * 60));
+          EXPECT_EQ(delay, std::chrono::seconds(5 * 24 * 60 * 60));
           delay = checker.get_rollout_delay_for_priority(56);
-          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(10 * 24 * 60 * 60));
+          EXPECT_EQ(delay, std::chrono::seconds(10 * 24 * 60 * 60));
           delay = checker.get_rollout_delay_for_priority(57);
-          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(10 * 24 * 60 * 60));
+          EXPECT_EQ(delay, std::chrono::seconds(10 * 24 * 60 * 60));
           delay = checker.get_rollout_delay_for_priority(99);
-          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(10 * 24 * 60 * 60));
+          EXPECT_EQ(delay, std::chrono::seconds(10 * 24 * 60 * 60));
           delay = checker.get_rollout_delay_for_priority(100);
-          BOOST_CHECK_EQUAL(delay, std::chrono::seconds(10 * 24 * 60 * 60));
+          EXPECT_EQ(delay, std::chrono::seconds(10 * 24 * 60 * 60));
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
@@ -543,7 +542,7 @@ BOOST_AUTO_TEST_CASE(checker_delay)
   server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(checker_earliest_rollout)
+TEST(Checker, checker_earliest_rollout)
 {
   unfold::http::HttpServer server;
   server.add_file("/appcast.xml", "appcast-canary.xml");
@@ -558,10 +557,10 @@ BOOST_AUTO_TEST_CASE(checker_earliest_rollout)
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   rc = checker.set_current_version("1.0.0");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -572,49 +571,49 @@ BOOST_AUTO_TEST_CASE(checker_earliest_rollout)
           auto pub_date = unfold::utils::DateUtils::parse_time_point("Sun, 17 Apr 2022 19:30:14 +0200");
 
           auto rollout_time = checker.get_earliest_rollout_time_for_priority(0);
-          BOOST_CHECK_EQUAL(rollout_time, std::chrono::system_clock::from_time_t(0));
+          EXPECT_EQ(rollout_time, std::chrono::system_clock::from_time_t(0));
 
           auto check_result = co_await checker.check_for_update();
-          BOOST_CHECK_EQUAL(check_result.has_error(), false);
-          BOOST_CHECK_EQUAL(check_result.value(), true);
+          EXPECT_EQ(check_result.has_error(), false);
+          EXPECT_EQ(check_result.value(), true);
 
           rollout_time = checker.get_earliest_rollout_time_for_priority(0);
-          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(0));
+          EXPECT_EQ(rollout_time, pub_date + std::chrono::seconds(0));
           rollout_time = checker.get_earliest_rollout_time_for_priority(1);
-          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(0));
+          EXPECT_EQ(rollout_time, pub_date + std::chrono::seconds(0));
           rollout_time = checker.get_earliest_rollout_time_for_priority(9);
-          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(0));
+          EXPECT_EQ(rollout_time, pub_date + std::chrono::seconds(0));
           rollout_time = checker.get_earliest_rollout_time_for_priority(10);
-          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(0));
+          EXPECT_EQ(rollout_time, pub_date + std::chrono::seconds(0));
           rollout_time = checker.get_earliest_rollout_time_for_priority(11);
-          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(2 * 24 * 60 * 60));
+          EXPECT_EQ(rollout_time, pub_date + std::chrono::seconds(2 * 24 * 60 * 60));
           rollout_time = checker.get_earliest_rollout_time_for_priority(12);
-          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(2 * 24 * 60 * 60));
+          EXPECT_EQ(rollout_time, pub_date + std::chrono::seconds(2 * 24 * 60 * 60));
           rollout_time = checker.get_earliest_rollout_time_for_priority(24);
-          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(2 * 24 * 60 * 60));
+          EXPECT_EQ(rollout_time, pub_date + std::chrono::seconds(2 * 24 * 60 * 60));
           rollout_time = checker.get_earliest_rollout_time_for_priority(25);
-          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(2 * 24 * 60 * 60));
+          EXPECT_EQ(rollout_time, pub_date + std::chrono::seconds(2 * 24 * 60 * 60));
           rollout_time = checker.get_earliest_rollout_time_for_priority(26);
-          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(5 * 24 * 60 * 60));
+          EXPECT_EQ(rollout_time, pub_date + std::chrono::seconds(5 * 24 * 60 * 60));
           rollout_time = checker.get_earliest_rollout_time_for_priority(27);
-          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(5 * 24 * 60 * 60));
+          EXPECT_EQ(rollout_time, pub_date + std::chrono::seconds(5 * 24 * 60 * 60));
           rollout_time = checker.get_earliest_rollout_time_for_priority(54);
-          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(5 * 24 * 60 * 60));
+          EXPECT_EQ(rollout_time, pub_date + std::chrono::seconds(5 * 24 * 60 * 60));
           rollout_time = checker.get_earliest_rollout_time_for_priority(55);
-          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(5 * 24 * 60 * 60));
+          EXPECT_EQ(rollout_time, pub_date + std::chrono::seconds(5 * 24 * 60 * 60));
           rollout_time = checker.get_earliest_rollout_time_for_priority(56);
-          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(10 * 24 * 60 * 60));
+          EXPECT_EQ(rollout_time, pub_date + std::chrono::seconds(10 * 24 * 60 * 60));
           rollout_time = checker.get_earliest_rollout_time_for_priority(57);
-          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(10 * 24 * 60 * 60));
+          EXPECT_EQ(rollout_time, pub_date + std::chrono::seconds(10 * 24 * 60 * 60));
           rollout_time = checker.get_earliest_rollout_time_for_priority(99);
-          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(10 * 24 * 60 * 60));
+          EXPECT_EQ(rollout_time, pub_date + std::chrono::seconds(10 * 24 * 60 * 60));
           rollout_time = checker.get_earliest_rollout_time_for_priority(100);
-          BOOST_CHECK_EQUAL(rollout_time, pub_date + std::chrono::seconds(10 * 24 * 60 * 60));
+          EXPECT_EQ(rollout_time, pub_date + std::chrono::seconds(10 * 24 * 60 * 60));
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
@@ -623,7 +622,7 @@ BOOST_AUTO_TEST_CASE(checker_earliest_rollout)
   server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(checker_channels_allowed_none)
+TEST(Checker, checker_channels_allowed_none)
 {
   unfold::http::HttpServer server;
   server.add_file("/appcast.xml", "appcast-channels.xml");
@@ -638,10 +637,10 @@ BOOST_AUTO_TEST_CASE(checker_channels_allowed_none)
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   rc = checker.set_current_version("1.10.48");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -650,27 +649,27 @@ BOOST_AUTO_TEST_CASE(checker_channels_allowed_none)
       try
         {
           auto check_result = co_await checker.check_for_update();
-          BOOST_CHECK_EQUAL(check_result.has_error(), false);
-          BOOST_CHECK_EQUAL(check_result.value(), true);
+          EXPECT_EQ(check_result.has_error(), false);
+          EXPECT_EQ(check_result.value(), true);
 
           auto appcast = checker.get_selected_update();
-          BOOST_CHECK_EQUAL(appcast->version, "1.11.0-alpha.3");
-          BOOST_CHECK_EQUAL(appcast->publication_date, "Thu, 30 Jun 2022 04:53:59 +0200");
-          BOOST_CHECK_EQUAL(appcast->title, "Workrave 1.11.0-alpha.3");
+          EXPECT_EQ(appcast->version, "1.11.0-alpha.3");
+          EXPECT_EQ(appcast->publication_date, "Thu, 30 Jun 2022 04:53:59 +0200");
+          EXPECT_EQ(appcast->title, "Workrave 1.11.0-alpha.3");
           auto info = checker.get_update_info();
-          BOOST_CHECK_EQUAL(info->title, "Workrave");
-          BOOST_CHECK_EQUAL(info->current_version, "1.10.48");
-          BOOST_CHECK_EQUAL(info->version, "1.11.0-alpha.3");
-          BOOST_CHECK_EQUAL(info->release_notes.size(), 4);
-          BOOST_CHECK_EQUAL(info->release_notes.front().version, "1.11.0-alpha.3");
-          BOOST_CHECK_EQUAL(info->release_notes.front().date, "Thu, 30 Jun 2022 04:53:59 +0200");
-          BOOST_CHECK_EQUAL(info->release_notes.back().version, "1.10.49");
-          BOOST_CHECK_EQUAL(info->release_notes.back().date, "Wed, 05 Jan 2022 03:05:19 +0100");
+          EXPECT_EQ(info->title, "Workrave");
+          EXPECT_EQ(info->current_version, "1.10.48");
+          EXPECT_EQ(info->version, "1.11.0-alpha.3");
+          EXPECT_EQ(info->release_notes.size(), 4);
+          EXPECT_EQ(info->release_notes.front().version, "1.11.0-alpha.3");
+          EXPECT_EQ(info->release_notes.front().date, "Thu, 30 Jun 2022 04:53:59 +0200");
+          EXPECT_EQ(info->release_notes.back().version, "1.10.49");
+          EXPECT_EQ(info->release_notes.back().date, "Wed, 05 Jan 2022 03:05:19 +0100");
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
@@ -679,7 +678,7 @@ BOOST_AUTO_TEST_CASE(checker_channels_allowed_none)
   server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(checker_channels_allowed_alpha)
+TEST(Checker, checker_channels_allowed_alpha)
 {
   unfold::http::HttpServer server;
   server.add_file("/appcast.xml", "appcast-channels.xml");
@@ -694,13 +693,13 @@ BOOST_AUTO_TEST_CASE(checker_channels_allowed_alpha)
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   rc = checker.set_current_version("1.10.48");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   rc = checker.set_allowed_channels({"release", "alpha"});
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -709,27 +708,27 @@ BOOST_AUTO_TEST_CASE(checker_channels_allowed_alpha)
       try
         {
           auto check_result = co_await checker.check_for_update();
-          BOOST_CHECK_EQUAL(check_result.has_error(), false);
-          BOOST_CHECK_EQUAL(check_result.value(), true);
+          EXPECT_EQ(check_result.has_error(), false);
+          EXPECT_EQ(check_result.value(), true);
 
           auto appcast = checker.get_selected_update();
-          BOOST_CHECK_EQUAL(appcast->version, "1.11.0-alpha.3");
-          BOOST_CHECK_EQUAL(appcast->publication_date, "Thu, 30 Jun 2022 04:53:59 +0200");
-          BOOST_CHECK_EQUAL(appcast->title, "Workrave 1.11.0-alpha.3");
+          EXPECT_EQ(appcast->version, "1.11.0-alpha.3");
+          EXPECT_EQ(appcast->publication_date, "Thu, 30 Jun 2022 04:53:59 +0200");
+          EXPECT_EQ(appcast->title, "Workrave 1.11.0-alpha.3");
           auto info = checker.get_update_info();
-          BOOST_CHECK_EQUAL(info->title, "Workrave");
-          BOOST_CHECK_EQUAL(info->current_version, "1.10.48");
-          BOOST_CHECK_EQUAL(info->version, "1.11.0-alpha.3");
-          BOOST_CHECK_EQUAL(info->release_notes.size(), 4);
-          BOOST_CHECK_EQUAL(info->release_notes.front().version, "1.11.0-alpha.3");
-          BOOST_CHECK_EQUAL(info->release_notes.front().date, "Thu, 30 Jun 2022 04:53:59 +0200");
-          BOOST_CHECK_EQUAL(info->release_notes.back().version, "1.10.49");
-          BOOST_CHECK_EQUAL(info->release_notes.back().date, "Wed, 05 Jan 2022 03:05:19 +0100");
+          EXPECT_EQ(info->title, "Workrave");
+          EXPECT_EQ(info->current_version, "1.10.48");
+          EXPECT_EQ(info->version, "1.11.0-alpha.3");
+          EXPECT_EQ(info->release_notes.size(), 4);
+          EXPECT_EQ(info->release_notes.front().version, "1.11.0-alpha.3");
+          EXPECT_EQ(info->release_notes.front().date, "Thu, 30 Jun 2022 04:53:59 +0200");
+          EXPECT_EQ(info->release_notes.back().version, "1.10.49");
+          EXPECT_EQ(info->release_notes.back().date, "Wed, 05 Jan 2022 03:05:19 +0100");
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
@@ -738,7 +737,7 @@ BOOST_AUTO_TEST_CASE(checker_channels_allowed_alpha)
   server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(checker_channels_allowed_release)
+TEST(Checker, checker_channels_allowed_release)
 {
   unfold::http::HttpServer server;
   server.add_file("/appcast.xml", "appcast-channels.xml");
@@ -753,13 +752,13 @@ BOOST_AUTO_TEST_CASE(checker_channels_allowed_release)
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   rc = checker.set_current_version("1.10.47");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   rc = checker.set_allowed_channels({"release"});
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -768,27 +767,27 @@ BOOST_AUTO_TEST_CASE(checker_channels_allowed_release)
       try
         {
           auto check_result = co_await checker.check_for_update();
-          BOOST_CHECK_EQUAL(check_result.has_error(), false);
-          BOOST_CHECK_EQUAL(check_result.value(), true);
+          EXPECT_EQ(check_result.has_error(), false);
+          EXPECT_EQ(check_result.value(), true);
 
           auto appcast = checker.get_selected_update();
-          BOOST_CHECK_EQUAL(appcast->version, "1.10.49");
-          BOOST_CHECK_EQUAL(appcast->publication_date, "Wed, 05 Jan 2022 03:05:19 +0100");
-          BOOST_CHECK_EQUAL(appcast->title, "Workrave 1.10.49");
+          EXPECT_EQ(appcast->version, "1.10.49");
+          EXPECT_EQ(appcast->publication_date, "Wed, 05 Jan 2022 03:05:19 +0100");
+          EXPECT_EQ(appcast->title, "Workrave 1.10.49");
           auto info = checker.get_update_info();
-          BOOST_CHECK_EQUAL(info->title, "Workrave");
-          BOOST_CHECK_EQUAL(info->current_version, "1.10.47");
-          BOOST_CHECK_EQUAL(info->version, "1.10.49");
-          BOOST_CHECK_EQUAL(info->release_notes.size(), 2);
-          BOOST_CHECK_EQUAL(info->release_notes.front().version, "1.10.49");
-          BOOST_CHECK_EQUAL(info->release_notes.front().date, "Wed, 05 Jan 2022 03:05:19 +0100");
-          BOOST_CHECK_EQUAL(info->release_notes.back().version, "1.10.48");
-          BOOST_CHECK_EQUAL(info->release_notes.back().date, "Tue, 03 Aug 2021 05:26:00 +0200");
+          EXPECT_EQ(info->title, "Workrave");
+          EXPECT_EQ(info->current_version, "1.10.47");
+          EXPECT_EQ(info->version, "1.10.49");
+          EXPECT_EQ(info->release_notes.size(), 2);
+          EXPECT_EQ(info->release_notes.front().version, "1.10.49");
+          EXPECT_EQ(info->release_notes.front().date, "Wed, 05 Jan 2022 03:05:19 +0100");
+          EXPECT_EQ(info->release_notes.back().version, "1.10.48");
+          EXPECT_EQ(info->release_notes.back().date, "Tue, 03 Aug 2021 05:26:00 +0200");
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
@@ -797,7 +796,7 @@ BOOST_AUTO_TEST_CASE(checker_channels_allowed_release)
   server.stop();
 }
 
-BOOST_AUTO_TEST_CASE(checker_channels_allowed_empty)
+TEST(Checker, checker_channels_allowed_empty)
 {
   unfold::http::HttpServer server;
   server.add_file("/appcast.xml", "appcast-channels.xml");
@@ -812,13 +811,13 @@ BOOST_AUTO_TEST_CASE(checker_channels_allowed_empty)
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   rc = checker.set_current_version("1.10.48");
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   rc = checker.set_allowed_channels({});
-  BOOST_CHECK_EQUAL(rc.has_error(), false);
+  EXPECT_EQ(rc.has_error(), false);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -827,27 +826,27 @@ BOOST_AUTO_TEST_CASE(checker_channels_allowed_empty)
       try
         {
           auto check_result = co_await checker.check_for_update();
-          BOOST_CHECK_EQUAL(check_result.has_error(), false);
-          BOOST_CHECK_EQUAL(check_result.value(), true);
+          EXPECT_EQ(check_result.has_error(), false);
+          EXPECT_EQ(check_result.value(), true);
 
           auto appcast = checker.get_selected_update();
-          BOOST_CHECK_EQUAL(appcast->version, "1.11.0-alpha.3");
-          BOOST_CHECK_EQUAL(appcast->publication_date, "Thu, 30 Jun 2022 04:53:59 +0200");
-          BOOST_CHECK_EQUAL(appcast->title, "Workrave 1.11.0-alpha.3");
+          EXPECT_EQ(appcast->version, "1.11.0-alpha.3");
+          EXPECT_EQ(appcast->publication_date, "Thu, 30 Jun 2022 04:53:59 +0200");
+          EXPECT_EQ(appcast->title, "Workrave 1.11.0-alpha.3");
           auto info = checker.get_update_info();
-          BOOST_CHECK_EQUAL(info->title, "Workrave");
-          BOOST_CHECK_EQUAL(info->current_version, "1.10.48");
-          BOOST_CHECK_EQUAL(info->version, "1.11.0-alpha.3");
-          BOOST_CHECK_EQUAL(info->release_notes.size(), 4);
-          BOOST_CHECK_EQUAL(info->release_notes.front().version, "1.11.0-alpha.3");
-          BOOST_CHECK_EQUAL(info->release_notes.front().date, "Thu, 30 Jun 2022 04:53:59 +0200");
-          BOOST_CHECK_EQUAL(info->release_notes.back().version, "1.10.49");
-          BOOST_CHECK_EQUAL(info->release_notes.back().date, "Wed, 05 Jan 2022 03:05:19 +0100");
+          EXPECT_EQ(info->title, "Workrave");
+          EXPECT_EQ(info->current_version, "1.10.48");
+          EXPECT_EQ(info->version, "1.11.0-alpha.3");
+          EXPECT_EQ(info->release_notes.size(), 4);
+          EXPECT_EQ(info->release_notes.front().version, "1.11.0-alpha.3");
+          EXPECT_EQ(info->release_notes.front().date, "Thu, 30 Jun 2022 04:53:59 +0200");
+          EXPECT_EQ(info->release_notes.back().version, "1.10.49");
+          EXPECT_EQ(info->release_notes.back().date, "Wed, 05 Jan 2022 03:05:19 +0100");
         }
       catch (std::exception &e)
         {
           spdlog::info("Exception {}", e.what());
-          BOOST_CHECK(false);
+          EXPECT_TRUE(false);
         }
     },
     boost::asio::detached);
@@ -855,5 +854,3 @@ BOOST_AUTO_TEST_CASE(checker_channels_allowed_empty)
 
   server.stop();
 }
-
-BOOST_AUTO_TEST_SUITE_END()

@@ -26,8 +26,6 @@
 
 #include <gtkmm.h>
 
-#include "nls.h"
-
 #if defined(_WIN32)
 #  include "cmark.h"
 #  include "Edge.hh"
@@ -47,7 +45,7 @@ static constexpr const char *doc =
 #endif
 
 UpdateDialog::UpdateDialog(std::shared_ptr<unfold::UpdateInfo> info)
-  : Gtk::Dialog(_("Software Update"), true)
+  : Gtk::Dialog("Software Update", true)
 {
   set_default_size(800, 600);
   set_border_width(6);
@@ -83,7 +81,7 @@ UpdateDialog::UpdateDialog(std::shared_ptr<unfold::UpdateInfo> info)
   std::string end = "</span>";
 
   auto *title_label = Gtk::manage(
-    new Gtk::Label(bold + fmt::format(_("A new version of {} is available"), info->title) + end, Gtk::ALIGN_START));
+    new Gtk::Label(bold + fmt::format("A new version of {} is available", info->title) + end, Gtk::ALIGN_START));
   title_label->set_use_markup();
   vbox->pack_start(*title_label, false, false, 0);
 
@@ -91,7 +89,7 @@ UpdateDialog::UpdateDialog(std::shared_ptr<unfold::UpdateInfo> info)
   vbox->pack_start(*info_hbox, false, false, 0);
 
   auto *info_label = Gtk::manage(
-    new Gtk::Label(fmt::format(_("{} {} is now available -- you have {}. Would you like to download it now?"),
+    new Gtk::Label(fmt::format("{} {} is now available -- you have {}. Would you like to download it now?",
                                info->title,
                                info->version,
                                info->current_version),
@@ -100,7 +98,7 @@ UpdateDialog::UpdateDialog(std::shared_ptr<unfold::UpdateInfo> info)
   info_label->set_xalign(0);
   info_hbox->pack_start(*info_label, false, false, 0);
 
-  auto *notes_label = Gtk::manage(new Gtk::Label(bold + _("Release notes") + end, Gtk::ALIGN_START));
+  auto *notes_label = Gtk::manage(new Gtk::Label(bold + "Release notes" + end, Gtk::ALIGN_START));
   notes_label->set_use_markup();
   vbox->pack_start(*notes_label, false, false, 0);
 
@@ -147,7 +145,7 @@ UpdateDialog::UpdateDialog(std::shared_ptr<unfold::UpdateInfo> info)
 
       for (auto note: info->release_notes)
         {
-          auto line = fmt::format(_("Version {}\n"), note.version);
+          auto line = fmt::format("Version {}\n", note.version);
 
           iter = text_buffer->insert(iter, line);
           iter = text_buffer->insert(iter, note.markdown + "\n\n");

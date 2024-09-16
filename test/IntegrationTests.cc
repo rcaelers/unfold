@@ -193,7 +193,7 @@ struct IntegrationTest : public ::testing::Test
   std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("test")};
 };
 
-TEST_F(IntegrationTest, upgrade_control_invalid_key)
+TEST_F(IntegrationTest, InvalidKey)
 {
   unfold::coro::IOContext io_context;
   UpgradeControl control(platform, io_context);
@@ -204,7 +204,7 @@ TEST_F(IntegrationTest, upgrade_control_invalid_key)
 }
 
 // TODO: detect invalid cert
-// TEST_F(IntegrationTest, upgrade_control_invalid_cert)
+// TEST_F(IntegrationTest, InvalidCert)
 // {
 //   unfold::coro::IOContext io_context;
 //   UpgradeControl control(platform, io_context);
@@ -214,7 +214,7 @@ TEST_F(IntegrationTest, upgrade_control_invalid_key)
 //   EXPECT_EQ(rc.error(), unfold::UnfoldErrc::InvalidArgument);
 // }
 
-TEST_F(IntegrationTest, upgrade_control_check_alpha)
+TEST_F(IntegrationTest, CheckAlpha)
 {
   unfold::coro::IOContext io_context;
   UpgradeControl control(platform, io_context);
@@ -316,7 +316,7 @@ TEST_F(IntegrationTest, upgrade_control_check_alpha)
   EXPECT_EQ(*last_stage, unfold::UpdateStage::RunInstaller);
 }
 
-TEST_F(IntegrationTest, upgrade_control_check_release)
+TEST_F(IntegrationTest, CheckRelease)
 {
   unfold::coro::IOContext io_context;
   UpgradeControl control(platform, io_context);
@@ -418,7 +418,7 @@ TEST_F(IntegrationTest, upgrade_control_check_release)
   EXPECT_EQ(*last_stage, unfold::UpdateStage::RunInstaller);
 }
 
-TEST_F(IntegrationTest, upgrade_last_upgrade_time)
+TEST_F(IntegrationTest, UpgradeLastUpgradeTime)
 {
   init_appcast();
   unfold::coro::IOContext io_context;
@@ -466,7 +466,7 @@ TEST_F(IntegrationTest, upgrade_last_upgrade_time)
   ioc.run();
 }
 
-TEST_F(IntegrationTest, upgrade_control_periodic_check_later)
+TEST_F(IntegrationTest, PeriodicCheckLater)
 {
   init_appcast();
 
@@ -507,7 +507,7 @@ TEST_F(IntegrationTest, upgrade_control_periodic_check_later)
   EXPECT_EQ(status.has_value(), false);
 }
 
-TEST_F(IntegrationTest, upgrade_control_periodic_check_skip)
+TEST_F(IntegrationTest, PeriodicCheckSkip)
 {
   init_appcast();
 
@@ -550,7 +550,7 @@ TEST_F(IntegrationTest, upgrade_control_periodic_check_skip)
   EXPECT_EQ(status.has_value(), false);
 }
 
-TEST_F(IntegrationTest, upgrade_control_periodic_check_install_now)
+TEST_F(IntegrationTest, PeriodicCheckInstallNow)
 {
   init_appcast();
 

@@ -36,7 +36,7 @@ using ::testing::_;
 using ::testing::AtLeast;
 using ::testing::Return;
 
-TEST(SettingsTest, settings_get_last_update_check_time)
+TEST(SettingsTest,  GetLastUpdateCheckTime)
 {
   auto storage = std::make_shared<SettingsStorageMock>();
 
@@ -56,7 +56,7 @@ TEST(SettingsTest, settings_get_last_update_check_time)
   EXPECT_FALSE(rc.has_value());
 }
 
-TEST(SettingsTest, settings_set_last_update_check_time)
+TEST(SettingsTest,  SetLastUpdateCheckTime)
 {
   auto storage = std::make_shared<SettingsStorageMock>();
 
@@ -75,7 +75,7 @@ TEST(SettingsTest, settings_set_last_update_check_time)
   settings.set_last_update_check_time(std::chrono::system_clock::time_point(std::chrono::seconds(857)));
 }
 
-TEST(SettingsTest, settings_get_periodic_update_check_interval)
+TEST(SettingsTest,  GetPeriodicUpdateCheckInterval)
 {
   auto storage = std::make_shared<SettingsStorageMock>();
 
@@ -94,7 +94,7 @@ TEST(SettingsTest, settings_get_periodic_update_check_interval)
   EXPECT_EQ(rc.count(), 0);
 }
 
-TEST(SettingsTest, settings_set_periodic_update_check_interval)
+TEST(SettingsTest,  SetPeriodicUpdateCheckInterval)
 {
   auto storage = std::make_shared<SettingsStorageMock>();
 
@@ -113,7 +113,7 @@ TEST(SettingsTest, settings_set_periodic_update_check_interval)
   settings.set_periodic_update_check_interval(std::chrono::seconds(8678));
 }
 
-TEST(SettingsTest, settings_get_periodic_update_check_enabled)
+TEST(SettingsTest,  GetPeriodicUpdateCheckEnabled)
 {
   auto storage = std::make_shared<SettingsStorageMock>();
 
@@ -135,7 +135,7 @@ TEST(SettingsTest, settings_get_periodic_update_check_enabled)
   EXPECT_EQ(rc, false);
 }
 
-TEST(SettingsTest, settings_set_periodic_update_check_enabled)
+TEST(SettingsTest,  SetPeriodicUpdateCheckEnabled)
 {
   auto storage = std::make_shared<SettingsStorageMock>();
 
@@ -155,7 +155,7 @@ TEST(SettingsTest, settings_set_periodic_update_check_enabled)
   settings.set_periodic_update_check_enabled(false);
 }
 
-TEST(SettingsTest, settings_get_skip_verion)
+TEST(SettingsTest,  GetSkipVerion)
 {
   auto storage = std::make_shared<SettingsStorageMock>();
 
@@ -174,7 +174,7 @@ TEST(SettingsTest, settings_get_skip_verion)
   EXPECT_EQ(rc, "");
 }
 
-TEST(SettingsTest, settings_set_skip_verion)
+TEST(SettingsTest,  SetSkipVerion)
 {
   auto storage = std::make_shared<SettingsStorageMock>();
 
@@ -191,7 +191,7 @@ TEST(SettingsTest, settings_set_skip_verion)
   settings.set_skip_version("2.30.75");
 }
 
-TEST(SettingsTest, settings_get_priority)
+TEST(SettingsTest,  GetPriority)
 {
   auto storage = std::make_shared<SettingsStorageMock>();
 
@@ -205,7 +205,7 @@ TEST(SettingsTest, settings_get_priority)
   EXPECT_EQ(rc, 10);
 }
 
-TEST(SettingsTest, settings_set_priority)
+TEST(SettingsTest,  SetPriority)
 {
   auto storage = std::make_shared<SettingsStorageMock>();
 
@@ -233,7 +233,7 @@ namespace
   }
 } // namespace
 
-TEST(SettingsTest, settings_value)
+TEST(SettingsTest,  Value)
 {
   SettingValue i64{478LL};
   EXPECT_EQ(to_string(i64), "478");

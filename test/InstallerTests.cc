@@ -62,7 +62,7 @@ namespace
     "-----END CERTIFICATE-----\n";
 } // namespace
 
-TEST(Installer, installer_missing_url)
+TEST(Installer, MissingUrl)
 {
   std::string appcast_str =
     "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
@@ -117,7 +117,7 @@ TEST(Installer, installer_missing_url)
   ioc.run();
 }
 
-TEST(Installer, installer_missing_length)
+TEST(Installer, MissingLength)
 {
   unfold::http::HttpServer server;
   server.add_file("/workrave-1.11.0-alpha.1.exe", "junk");
@@ -178,7 +178,7 @@ TEST(Installer, installer_missing_length)
   server.stop();
 }
 
-TEST(Installer, installer_incorrect_length)
+TEST(Installer, IncorrectLength)
 {
   unfold::http::HttpServer server;
   server.add_file("/workrave-1.11.0-alpha.1.exe", "junk");
@@ -239,7 +239,7 @@ TEST(Installer, installer_incorrect_length)
   server.stop();
 }
 
-TEST(Installer, installer_not_found)
+TEST(Installer, NotFound)
 {
   unfold::http::HttpServer server;
   server.run();
@@ -279,7 +279,7 @@ TEST(Installer, installer_not_found)
   server.stop();
 }
 
-TEST(Installer, installer_invalid_host)
+TEST(Installer, InvalidHost)
 {
   unfold::http::HttpServer server;
   server.run();
@@ -339,7 +339,7 @@ TEST(Installer, installer_invalid_host)
   server.stop();
 }
 
-TEST(Installer, installer_invalid_signature)
+TEST(Installer, InvalidSignature)
 {
   unfold::http::HttpServer server;
   server.add_file("/dummy.exe", "test-installer.exe");
@@ -390,7 +390,7 @@ TEST(Installer, installer_invalid_signature)
   server.stop();
 }
 
-TEST(Installer, installer_failed_to_install)
+TEST(Installer, FailedToInstall)
 {
   unfold::http::HttpServer server;
   server.add_file("/dummy.exe", "junk");
@@ -587,7 +587,7 @@ INSTANTIATE_TEST_SUITE_P(TerminateHookTypes,
                                            TerminateHookType::NoTerminate,
                                            TerminateHookType::Terminate));
 
-TEST(Installer, installer_started_installer_with_args)
+TEST(Installer, StartedInstallerWithArgs)
 {
   unfold::http::HttpServer server;
   server.add_file("/dummy.exe", "test-installer.exe");

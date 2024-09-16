@@ -54,11 +54,14 @@ std::shared_ptr<unfold::Unfold>
 unfold::Unfold::create(unfold::coro::IOContext &io_context)
 {
   auto platform = std::make_shared<WindowsPlatform>();
-  return std::make_shared<UpgradeControl>(platform, io_context);
+  auto time_source = std::make_shared<unfold::utils::RealTimeSource>();
+  return std::make_shared<UpgradeControl>(platform, time_source, io_context);
 }
 #endif
 
-UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform, unfold::coro::IOContext &io_context)
+UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform,
+                               std::shared_ptr<unfold::utils::TimeSource> time_source,
+                               unfold::coro::IOContext &io_context)
   : platform(platform)
   , http(std::make_shared<unfold::http::HttpClient>())
   , verifier(std::make_shared<unfold::crypto::SignatureVerifier>())
@@ -67,7 +70,7 @@ UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform, unfold::coro:
   , state(std::make_shared<Settings>(storage))
   , installer(std::make_shared<UpgradeInstaller>(platform, http, verifier, hooks))
   , checker(std::make_shared<UpgradeChecker>(platform, http, hooks))
-  , time_source(std::make_shared<unfold::utils::RealTimeSource>())
+  , time_source(std::move(time_source))
   , check_timer(io_context.get_io_context())
 {
   http->options().set_timeout(std::chrono::seconds(30));
@@ -376,7 +379,6 @@ void
 UpgradeControl::init_priority()
 {
   int priority = state->get_priority();
-  logger->info("current priority: {}", priority);
   if (priority == 0)
     {
       std::random_device rd;
@@ -402,6 +404,7 @@ UpgradeControl::is_ready_for_rollout()
 {
   auto priority = get_priority();
   auto earliest_time = checker->get_earliest_rollout_time_for_priority(priority);
+  logger->info("priority: {}, earliest rollout time: {}, time: {}", priority, earliest_time, time_source->now());
 
   return time_source->now() >= earliest_time;
 }

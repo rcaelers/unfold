@@ -38,6 +38,14 @@
 #include "TestBase.hh"
 #include "TestPlatform.hh"
 #include "UpgradeControl.hh"
+#include "TimeSourceMock.hh"
+#include "utils/DateUtils.hh"
+
+using ::testing::_;
+using ::testing::AtLeast;
+using ::testing::InvokeWithoutArgs;
+using ::testing::Return;
+using ::testing::StrictMock;
 
 namespace
 {
@@ -155,9 +163,13 @@ struct IntegrationTest : public ::testing::Test
   IntegrationTest()
   {
     platform = std::make_shared<TestPlatform>();
+    time_source = std::make_shared<TimeSourceMock>();
+
+    EXPECT_CALL(*time_source, now()).WillRepeatedly(Return(std::chrono::system_clock::now()));
+    ON_CALL(*time_source, now()).WillByDefault(Return(std::chrono::system_clock::now()));
   }
 
-  ~IntegrationTest()
+  ~IntegrationTest() override
   {
     server.stop();
   }
@@ -185,18 +197,20 @@ struct IntegrationTest : public ::testing::Test
     boost::replace_all(appcast, "$LENGTH", std::to_string(content.length()));
 
     server.add("/appcast.xml", appcast);
-    server.add("/installer.exe", content);
+    server.add("/dummy.exe", content);
     server.run();
   }
+
   unfold::http::HttpServer server;
   std::shared_ptr<TestPlatform> platform;
+  std::shared_ptr<TimeSourceMock> time_source;
   std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("test")};
 };
 
 TEST_F(IntegrationTest, InvalidKey)
 {
   unfold::coro::IOContext io_context;
-  UpgradeControl control(platform, io_context);
+  UpgradeControl control(platform, time_source, io_context);
 
   auto rc = control.set_signature_verification_key("xxxxMCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=xxx");
   EXPECT_EQ(rc.has_error(), true);
@@ -217,7 +231,7 @@ TEST_F(IntegrationTest, InvalidKey)
 TEST_F(IntegrationTest, CheckAlpha)
 {
   unfold::coro::IOContext io_context;
-  UpgradeControl control(platform, io_context);
+  UpgradeControl control(platform, time_source, io_context);
 
   init_appcast();
   control.set_configuration_prefix("Software\\Unfold\\Test");
@@ -319,7 +333,7 @@ TEST_F(IntegrationTest, CheckAlpha)
 TEST_F(IntegrationTest, CheckRelease)
 {
   unfold::coro::IOContext io_context;
-  UpgradeControl control(platform, io_context);
+  UpgradeControl control(platform, time_source, io_context);
 
   init_appcast();
   control.set_configuration_prefix("Software\\Unfold\\Test");
@@ -422,7 +436,7 @@ TEST_F(IntegrationTest, UpgradeLastUpgradeTime)
 {
   init_appcast();
   unfold::coro::IOContext io_context;
-  UpgradeControl control(platform, io_context);
+  UpgradeControl control(platform, time_source, io_context);
 
   control.set_configuration_prefix("Software\\Unfold\\Test");
 
@@ -471,7 +485,7 @@ TEST_F(IntegrationTest, PeriodicCheckLater)
   init_appcast();
 
   unfold::coro::IOContext io_context;
-  UpgradeControl control(platform, io_context);
+  UpgradeControl control(platform, time_source, io_context);
 
   auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
   EXPECT_EQ(rc.has_error(), false);
@@ -512,7 +526,7 @@ TEST_F(IntegrationTest, PeriodicCheckSkip)
   init_appcast();
 
   unfold::coro::IOContext io_context;
-  UpgradeControl control(platform, io_context);
+  UpgradeControl control(platform, time_source, io_context);
 
   auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
   EXPECT_EQ(rc.has_error(), false);
@@ -550,12 +564,164 @@ TEST_F(IntegrationTest, PeriodicCheckSkip)
   EXPECT_EQ(status.has_value(), false);
 }
 
+TEST_F(IntegrationTest, PeriodicCheckCanaryLowPrio)
+{
+  init_appcast();
+
+  unfold::coro::IOContext io_context;
+  UpgradeControl control(platform, time_source, io_context);
+
+  auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  EXPECT_EQ(rc.has_error(), false);
+
+  control.set_certificate(cert);
+
+  rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_current_version("1.10.45");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_allowed_channels({"alpha"});
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_priority(26);
+  EXPECT_EQ(rc.has_error(), false);
+
+  control.reset_skip_version();
+
+  bool available{false};
+  control.set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
+    spdlog::info("Update available");
+    available = true;
+    io_context.stop();
+    co_return unfold::UpdateResponse::Later;
+  });
+
+  std::optional<outcome::std_result<void>> status;
+  control.set_update_status_callback([&](outcome::std_result<void> rc) {
+    status = rc;
+    if (rc.has_error())
+      {
+        spdlog::info("Update status {}", rc.error().message());
+      }
+  });
+
+  auto pub_date = unfold::utils::DateUtils::parse_time_point("Sun, 27 Feb 2022 11:02:33 +0100");
+
+  for (auto days = 0; days < 10; days++)
+    {
+      RecordProperty("days", days);
+      EXPECT_CALL(*time_source, now())
+        .Times(3)
+        .WillRepeatedly(Return(pub_date + (days + 2) * std::chrono::days{1} - std::chrono::hours{1}));
+
+      boost::asio::io_context ioc;
+      boost::asio::co_spawn(
+        ioc,
+        [&]() -> boost::asio::awaitable<void> {
+          try
+            {
+              auto rc = co_await control.check_for_update_and_notify(false);
+              EXPECT_FALSE(rc.has_error());
+            }
+          catch (std::exception &e)
+            {
+              spdlog::info("Exception {}", e.what());
+              EXPECT_TRUE(false);
+            }
+        },
+        boost::asio::detached);
+      ioc.run();
+
+      EXPECT_EQ(available, days > 3);
+      EXPECT_EQ(status.has_value(), false);
+      EXPECT_EQ(status->has_error(), false);
+    }
+}
+
+TEST_F(IntegrationTest, PeriodicCheckCanaryHighPrio)
+{
+  init_appcast();
+
+  unfold::coro::IOContext io_context;
+  UpgradeControl control(platform, time_source, io_context);
+
+  auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  EXPECT_EQ(rc.has_error(), false);
+
+  control.set_certificate(cert);
+
+  rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_current_version("1.10.45");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_allowed_channels({"alpha"});
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_priority(1);
+  EXPECT_EQ(rc.has_error(), false);
+
+  control.reset_skip_version();
+
+  bool available{false};
+  control.set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
+    spdlog::info("Update available");
+    available = true;
+    io_context.stop();
+    co_return unfold::UpdateResponse::Later;
+  });
+
+  std::optional<outcome::std_result<void>> status;
+  control.set_update_status_callback([&](outcome::std_result<void> rc) {
+    status = rc;
+    if (rc.has_error())
+      {
+        spdlog::info("Update status {}", rc.error().message());
+      }
+  });
+
+  auto pub_date = unfold::utils::DateUtils::parse_time_point("Sun, 27 Feb 2022 11:02:33 +0100");
+
+  for (auto days = 0; days < 10; days++)
+    {
+      RecordProperty("days", days);
+      EXPECT_CALL(*time_source, now())
+        .Times(3)
+        .WillRepeatedly(Return(pub_date + (days - 1) * std::chrono::days{1} - std::chrono::hours{1}));
+
+      boost::asio::io_context ioc;
+      boost::asio::co_spawn(
+        ioc,
+        [&]() -> boost::asio::awaitable<void> {
+          try
+            {
+              auto rc = co_await control.check_for_update_and_notify(false);
+              EXPECT_FALSE(rc.has_error());
+            }
+          catch (std::exception &e)
+            {
+              spdlog::info("Exception {}", e.what());
+              EXPECT_TRUE(false);
+            }
+        },
+        boost::asio::detached);
+      ioc.run();
+
+      EXPECT_EQ(available, days > 1);
+      EXPECT_EQ(status.has_value(), false);
+      EXPECT_EQ(status->has_error(), false);
+    }
+}
+
 TEST_F(IntegrationTest, PeriodicCheckInstallNow)
 {
   init_appcast();
 
   unfold::coro::IOContext io_context;
-  UpgradeControl control(platform, io_context);
+  UpgradeControl control(platform, time_source, io_context);
 
   auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
   EXPECT_EQ(rc.has_error(), false);

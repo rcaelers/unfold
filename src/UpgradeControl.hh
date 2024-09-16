@@ -49,7 +49,9 @@
 class UpgradeControl : public unfold::Unfold
 {
 public:
-  UpgradeControl(std::shared_ptr<Platform> platform, unfold::coro::IOContext &io_context);
+  UpgradeControl(std::shared_ptr<Platform> platform,
+                 std::shared_ptr<unfold::utils::TimeSource> time_source,
+                 unfold::coro::IOContext &io_context);
 
   UpgradeControl(std::shared_ptr<Platform> platform,
                  std::shared_ptr<unfold::http::HttpClient> http,

@@ -40,6 +40,25 @@
       <sparkle:version>1.11.0-alpha.1</sparkle:version>
       <pubDate>Sun, 27 Feb 2022 11:02:33 +0100</pubDate>
       <enclosure os="windows-x64" url="https://127.0.0.1:1337/dummy.exe" sparkle:edSignature="$SIGNATURE" length="$LENGTH" type="application/octet-stream" />
+      <unfold:canary>
+        <interval>
+          <percentage>10</percentage>
+          <days>2</days>
+        </interval>
+        <interval>
+          <percentage>15</percentage>
+          <days>3</days>
+        </interval>
+        <interval>
+          <percentage>30</percentage>
+          <days>5</days>
+          <ignored>5</ignored>
+        </interval>
+        <ignored>
+          <percentage>30</percentage>
+          <days>5</days>
+        </ignored>
+      </unfold:canary>
     </item>
 
     <item>

@@ -342,7 +342,7 @@ TEST(Installer, installer_invalid_host)
 TEST(Installer, installer_invalid_signature)
 {
   unfold::http::HttpServer server;
-  server.add_file("/installer.exe", "test-installer.exe");
+  server.add_file("/dummy.exe", "test-installer.exe");
   server.run();
 
   std::error_code ec;
@@ -393,7 +393,7 @@ TEST(Installer, installer_invalid_signature)
 TEST(Installer, installer_failed_to_install)
 {
   unfold::http::HttpServer server;
-  server.add_file("/installer.exe", "junk");
+  server.add_file("/dummy.exe", "junk");
   server.run();
 
   std::error_code ec;
@@ -473,7 +473,7 @@ TEST_P(InstallerTest, InstallerStartedInstaller)
   TerminateHookType do_terminate = GetParam();
 
   unfold::http::HttpServer server;
-  server.add_file("/installer.exe", "test-installer.exe");
+  server.add_file("/dummy.exe", "test-installer.exe");
   server.run();
 
   std::error_code ec;
@@ -494,7 +494,7 @@ TEST_P(InstallerTest, InstallerStartedInstaller)
     "            <sparkle:version>1.0.0</sparkle:version>\n"
     "            <sparkle:releaseNotesLink>https://workrave.org/v1.html</sparkle:releaseNotesLink>\n"
     "            <pubDate>Sun Apr 17 19:30:14 CEST 2022</pubDate>\n"
-    "            <enclosure url=\"https://127.0.0.1:1337/installer.exe\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"" + std::to_string(size) + "\" type=\"application/octet-stream\" />\n"    "        </item>\n"
+    "            <enclosure url=\"https://127.0.0.1:1337/dummy.exe\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"" + std::to_string(size) + "\" type=\"application/octet-stream\" />\n"    "        </item>\n"
     "    </channel>\n"
     "</rss>\n";
 
@@ -590,7 +590,7 @@ INSTANTIATE_TEST_SUITE_P(TerminateHookTypes,
 TEST(Installer, installer_started_installer_with_args)
 {
   unfold::http::HttpServer server;
-  server.add_file("/installer.exe", "test-installer.exe");
+  server.add_file("/dummy.exe", "test-installer.exe");
   server.run();
 
   std::error_code ec;
@@ -611,7 +611,7 @@ TEST(Installer, installer_started_installer_with_args)
     "            <sparkle:version>1.0.0</sparkle:version>\n"
     "            <sparkle:releaseNotesLink>https://workrave.org/v1.html</sparkle:releaseNotesLink>\n"
     "            <pubDate>Sun Apr 17 19:30:14 CEST 2022</pubDate>\n"
-    "            <enclosure url=\"https://127.0.0.1:1337/installer.exe\" sparkle:installerArguments=\"/SILENT /SP- /NOICONS\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"" + std::to_string(size) + "\" type=\"application/octet-stream\" />\n"
+    "            <enclosure url=\"https://127.0.0.1:1337/dummy.exe\" sparkle:installerArguments=\"/SILENT /SP- /NOICONS\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"" + std::to_string(size) + "\" type=\"application/octet-stream\" />\n"
     "        </item>\n"
     "    </channel>\n"
     "</rss>\n";

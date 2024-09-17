@@ -26,7 +26,7 @@
 #include "windows/WindowsSettingsStorage.hh"
 #include "windows/WindowsPlatform.hh"
 
-TEST(Windows, WindowsSettingsString)
+TEST(WindowsTest, WindowsSettingsString)
 {
   WindowsSettingsStorage storage;
 
@@ -62,7 +62,7 @@ TEST(WindowsTest, SettingsInt64)
   EXPECT_EQ(SettingValueToType(s.value()), SettingType::Int64);
 }
 
-TEST(WindowsTest,SettingsInt32)
+TEST(WindowsTest, SettingsInt32)
 {
   WindowsSettingsStorage storage;
 
@@ -212,6 +212,18 @@ TEST(WindowsTest, PlatformIsSupported)
   EXPECT_EQ(rc32, true);
   EXPECT_EQ(rc64, false);
 #endif
+}
+
+TEST(WindowsTest, SettingsNoPrefix)
+{
+  WindowsSettingsStorage storage;
+
+  auto rc = storage.set_value("foo", 42LL);
+  EXPECT_TRUE(rc.has_error());
+  auto s = storage.get_value("foo", SettingType::Int64);
+  EXPECT_TRUE(s.has_error());
+  rc = storage.remove_key("foo");
+  EXPECT_TRUE(rc.has_error());
 }
 
 // TEST(WindowsTest, PlatformIsSupportedOsVersion)

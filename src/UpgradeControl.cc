@@ -77,7 +77,6 @@ UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform,
   http->options().set_max_redirects(5);
   http->options().set_follow_redirects(true);
   init_periodic_update_check();
-  init_priority();
 }
 
 UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform,
@@ -100,7 +99,6 @@ UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform,
   , check_timer(io_context.get_io_context())
 {
   init_periodic_update_check();
-  init_priority();
 }
 
 outcome::std_result<void>
@@ -144,6 +142,7 @@ UpgradeControl::set_periodic_update_check_enabled(bool enabled)
 {
   if (periodic_update_check_enabled != enabled)
     {
+      init_priority();
       periodic_update_check_enabled = enabled;
       update_check_timer();
     }

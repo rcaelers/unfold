@@ -240,6 +240,7 @@ TEST_F(IntegrationTest, CheckAlpha)
   EXPECT_EQ(rc.has_error(), false);
 
   control.set_certificate(cert);
+  control.set_configuration_prefix("Software\\Unfold\\Test");
 
   rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
   EXPECT_EQ(rc.has_error(), false);
@@ -439,7 +440,7 @@ TEST_F(IntegrationTest, UpgradeLastUpgradeTime)
   UpgradeControl control(platform, time_source, io_context);
 
   control.set_configuration_prefix("Software\\Unfold\\Test");
-
+  
   auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
   EXPECT_EQ(rc.has_error(), false);
 
@@ -491,6 +492,7 @@ TEST_F(IntegrationTest, PeriodicCheckLater)
   EXPECT_EQ(rc.has_error(), false);
 
   control.set_certificate(cert);
+  control.set_configuration_prefix("Software\\Unfold\\Test");
 
   rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
   EXPECT_EQ(rc.has_error(), false);
@@ -532,6 +534,7 @@ TEST_F(IntegrationTest, PeriodicCheckSkip)
   EXPECT_EQ(rc.has_error(), false);
 
   control.set_certificate(cert);
+  control.set_configuration_prefix("Software\\Unfold\\Test");
 
   rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
   EXPECT_EQ(rc.has_error(), false);
@@ -575,6 +578,7 @@ TEST_F(IntegrationTest, PeriodicCheckCanaryLowPrio)
   EXPECT_EQ(rc.has_error(), false);
 
   control.set_certificate(cert);
+  control.set_configuration_prefix("Software\\Unfold\\Test");
 
   rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
   EXPECT_EQ(rc.has_error(), false);
@@ -651,6 +655,7 @@ TEST_F(IntegrationTest, PeriodicCheckCanaryHighPrio)
   EXPECT_EQ(rc.has_error(), false);
 
   control.set_certificate(cert);
+  control.set_configuration_prefix("Software\\Unfold\\Test");
 
   rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
   EXPECT_EQ(rc.has_error(), false);
@@ -727,6 +732,7 @@ TEST_F(IntegrationTest, PeriodicCheckInstallNow)
   EXPECT_EQ(rc.has_error(), false);
 
   control.set_certificate(cert);
+  control.set_configuration_prefix("Software\\Unfold\\Test");
 
   rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
   EXPECT_EQ(rc.has_error(), false);

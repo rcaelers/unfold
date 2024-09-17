@@ -89,8 +89,6 @@ struct UpgradeControlTest : public ::testing::Test
     time_source = std::make_shared<TimeSourceMock>();
     installer = std::make_shared<InstallerMock>();
 
-    EXPECT_CALL(*storage, set_value("Priority", _)).Times(1).WillRepeatedly(Return(outcome::success()));
-
     EXPECT_CALL(*storage, get_value(::testing::_, ::testing::_)).WillRepeatedly(::testing::DoDefault());
     ON_CALL(*storage, get_value("Priority", SettingType::Int32)).WillByDefault(Return(outcome::success(0)));
 
@@ -163,6 +161,8 @@ TEST_F(UpgradeControlTest, PeriodicCheckLater)
     .WillRepeatedly(Return(outcome::failure(UnfoldInternalErrc::InternalError)));
   control->set_configuration_prefix("some\\prefix");
   control->set_configuration_prefix("some\\wrong\\prefix");
+
+  EXPECT_CALL(*storage, set_value("Priority", _)).Times(1).WillRepeatedly(Return(outcome::success()));
 
   EXPECT_CALL(*storage, get_value("LastUpdateCheckTime", SettingType::Int64))
     .Times(AtLeast(1))
@@ -244,6 +244,7 @@ TEST_F(UpgradeControlTest, PeriodicCheckLaterLastCheckInFuture)
     .WillRepeatedly(Return(outcome::success(
       static_cast<int64_t>(std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count() + 3600))));
 
+  EXPECT_CALL(*storage, set_value("Priority", _)).Times(1).WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*storage, get_value("SkipVersion", SettingType::String))
     .Times(AtLeast(1))
@@ -318,6 +319,7 @@ TEST_F(UpgradeControlTest, PeriodicCheckError)
     .Times(AtLeast(1))
     .WillRepeatedly(Return(outcome::success(32LL)));
 
+  EXPECT_CALL(*storage, set_value("Priority", _)).Times(1).WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*storage, set_value("SkipVersion", SettingValue{""})).Times(1).WillRepeatedly(Return(outcome::success()));
 

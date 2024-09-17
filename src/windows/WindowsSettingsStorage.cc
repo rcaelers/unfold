@@ -47,6 +47,12 @@ WindowsSettingsStorage::set_prefix(const std::string &prefix)
 outcome::std_result<void>
 WindowsSettingsStorage::remove_key(const std::string &name)
 {
+  if (subkey_.empty())
+    {
+      logger->error("no prefix set for registry settings");
+      return outcome::failure(UnfoldInternalErrc::InvalidSetting);
+    }
+
   HKEY key = nullptr;
   LONG err = RegOpenKeyEx(HKEY_CURRENT_USER, subkey_.c_str(), 0, KEY_ALL_ACCESS, &key);
   if (err != ERROR_SUCCESS)
@@ -71,6 +77,12 @@ WindowsSettingsStorage::remove_key(const std::string &name)
 outcome::std_result<SettingValue>
 WindowsSettingsStorage::get_value(const std::string &name, SettingType type) const
 {
+  if (subkey_.empty())
+    {
+      logger->error("no prefix set for registry settings");
+      return outcome::failure(UnfoldInternalErrc::InvalidSetting);
+    }
+
   HKEY key = nullptr;
 
   LONG err = RegOpenKeyEx(HKEY_CURRENT_USER, subkey_.c_str(), 0, KEY_ALL_ACCESS, &key);
@@ -135,6 +147,12 @@ WindowsSettingsStorage::get_value(const std::string &name, SettingType type) con
 outcome::std_result<void>
 WindowsSettingsStorage::set_value(const std::string &name, const SettingValue &value)
 {
+  if (subkey_.empty())
+    {
+      logger->error("no prefix set for registry settings");
+      return outcome::failure(UnfoldInternalErrc::InvalidSetting);
+    }
+
   return std::visit(
     [this, name](auto &&arg) -> outcome::std_result<void> {
       using T = std::decay_t<decltype(arg)>;

@@ -104,6 +104,7 @@ namespace unfold
     virtual void set_custom_proxy(const std::string &proxy) = 0;
 
     virtual std::optional<std::chrono::system_clock::time_point> get_last_update_check_time() = 0;
+    virtual int get_active_priority() const = 0;
 
     // TODO: custom version comparator API
 

@@ -76,6 +76,7 @@ public:
   void set_download_progress_callback(download_progress_callback_t callback) override;
   void set_update_status_callback(update_status_callback_t callback) override;
   std::optional<std::chrono::system_clock::time_point> get_last_update_check_time() override;
+  int get_active_priority() const override;
 
   boost::asio::awaitable<outcome::std_result<bool>> check_for_update() override;
   boost::asio::awaitable<outcome::std_result<void>> check_for_update_and_notify() override;
@@ -89,7 +90,6 @@ public:
   void set_proxy(unfold::ProxyType proxy) override;
   void set_custom_proxy(const std::string &proxy) override;
 
-  int get_priority() const;
   boost::asio::awaitable<outcome::std_result<void>> check_for_update_and_notify(bool manual);
 
 private:

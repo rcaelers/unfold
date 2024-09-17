@@ -399,7 +399,7 @@ UpgradeControl::unset_priority()
 }
 
 int
-UpgradeControl::get_priority() const
+UpgradeControl::get_active_priority() const
 {
   if (custom_priority)
     {
@@ -411,7 +411,7 @@ UpgradeControl::get_priority() const
 bool
 UpgradeControl::is_ready_for_rollout()
 {
-  auto priority = get_priority();
+  auto priority = get_active_priority();
   auto earliest_time = checker->get_earliest_rollout_time_for_priority(priority);
   logger->info("priority: {}, earliest rollout time: {}, time: {}", priority, earliest_time, time_source->now());
 

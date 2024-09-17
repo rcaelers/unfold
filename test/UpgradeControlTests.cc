@@ -1023,12 +1023,12 @@ TEST_F(UpgradeControlTest, Priority)
 {
   EXPECT_CALL(*storage, get_value("Priority", SettingType::Int32)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success(10)));
 
-  EXPECT_EQ(control->get_priority(), 10);
+  EXPECT_EQ(control->get_active_priority(), 10);
   auto ret = control->set_priority(5);
   EXPECT_EQ(ret.has_error(), false);
-  EXPECT_EQ(control->get_priority(), 5);
+  EXPECT_EQ(control->get_active_priority(), 5);
   control->unset_priority();
-  EXPECT_EQ(control->get_priority(), 10);
+  EXPECT_EQ(control->get_active_priority(), 10);
 
   ret = control->set_priority(80);
   EXPECT_EQ(ret.has_error(), false);
@@ -1036,9 +1036,9 @@ TEST_F(UpgradeControlTest, Priority)
   EXPECT_EQ(ret.has_error(), true);
   ret = control->set_priority(-1);
   EXPECT_EQ(ret.has_error(), true);
-  EXPECT_EQ(control->get_priority(), 80);
+  EXPECT_EQ(control->get_active_priority(), 80);
 
   ret = control->set_priority(0);
   EXPECT_EQ(ret.has_error(), false);
-  EXPECT_EQ(control->get_priority(), 10);
+  EXPECT_EQ(control->get_active_priority(), 10);
 }

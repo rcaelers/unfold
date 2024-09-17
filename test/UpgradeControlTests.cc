@@ -1029,10 +1029,16 @@ TEST_F(UpgradeControlTest, Priority)
   EXPECT_EQ(control->get_priority(), 5);
   control->unset_priority();
   EXPECT_EQ(control->get_priority(), 10);
+
+  ret = control->set_priority(80);
+  EXPECT_EQ(ret.has_error(), false);
   ret = control->set_priority(101);
-  EXPECT_EQ(ret.has_error(), true);
-  ret = control->set_priority(0);
   EXPECT_EQ(ret.has_error(), true);
   ret = control->set_priority(-1);
   EXPECT_EQ(ret.has_error(), true);
+  EXPECT_EQ(control->get_priority(), 80);
+
+  ret = control->set_priority(0);
+  EXPECT_EQ(ret.has_error(), false);
+  EXPECT_EQ(control->get_priority(), 10);
 }

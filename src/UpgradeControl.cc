@@ -139,23 +139,6 @@ UpgradeControl::set_certificate(const std::string &cert)
   http->options().add_ca_cert(cert);
 }
 
-outcome::std_result<void>
-UpgradeControl::set_priority(int priority)
-{
-  if (priority < 1 || priority > 100)
-    {
-      return outcome::failure(unfold::UnfoldErrc::InvalidArgument);
-    }
-  custom_priority = priority;
-  return outcome::success();
-}
-
-void
-UpgradeControl::unset_priority()
-{
-  custom_priority.reset();
-}
-
 void
 UpgradeControl::set_periodic_update_check_enabled(bool enabled)
 {
@@ -387,6 +370,32 @@ UpgradeControl::init_priority()
       priority = dis(gen);
       state->set_priority(priority);
     }
+}
+
+outcome::std_result<void>
+UpgradeControl::set_priority(int priority)
+{
+  if (priority < 0 || priority > 100)
+    {
+      return outcome::failure(unfold::UnfoldErrc::InvalidArgument);
+    }
+
+  if (priority == 0)
+    {
+      unset_priority();
+    }
+  else
+    {
+      custom_priority = priority;
+    }
+
+  return outcome::success();
+}
+
+void
+UpgradeControl::unset_priority()
+{
+  custom_priority.reset();
 }
 
 int

@@ -7,7 +7,7 @@ on:
   pull_request:
 
 jobs:
-  build-msys2:
+  build-msys2-clang64:
     runs-on: windows-latest
     strategy:
       matrix:
@@ -52,3 +52,47 @@ jobs:
           ninja -C _build -v install
           cd _build
           ctest -V
+
+  build-msys2-clangarm64:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        configuration: [Debug, Release]
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          msystem: clangarm64
+          install: >-
+            git
+            mingw-w64-clang-aarch64-boost
+            mingw-w64-clang-aarch64-clang
+            mingw-w64-clang-aarch64-cmake
+            mingw-w64-clang-aarch64-compiler-rt
+            mingw-w64-clang-aarch64-glib2
+            mingw-w64-clang-aarch64-gtkmm3
+            mingw-w64-clang-aarch64-lld
+            mingw-w64-clang-aarch64-ninja
+            mingw-w64-clang-aarch64-openssl
+            mingw-w64-clang-aarch64-python
+            mingw-w64-clang-aarch64-python-pip
+            mingw-w64-clang-aarch64-spdlog
+            tar
+            xz
+
+      - uses: actions/setup-python@v3
+        with:
+          python-version: 3.11
+
+      - shell: msys2 {0}
+        run: |
+          mkdir _build _deploy
+          export MINGW_ROOT=/c/msys64
+          export MSYSTEM=CLANGARM64
+          cmake -GNinja -B_build -H. -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/msys2.cmake -DCMAKE_INSTALL_PREFIX=_deploy -DUNFOLD_WITH_TESTS=ON -DCMAKE_BUILD_TYPE=${{ matrix.configuration }}
+          ninja -C _build -v install

@@ -15,7 +15,7 @@ if(WIN32)
   target_link_libraries(unfold-http PUBLIC ws2_32 mswsock crypt32)
 endif()
 
-target_link_libraries(unfold-http PUBLIC Boost::coroutine Boost::url PRIVATE unfold-utils spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto winhttp)
+target_link_libraries(unfold-http PUBLIC Boost::url PRIVATE unfold-utils spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto winhttp)
 target_compile_definitions(unfold-http PRIVATE BOOST_URL_NO_LIB)
 
 target_include_directories(

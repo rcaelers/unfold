@@ -76,13 +76,11 @@ find_package(OpenSSL REQUIRED)
 #----------------------------------------------------------------------------------------------------
 # Boost
 
-set(BOOST_COMPONENTS coroutine filesystem url)
+set(BOOST_COMPONENTS filesystem url)
 set(Boost_DEBUG OFF)
 
 if (WIN32)
-  if (CMAKE_SIZEOF_VOID_P EQUAL 8)
-    set(Boost_ARCHITECTURE "-x64")
-  else()
+  if (NOT(CMAKE_SIZEOF_VOID_P EQUAL 8))
     message(ERROR "Only 64 bit build is supported")
   endif()
 endif()

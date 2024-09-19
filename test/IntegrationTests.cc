@@ -640,7 +640,6 @@ TEST_F(IntegrationTest, PeriodicCheckCanaryLowPrio)
 
       EXPECT_EQ(available, days > 3);
       EXPECT_EQ(status.has_value(), false);
-      EXPECT_EQ(status->has_error(), false);
     }
 }
 
@@ -717,7 +716,6 @@ TEST_F(IntegrationTest, PeriodicCheckCanaryHighPrio)
 
       EXPECT_EQ(available, days > 1);
       EXPECT_EQ(status.has_value(), false);
-      EXPECT_EQ(status->has_error(), false);
     }
 }
 

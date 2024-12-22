@@ -68,7 +68,7 @@ PeriodicTimer::update()
 {
   if (enabled_)
     {
-      timer_.expires_from_now(interval_);
+      timer_.expires_after(interval_);
       timer_.async_wait([this](const boost::system::error_code &ec) {
         if (!ec)
           {

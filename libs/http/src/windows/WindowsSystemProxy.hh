@@ -22,7 +22,7 @@
 #define WINDOWS_SYSTEM_PROXY
 
 #include <boost/asio.hpp>
-#include <boost/asio/experimental/as_tuple.hpp>
+#include <boost/asio/as_tuple.hpp>
 #include <boost/asio/spawn.hpp>
 
 #include <windows.h>

@@ -35,7 +35,7 @@
 #include <boost/url/parse.hpp>
 #include <boost/beast/http.hpp>
 #include <boost/beast/version.hpp>
-#include <boost/asio/experimental/as_tuple.hpp>
+#include <boost/asio/as_tuple.hpp>
 #include <boost/asio/spawn.hpp>
 
 #include "http/HttpClientErrors.hh"

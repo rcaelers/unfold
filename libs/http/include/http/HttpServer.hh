@@ -34,6 +34,7 @@
 
 #include <string_view>
 #include <array>
+#include <map>
 
 #include <spdlog/spdlog.h>
 
@@ -192,7 +193,10 @@ namespace unfold::http
         std::string port = target_parts[1];
 
         boost::asio::ip::tcp::resolver resolver(co_await boost::asio::this_coro::executor);
-        auto results = co_await resolver.async_resolve(host, port, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+        const auto endpoints = co_await resolver.async_resolve(
+          host,
+          port,
+          boost::asio::redirect_error(boost::asio::use_awaitable, ec));
 
         if (ec)
           {
@@ -200,8 +204,14 @@ namespace unfold::http
             co_return true;
           }
 
+        if (endpoints.empty())
+          {
+            logger->error("no endpoints found for hostname: ({})", host);
+            co_return true;
+          }
+
         boost::asio::ip::tcp::socket peer{ioc};
-        co_await peer.async_connect(*results, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+        co_await peer.async_connect(*(endpoints.begin()), boost::asio::redirect_error(boost::asio::use_awaitable, ec));
         if (ec)
           {
             logger->error("failed to connected to: ({}) {}", host, ec.message());

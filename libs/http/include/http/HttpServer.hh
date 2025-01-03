@@ -100,7 +100,7 @@ namespace unfold::http
       boost::asio::awaitable<bool> send(boost::beast::http::message<isRequest, Body, Fields> &&msg, boost::beast::error_code &ec)
       {
         auto eof = msg.need_eof();
-        logger->info("send need eof: ({})", eof);
+        logger->debug("send need eof: ({})", eof);
         boost::beast::http::serializer<isRequest, Body, Fields> sr{msg};
         co_await boost::beast::http::async_write(stream, sr, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
         co_return eof;
@@ -193,10 +193,9 @@ namespace unfold::http
         std::string port = target_parts[1];
 
         boost::asio::ip::tcp::resolver resolver(co_await boost::asio::this_coro::executor);
-        const auto endpoints = co_await resolver.async_resolve(
-          host,
-          port,
-          boost::asio::redirect_error(boost::asio::use_awaitable, ec));
+        const auto endpoints = co_await resolver.async_resolve(host,
+                                                               port,
+                                                               boost::asio::redirect_error(boost::asio::use_awaitable, ec));
 
         if (ec)
           {

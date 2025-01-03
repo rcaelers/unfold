@@ -117,13 +117,13 @@ SecureSession::run()
 
   for (;;)
     {
-      logger->info("session read");
+      logger->debug("session read");
       boost::beast::get_lowest_layer(stream).expires_after(std::chrono::seconds(30));
 
       co_await boost::beast::http::async_read(stream, buffer, req, boost::asio::redirect_error(boost::asio::use_awaitable, ec));
       if (ec == boost::beast::http::error::end_of_stream)
         {
-          logger->info("session eos");
+          logger->debug("session eos");
           break;
         }
       if (ec)
@@ -132,7 +132,7 @@ SecureSession::run()
           co_return;
         }
 
-      logger->info("handle request");
+      logger->debug("handle request");
       close = co_await handle_request(ec);
       if (ec)
         {
@@ -141,7 +141,7 @@ SecureSession::run()
         }
       if (close)
         {
-          logger->info("closing session");
+          logger->debug("closing session");
           break;
         }
     }
@@ -328,7 +328,7 @@ HttpServer::add_file(std::string_view file, const std::string &filename)
 {
   std::ifstream f(filename.c_str(), std::ios::binary);
   std::string content((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-  spdlog::info("file {} {}", filename, content.size());
+  spdlog::debug("file {} {}", filename, content.size());
   add(file, content);
 }
 

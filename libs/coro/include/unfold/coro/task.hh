@@ -21,9 +21,7 @@
 #ifndef UNFOLD_CORO_TASK_HH
 #define UNFOLD_CORO_TASK_HH
 
-#include <exception>
 #include <utility>
-#include <variant>
 #include <coroutine>
 
 #include <spdlog/spdlog.h>

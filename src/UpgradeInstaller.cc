@@ -24,7 +24,6 @@
 #include <memory>
 #include <system_error>
 #include <utility>
-#include <fstream>
 #include <spdlog/fmt/ostr.h>
 #include <fmt/os.h>
 #include <fmt/std.h>

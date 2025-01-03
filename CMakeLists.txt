@@ -26,7 +26,7 @@ include(CheckCXXCompilerFlag)
 # Compiler
 
 set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
@@ -154,6 +154,9 @@ endif()
 #----------------------------------------------------------------------------------------------------
 #
 
+option(UNFOLD_WITH_GTK3 "Build unfold Gtk+ example" ${IS_TOPLEVEL_PROJECT})
+option(UNFOLD_WITH_QT6 "Build unfold Qt6 example" ${IS_TOPLEVEL_PROJECT})
+
 add_subdirectory(libs)
 add_subdirectory(src)
 add_subdirectory(test)
@@ -161,11 +164,8 @@ add_subdirectory(test)
 #----------------------------------------------------------------------------------------------------
 # Examples
 
-option(UNFOLD_WITH_EXAMPLES "Build unfold examples" ${IS_TOPLEVEL_PROJECT})
-
-if (UNFOLD_WITH_EXAMPLES)
-  add_subdirectory(examples)
-endif()
+option(UNFOLD_WITH_EXAMPLES "Build unfold example" ${IS_TOPLEVEL_PROJECT})
+add_subdirectory(examples)
 
 #----------------------------------------------------------------------------------------------------
 # Install

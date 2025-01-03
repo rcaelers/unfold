@@ -1,16 +1,5 @@
 if(WIN32)
   FetchContent_Declare(
-    cmark
-    GIT_REPOSITORY https://github.com/commonmark/cmark.git
-    GIT_TAG        0.31.1
-    GIT_SHALLOW    TRUE
-    EXCLUDE_FROM_ALL
-    CMAKE_ARGS "BUILD_TESTING=OFF BUILD_STATIC_LIBS=OFF BUILD_SHARED_LIBS=ON"
-  )
-  set(BUILD_TESTING OFF CACHE INTERNAL "Disable tests")
-  FetchContent_MakeAvailable(cmark)
-
-  FetchContent_Declare(
     webview2
     URL https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/1.0.2651.64
     URL_HASH SHA1=e08093bd127686535cf3519011a584664e6d2b75

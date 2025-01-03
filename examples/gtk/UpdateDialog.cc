@@ -42,6 +42,7 @@ static constexpr const char *doc =
   </div>
 </body>
 </html>)";
+
 #endif
 
 UpdateDialog::UpdateDialog(std::shared_ptr<unfold::UpdateInfo> info)

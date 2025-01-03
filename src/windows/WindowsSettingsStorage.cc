@@ -54,7 +54,7 @@ WindowsSettingsStorage::remove_key(const std::string &name)
     }
 
   HKEY key = nullptr;
-  LONG err = RegOpenKeyEx(HKEY_CURRENT_USER, subkey_.c_str(), 0, KEY_ALL_ACCESS, &key);
+  LONG err = RegOpenKeyExA(HKEY_CURRENT_USER, subkey_.c_str(), 0, KEY_ALL_ACCESS, &key);
   if (err != ERROR_SUCCESS)
     {
       logger->error("failed to open registry key {}\\{} for deletion", subkey_, name);
@@ -85,7 +85,7 @@ WindowsSettingsStorage::get_value(const std::string &name, SettingType type) con
 
   HKEY key = nullptr;
 
-  LONG err = RegOpenKeyEx(HKEY_CURRENT_USER, subkey_.c_str(), 0, KEY_ALL_ACCESS, &key);
+  LONG err = RegOpenKeyExA(HKEY_CURRENT_USER, subkey_.c_str(), 0, KEY_ALL_ACCESS, &key);
   if (err != ERROR_SUCCESS)
     {
       logger->error("failed to open registry key {}\\{} for retrieval", subkey_, name);
@@ -170,15 +170,15 @@ WindowsSettingsStorage::set_value(const std::string &name, const SettingValue &v
 
       HKEY key = nullptr;
       DWORD disp = 0;
-      LONG err = RegCreateKeyEx(HKEY_CURRENT_USER,
-                                subkey_.c_str(),
-                                0,
-                                nullptr,
-                                REG_OPTION_NON_VOLATILE,
-                                KEY_ALL_ACCESS,
-                                nullptr,
-                                &key,
-                                &disp);
+      LONG err = RegCreateKeyExA(HKEY_CURRENT_USER,
+                                 subkey_.c_str(),
+                                 0,
+                                 nullptr,
+                                 REG_OPTION_NON_VOLATILE,
+                                 KEY_ALL_ACCESS,
+                                 nullptr,
+                                 &key,
+                                 &disp);
       if (err != ERROR_SUCCESS)
         {
           logger->error("failed to create registry key {}\\{}", subkey_, name);
@@ -186,7 +186,7 @@ WindowsSettingsStorage::set_value(const std::string &name, const SettingValue &v
           return outcome::failure(UnfoldInternalErrc::InvalidSetting);
         }
 
-      err = RegSetValueEx(key, name.c_str(), 0, REG_SZ, (BYTE *)v.c_str(), static_cast<DWORD>(v.length() + 1));
+      err = RegSetValueExA(key, name.c_str(), 0, REG_SZ, (BYTE *)v.c_str(), static_cast<DWORD>(v.length() + 1));
       RegCloseKey(key);
       if (err != ERROR_SUCCESS)
         {

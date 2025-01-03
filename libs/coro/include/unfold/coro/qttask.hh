@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Rob Caelers <rob.caelers@gmail.com>
+// Copyright (C) 2025 Rob Caelers <rob.caelers@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,10 +18,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef UNFOLD_CORO_GTASK_HH
-#define UNFOLD_CORO_GTASK_HH
+#ifndef UNFOLD_CORO_QTTASK_HH
+#define UNFOLD_CORO_QTTASK_HH
 
-#include <exception>
 #include <memory>
 #include <utility>
 #include <coroutine>
@@ -29,15 +28,16 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
 
-#include <glib.h>
-#include <glib-object.h>
+#include <QtGui>
+#include <QTimer>
 
 #include "unfold/coro/task.hh"
 
 namespace unfold::coro
 {
-  namespace glib
+  namespace qt
   {
+
     namespace detail
     {
       template<class F>
@@ -75,11 +75,10 @@ namespace unfold::coro
     class executer
     {
     public:
-      explicit executer(GMainContext *context)
-        : context_(context)
+      explicit executer(QObject *thread)
+        : thread_(thread)
       {
       }
-
       ~executer() = default;
 
       executer(const executer &) = delete;
@@ -87,8 +86,7 @@ namespace unfold::coro
 
       executer(executer &&other) noexcept
         : func_(std::exchange(other.func_, nullptr))
-        , context_(std::exchange(other.context_, nullptr))
-
+        , thread_(std::exchange(other.thread_, nullptr))
       {
       }
 
@@ -96,8 +94,8 @@ namespace unfold::coro
       {
         if (std::addressof(other) != this)
           {
-            context_ = std::exchange(other.context_, nullptr);
             func_ = std::exchange(other.func_, nullptr);
+            thread_ = std::exchange(other.thread_, nullptr);
           }
 
         return *this;
@@ -106,64 +104,42 @@ namespace unfold::coro
       void execute(auto f)
       {
         func_ = detail::make_function(std::move(f));
-        GSource *idle_source = g_idle_source_new();
-        g_source_set_callback(idle_source, on_resume_coroutine, this, nullptr);
-        g_source_attach(idle_source, context_);
-        g_source_unref(idle_source);
-      }
-
-    private:
-      static gboolean on_resume_coroutine(gpointer data)
-      {
-        auto *self = static_cast<executer *>(data);
-        self->func_();
-        return G_SOURCE_REMOVE;
+        QMetaObject::invokeMethod(thread_, [this]() { this->func_(); });
       }
 
     private:
       std::function<void()> func_;
-      GMainContext *context_;
+      QObject *thread_{nullptr};
     };
 
     struct sleep_awaiter : std::suspend_always
     {
-      sleep_awaiter(guint duration_ms, GMainContext *context)
+      explicit sleep_awaiter(int duration_ms)
         : duration_ms_(duration_ms)
-        , context_(context)
       {
-      }
-
-      static gboolean on_timer_callback(gpointer data)
-      {
-        auto *self = static_cast<sleep_awaiter *>(data);
-        self->handle_.resume();
-        return FALSE;
       }
 
       void await_suspend(std::coroutine_handle<> h)
       {
         handle_ = h;
-        GSource *source = g_timeout_source_new(duration_ms_);
-        g_source_set_callback(source, on_timer_callback, this, nullptr);
-        g_source_attach(source, context_);
-        g_source_unref(source);
+        // TODO: this only works for a Qt thread
+        QTimer::singleShot(duration_ms_, [this]() { handle_.resume(); });
       }
 
     private:
       std::coroutine_handle<> handle_;
-      guint duration_ms_;
-      GMainContext *context_;
+      int duration_ms_;
     };
 
     class scheduler
     {
     public:
       template<typename ValueType>
-      using gtask = unfold::coro::task<ValueType, glib::scheduler>;
+      using qtask = unfold::coro::task<ValueType, qt::scheduler>;
       using executer = executer;
 
-      scheduler(GMainContext *context, boost::asio::io_context *ioc)
-        : context_(context)
+      explicit scheduler(QObject *thread, boost::asio::io_context *ioc)
+        : thread_(thread)
         , ioc_(ioc)
       {
       }
@@ -172,32 +148,32 @@ namespace unfold::coro
 
       auto get_executor() const
       {
-        return executer(context_);
+        return executer(thread_);
       }
 
-      void spawn(gtask<void> &&task)
+      void spawn(qtask<void> &&task)
       {
         task.set_scheduler(this);
         task.set_io_context(ioc_);
-        auto exec{std::make_shared<unfold::coro::glib::executer>(context_)};
+        auto exec{std::make_shared<unfold::coro::qt::executer>(thread_)};
         exec->execute([exec, task = std::move(task)]() mutable { task.resume(); });
       }
 
-      auto sleep(guint duration_ms)
+      auto sleep(int duration_ms)
       {
-        return sleep_awaiter{duration_ms, context_};
+        return sleep_awaiter{duration_ms};
       }
 
     private:
-      GMainContext *context_{nullptr};
+      QObject *thread_{nullptr};
       boost::asio::io_context *ioc_{nullptr};
     };
 
-  } // namespace glib
+  } // namespace qt
 
   template<typename ValueType>
-  using gtask = unfold::coro::task<ValueType, glib::scheduler>;
+  using qttask = unfold::coro::task<ValueType, qt::scheduler>;
 
 } // namespace unfold::coro
 
-#endif // GLIB_SCHEDULER_HH
+#endif // UNFOLD_CORO_QTTASK_HH

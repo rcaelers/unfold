@@ -1,5 +1,5 @@
 
-// Copyright (C) 2022 Rob Caelers <rob.caelers@gmail.com>
+// Copyright (C) 2025 Rob Caelers <rob.caelers@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -28,11 +28,14 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
 
-#include <gtkmm.h>
+#include <QtGui>
+#include <QtWidgets>
+#include <QDebug>
+#include <QLoggingCategory>
 
 #include "http/HttpServer.hh"
 #include "unfold/Unfold.hh"
-#include "unfold/coro/gtask.hh"
+#include "unfold/coro/qttask.hh"
 #include "unfold/coro/IOContext.hh"
 
 #if defined(WIN32)
@@ -66,8 +69,36 @@ namespace
     "-----END CERTIFICATE-----\n";
 } // namespace
 
-unfold::coro::gtask<void>
-coro_check(Glib::RefPtr<Gtk::Application> app, std::shared_ptr<unfold::Unfold> updater)
+void
+qtMessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
+{
+  auto message = msg.toStdString();
+  const auto *file = (context.file != nullptr) ? context.file : "";
+  auto line = context.line;
+  const auto *function = (context.function != nullptr) ? context.function : "";
+
+  switch (type)
+    {
+    case QtDebugMsg:
+      spdlog::debug("[Qt Debug] {} ({}:{}:{})", message, file, line, function);
+      break;
+    case QtInfoMsg:
+      spdlog::info("[Qt Info] {} ({}:{}:{})", message, file, line, function);
+      break;
+    case QtWarningMsg:
+      spdlog::warn("[Qt Warning] {} ({}:{}:{})", message, file, line, function);
+      break;
+    case QtCriticalMsg:
+      spdlog::error("[Qt Critical] {} ({}:{}:{})", message, file, line, function);
+      break;
+    case QtFatalMsg:
+      spdlog::critical("[Qt Fatal] {} ({}:{}:{})", message, file, line, function);
+      break;
+    }
+}
+
+unfold::coro::qttask<void>
+coro_check(QCoreApplication *app, std::shared_ptr<unfold::Unfold> updater)
 {
   auto update_available = co_await updater->check_for_update();
   if (!update_available)
@@ -78,31 +109,17 @@ coro_check(Glib::RefPtr<Gtk::Application> app, std::shared_ptr<unfold::Unfold> u
   if (update_available.value())
     {
       auto update_info = updater->get_update_info();
-      auto *dlg = new UpdateDialog(update_info);
+      auto *dlg = new AutoUpdateDialog(update_info, [](AutoUpdateDialog::UpdateChoice choice) {});
       dlg->show();
-      dlg->signal_response().connect([app](int response) {
-        spdlog::info("User response: {} ", response);
-        app->quit();
-      });
-
-      // TODO: leak
+      QObject::connect(dlg, &QDialog::done, [](int response) { QCoreApplication::quit(); });
     }
 }
 
 int
 main(int argc, char *argv[])
 {
-#if defined(WIN32)
-  SetEnvironmentVariableA("GTK_DEBUG", nullptr);
-  SetEnvironmentVariableA("G_MESSAGES_DEBUG", nullptr);
-  // No auto hide scrollbars
-  SetEnvironmentVariableA("GTK_OVERLAY_SCROLLING", "0");
-  // No Windows-7 style client-side decorations on Windows 10...
-  SetEnvironmentVariableA("GTK_CSD", "0");
-  SetEnvironmentVariableA("GDK_WIN32_DISABLE_HIDPI", "1");
-#endif
 
-  spdlog::set_level(spdlog::level::debug);
+  spdlog::set_level(spdlog::level::info);
 
   unfold::http::HttpServer server;
   server.add_file("/appcast.xml", "../../test/data/appcast.xml");
@@ -143,36 +160,20 @@ main(int argc, char *argv[])
     }
 
   spdlog::info("Creating app");
-  auto app = Gtk::Application::create();
-  app->register_application();
-  app->hold();
+  QCoreApplication *app(new QApplication(argc, argv));
+  QObject main_thread;
 
-  unfold::coro::glib::scheduler scheduler(g_main_context_default(), io_context.get_io_context());
+  qInstallMessageHandler(qtMessageHandler);
 
-  Glib::signal_timeout().connect([]() { return 1; }, 500);
+  unfold::coro::qt::scheduler scheduler(&main_thread, io_context.get_io_context());
 
-  Glib::signal_timeout().connect(
-    [updater, &app, &scheduler]() {
-      spdlog::info("check");
+  QTimer::singleShot(2000, [updater, &scheduler, &app]() {
+    unfold::coro::qttask<void> task = coro_check(app, updater);
+    scheduler.spawn(std::move(task));
+  });
 
-      unfold::coro::gtask<void> task = coro_check(app, updater);
-      scheduler.spawn(std::move(task));
-      return 0;
-    },
-    2000);
-  Glib::RefPtr<Glib::MainContext> context = Glib::MainContext::get_default();
-
-  app->run();
-
-  // spdlog::info("Creating update dialog.");
-  // spdlog::info("Showing update dialog.");
-  // app->hold();
-  // dlg->show();
-  // spdlog::info("Running main loop.");
-  // dlg->hide();
-  // spdlog::info("complete:");
-
+  auto ret = QCoreApplication::exec();
   server.stop();
 
-  return 0;
+  return ret;
 }

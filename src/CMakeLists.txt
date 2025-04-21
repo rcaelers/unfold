@@ -24,7 +24,7 @@ if(WIN32)
 endif()
 
 target_link_libraries(unfold PRIVATE unfold-utils unfold-crypto unfold-http unfold-coro)
-target_link_libraries(unfold PRIVATE semver::semver Boost::filesystem spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto)
+target_link_libraries(unfold PRIVATE semver::semver Boost::filesystem Boost::process spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto)
 target_compile_definitions(unfold PRIVATE BOOST_URL_NO_LIB)
 
 target_include_directories(

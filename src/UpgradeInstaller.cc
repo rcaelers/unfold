@@ -32,7 +32,15 @@
 #include <boost/outcome/try.hpp>
 #include <boost/url/url.hpp>
 #include <boost/url/parse.hpp>
-#include <boost/process.hpp>
+#include <boost/algorithm/string/split.hpp>
+
+#include <boost/version.hpp>
+#if BOOST_VERSION < 108800
+#  include <boost/process.hpp>
+#else
+#  define BOOST_PROCESS_VERSION 1
+#  include <boost/process/v1/spawn.hpp>
+#endif
 
 #include "Unfold.hh"
 #include "UnfoldErrors.hh"

@@ -250,12 +250,13 @@ UpgradeChecker::build_update_info(std::shared_ptr<Appcast> appcast)
       update_info->title = appcast->title;
       update_info->version = selected_item->version;
       update_info->current_version = current_version_str;
+      update_info->download_url = selected_item->enclosure ? selected_item->enclosure->url : "";
 
       for (auto x: items)
         {
           spdlog::info("applicable {}", x->version);
 
-          auto r = unfold::UpdateReleaseNotes{x->version, x->publication_date, x->description};
+          auto r = unfold::UpdateReleaseNotes{.version = x->version, .date = x->publication_date, .markdown = x->description};
           update_info->release_notes.push_back(r);
         }
     }

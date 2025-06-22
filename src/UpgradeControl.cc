@@ -21,18 +21,14 @@
 #include "UpgradeControl.hh"
 
 #include <chrono>
-#include <exception>
 #include <memory>
 #include <random>
 #include <utility>
-#include <fstream>
-#include <ranges>
 
 #include <boost/range/adaptors.hpp>
 
 #include <spdlog/fmt/ostr.h>
 
-#include "AppCast.hh"
 #include "UpgradeChecker.hh"
 #include "UpgradeInstaller.hh"
 #include "Platform.hh"
@@ -44,8 +40,16 @@
 
 #include "crypto/SignatureVerifier.hh"
 #include "http/HttpClient.hh"
-#include "utils/TempDirectory.hh"
 #include "utils/TimeSource.hh"
+
+namespace
+{
+  constexpr std::chrono::seconds DEFAULT_HTTP_TIMEOUT{30};
+  constexpr int DEFAULT_MAX_REDIRECTS{5};
+  constexpr int MAX_PRIORITY{100};
+  constexpr int MIN_PRIORITY{1};
+
+} // namespace
 
 // TODO: move to different file
 #if defined(WIN32)
@@ -73,8 +77,8 @@ UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform,
   , time_source(std::move(time_source))
   , check_timer(io_context.get_io_context())
 {
-  http->options().set_timeout(std::chrono::seconds(30));
-  http->options().set_max_redirects(5);
+  http->options().set_timeout(DEFAULT_HTTP_TIMEOUT);
+  http->options().set_max_redirects(DEFAULT_MAX_REDIRECTS);
   http->options().set_follow_redirects(true);
   init_periodic_update_check();
 }
@@ -182,6 +186,12 @@ UpgradeControl::set_update_status_callback(update_status_callback_t callback)
   update_status_callback = callback;
 }
 
+void
+UpgradeControl::set_update_validation_callback(update_validation_callback_t callback)
+{
+  update_validation_callback = callback;
+}
+
 std::optional<std::chrono::system_clock::time_point>
 UpgradeControl::get_last_update_check_time()
 {
@@ -256,6 +266,22 @@ UpgradeControl::check_for_update_and_notify(bool manual)
     {
       logger->error("update to version {} available, but nothing to notify", info->version);
       co_return outcome::failure(unfold::UnfoldErrc::InvalidArgument);
+    }
+
+  if (update_validation_callback)
+    {
+      auto validation_result = update_validation_callback(*info);
+      if (!validation_result)
+        {
+          logger->error("update validation failed: {}", validation_result.error().message());
+          co_return validation_result.as_failure();
+        }
+      if (!validation_result.value())
+        {
+          logger->warn("update to version {} rejected by validation callback", info->version);
+          co_return outcome::success();
+        }
+      logger->info("update to version {} validated successfully", info->version);
     }
 
   auto resp = co_await update_available_callback();
@@ -365,7 +391,7 @@ UpgradeControl::init_priority()
     {
       std::random_device rd;
       std::mt19937 gen(rd());
-      std::uniform_int_distribution<> dis(1, 100);
+      std::uniform_int_distribution<> dis(MIN_PRIORITY, MAX_PRIORITY);
       priority = dis(gen);
       state->set_priority(priority);
     }
@@ -374,7 +400,7 @@ UpgradeControl::init_priority()
 outcome::std_result<void>
 UpgradeControl::set_priority(int priority)
 {
-  if (priority < 0 || priority > 100)
+  if (priority < 0 || priority > MAX_PRIORITY)
     {
       return outcome::failure(unfold::UnfoldErrc::InvalidArgument);
     }

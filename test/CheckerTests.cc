@@ -287,7 +287,7 @@ TEST(CheckerTest, InvalidItemsInAppcast)
     "            <sparkle:releaseNotesLink>https://workrave.org/v2.html</sparkle:releaseNotesLink>\n"
     "            <pubDate>Sun Apr 17 19:30:14 CEST 2022</pubDate>\n"
     "            <sparkle:minimumSystemVersion>6.0.0</sparkle:minimumSystemVersion>\n"
-    "            <enclosure os=\"windows\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"8192\" type=\"application/octet-stream\" />\n"
+    "            <enclosure os=\"windows\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"8192\" type=\"application/octet-stream\" url=\"https://example.com/workrave-win32-v4.0.0.exe\"/>\n"
     "        </item>\n"
     "    </channel>\n"
     "</rss>\n";
@@ -326,6 +326,7 @@ TEST(CheckerTest, InvalidItemsInAppcast)
           EXPECT_EQ(info->title, "Workrave Test Appcast");
           EXPECT_EQ(info->current_version, "1.0.0");
           EXPECT_EQ(info->version, "4.0.0");
+          EXPECT_EQ(info->download_url, "https://example.com/workrave-win32-v4.0.0.exe");
           EXPECT_EQ(info->release_notes.size(), 1);
           EXPECT_EQ(info->release_notes.front().version, "4.0.0");
         }

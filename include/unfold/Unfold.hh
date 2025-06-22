@@ -49,6 +49,7 @@ namespace unfold
     std::string title;
     std::string version;
     std::string current_version;
+    std::string download_url;
     std::list<UpdateReleaseNotes> release_notes;
   };
 
@@ -84,6 +85,7 @@ namespace unfold
     using update_available_callback_t = std::function<boost::asio::awaitable<UpdateResponse>()>;
     using update_status_callback_t = std::function<void(outcome::std_result<void>)>;
     using download_progress_callback_t = std::function<void(UpdateStage stage, double progress)>;
+    using update_validation_callback_t = std::function<outcome::std_result<bool>(const UpdateInfo& update_info)>;
 
     static std::shared_ptr<Unfold> create(unfold::coro::IOContext &io_context);
 
@@ -100,6 +102,7 @@ namespace unfold
     virtual void set_update_available_callback(update_available_callback_t callback) = 0;
     virtual void set_download_progress_callback(download_progress_callback_t callback) = 0;
     virtual void set_update_status_callback(update_status_callback_t callback) = 0;
+    virtual void set_update_validation_callback(update_validation_callback_t callback) = 0;
     virtual void set_proxy(ProxyType proxy) = 0;
     virtual void set_custom_proxy(const std::string &proxy) = 0;
 

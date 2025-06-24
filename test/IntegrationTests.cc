@@ -419,7 +419,7 @@ TEST_F(IntegrationTest, UpdateError)
     boost::asio::detached);
   ioc.run();
   EXPECT_EQ(status.has_value(), false);
-  EXPECT_EQ(*last_stage, unfold::UpdateStage::DownloadInstaller);
+  EXPECT_EQ(last_stage.has_value(), false);
 }
 
 TEST_F(IntegrationTest, UpdateRejected)
@@ -515,7 +515,7 @@ TEST_F(IntegrationTest, UpdateRejected)
     boost::asio::detached);
   ioc.run();
   EXPECT_EQ(status.has_value(), false);
-  EXPECT_EQ(*last_stage, unfold::UpdateStage::DownloadInstaller);
+  EXPECT_EQ(last_stage.has_value(), false);
 }
 
 TEST_F(IntegrationTest, UpdateAccepted)
@@ -610,6 +610,7 @@ TEST_F(IntegrationTest, UpdateAccepted)
     boost::asio::detached);
   ioc.run();
   EXPECT_EQ(status.has_value(), false);
+  EXPECT_EQ(last_stage.has_value(), true);
   EXPECT_EQ(*last_stage, unfold::UpdateStage::RunInstaller);
 }
 

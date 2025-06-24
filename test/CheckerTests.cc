@@ -855,3 +855,177 @@ TEST(CheckerTest, ChannelsAllowedEmpty)
 
   server.stop();
 }
+
+TEST(CheckerTest, UpdateValidationCallbackAccept)
+{
+  unfold::http::HttpServer server;
+  server.add_file("/appcast.xml", "appcast.xml");
+  server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
+  options.add_ca_cert(cert);
+
+  auto hooks = std::make_shared<Hooks>();
+
+  UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
+
+  auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = checker.set_current_version("1.10.48");
+  EXPECT_EQ(rc.has_error(), false);
+
+  bool validation_called = false;
+  checker.set_update_validation_callback([&](const unfold::UpdateInfo &update_info) -> outcome::std_result<bool> {
+    validation_called = true;
+    EXPECT_EQ(update_info.version, "1.11.0-alpha.1");
+    return outcome::success(true); // Accept the update
+  });
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto check_result = co_await checker.check_for_update();
+          EXPECT_EQ(check_result.has_error(), false);
+          EXPECT_EQ(check_result.value(), true);
+          EXPECT_TRUE(validation_called);
+
+          auto appcast = checker.get_selected_update();
+          EXPECT_EQ(appcast->version, "1.11.0-alpha.1");
+          EXPECT_EQ(appcast->publication_date, "Sun, 27 Feb 2022 11:02:33 +0100");
+          EXPECT_EQ(appcast->title, "Workrave 1.11.0-alpha.1");
+
+          // Verify that update info is still available after validation
+          auto info = checker.get_update_info();
+          EXPECT_NE(info, nullptr);
+          EXPECT_EQ(info->title, "Workrave");
+          EXPECT_EQ(info->current_version, "1.10.48");
+          EXPECT_EQ(info->version, "1.11.0-alpha.1");
+          EXPECT_EQ(info->release_notes.size(), 2);
+          EXPECT_EQ(info->release_notes.front().version, "1.11.0-alpha.1");
+          EXPECT_EQ(info->release_notes.front().date, "Sun, 27 Feb 2022 11:02:33 +0100");
+          EXPECT_EQ(info->release_notes.back().version, "1.10.49");
+          EXPECT_EQ(info->release_notes.back().date, "Wed, 05 Jan 2022 03:05:19 +0100");
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          EXPECT_TRUE(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+
+  server.stop();
+}
+
+TEST(CheckerTest, UpdateValidationCallbackReject)
+{
+  unfold::http::HttpServer server;
+  server.add_file("/appcast.xml", "appcast.xml");
+  server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
+  options.add_ca_cert(cert);
+
+  auto hooks = std::make_shared<Hooks>();
+
+  UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
+
+  auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = checker.set_current_version("1.10.48");
+  EXPECT_EQ(rc.has_error(), false);
+
+  bool validation_called = false;
+  checker.set_update_validation_callback([&](const unfold::UpdateInfo &update_info) -> outcome::std_result<bool> {
+    validation_called = true;
+    EXPECT_EQ(update_info.version, "1.11.0-alpha.1");
+    return outcome::success(false); // Reject the update
+  });
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto check_result = co_await checker.check_for_update();
+          EXPECT_EQ(check_result.has_error(), false);
+          EXPECT_EQ(check_result.value(), false); // Should return false (no update) when rejected
+          EXPECT_TRUE(validation_called);
+
+          // Verify that update info is cleared after rejection
+          auto info = checker.get_update_info();
+          EXPECT_EQ(info, nullptr);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          EXPECT_TRUE(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+
+  server.stop();
+}
+
+TEST(CheckerTest, UpdateValidationCallbackError)
+{
+  unfold::http::HttpServer server;
+  server.add_file("/appcast.xml", "appcast.xml");
+  server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
+  options.add_ca_cert(cert);
+
+  auto hooks = std::make_shared<Hooks>();
+
+  UpgradeChecker checker(std::make_shared<TestPlatform>(), http, hooks);
+
+  auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = checker.set_current_version("1.10.48");
+  EXPECT_EQ(rc.has_error(), false);
+
+  bool validation_called = false;
+  checker.set_update_validation_callback([&](const unfold::UpdateInfo &update_info) -> outcome::std_result<bool> {
+    validation_called = true;
+    return outcome::failure(unfold::UnfoldErrc::InternalError); // Validation error
+  });
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto check_result = co_await checker.check_for_update();
+          EXPECT_EQ(check_result.has_error(), true);
+          EXPECT_EQ(check_result.error(), unfold::UnfoldErrc::InternalError);
+          EXPECT_TRUE(validation_called);
+
+          // Verify that update info is cleared after rejection
+          auto info = checker.get_update_info();
+          EXPECT_EQ(info, nullptr);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          EXPECT_TRUE(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+
+  server.stop();
+}

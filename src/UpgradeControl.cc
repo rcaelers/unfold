@@ -190,6 +190,13 @@ void
 UpgradeControl::set_update_validation_callback(update_validation_callback_t callback)
 {
   update_validation_callback = callback;
+  checker->set_update_validation_callback(callback);
+}
+
+void
+UpgradeControl::set_installer_validation_callback(installer_validation_callback_t callback)
+{
+  installer->set_installer_validation_callback(callback);
 }
 
 std::optional<std::chrono::system_clock::time_point>
@@ -210,6 +217,7 @@ UpgradeControl::check_for_update()
   update_last_update_check_time();
   auto rc = co_await checker->check_for_update();
   update_check_timer();
+
   co_return rc;
 }
 
@@ -268,22 +276,6 @@ UpgradeControl::check_for_update_and_notify(bool manual)
       co_return outcome::failure(unfold::UnfoldErrc::InvalidArgument);
     }
 
-  if (update_validation_callback)
-    {
-      auto validation_result = update_validation_callback(*info);
-      if (!validation_result)
-        {
-          logger->error("update validation failed: {}", validation_result.error().message());
-          co_return validation_result.as_failure();
-        }
-      if (!validation_result.value())
-        {
-          logger->warn("update to version {} rejected by validation callback", info->version);
-          co_return outcome::success();
-        }
-      logger->info("update to version {} validated successfully", info->version);
-    }
-
   auto resp = co_await update_available_callback();
   switch (resp)
     {
@@ -306,6 +298,11 @@ boost::asio::awaitable<outcome::std_result<void>>
 UpgradeControl::install_update()
 {
   auto selected_update = checker->get_selected_update();
+  if (!selected_update)
+    {
+      logger->error("no update selected for installation");
+      co_return outcome::failure(unfold::UnfoldErrc::InternalError);
+    }
   co_return co_await installer->install(selected_update);
 }
 

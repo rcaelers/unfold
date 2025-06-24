@@ -31,6 +31,7 @@ class InstallerMock : public Installer
 {
 public:
   MOCK_METHOD(void, set_download_progress_callback, (unfold::Unfold::download_progress_callback_t callback), (override));
+  MOCK_METHOD(void, set_installer_validation_callback, (unfold::Unfold::installer_validation_callback_t callback), (override));
   MOCK_METHOD(boost::asio::awaitable<outcome::std_result<void>>, install, (std::shared_ptr<AppcastItem> item), (override));
 };
 

@@ -18,6 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <cmath>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
@@ -217,6 +218,686 @@ TEST_F(IntegrationTest, InvalidKey)
   EXPECT_EQ(rc.error(), unfold::UnfoldErrc::InvalidArgument);
 }
 
+TEST_F(IntegrationTest, InvalidSignature)
+{
+  unfold::coro::IOContext io_context;
+  UpgradeControl control(platform, time_source, io_context);
+
+  init_appcast();
+
+  std::ifstream finstaller("test-installer.exe", std::ios::binary);
+  std::string content((std::istreambuf_iterator<char>(finstaller)), std::istreambuf_iterator<char>());
+
+  content[0] = 'X'; // corrupt the first byte to make the signature invalid
+  server.add("/dummy.exe", content);
+  control.set_configuration_prefix("Software\\Unfold\\Test");
+
+  auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  EXPECT_EQ(rc.has_error(), false);
+
+  control.set_certificate(cert);
+  control.set_configuration_prefix("Software\\Unfold\\Test");
+
+  rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_current_version("1.10.45");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_allowed_channels({"alpha"});
+  EXPECT_EQ(rc.has_error(), false);
+
+  double last_progress = 0.0;
+  std::optional<unfold::UpdateStage> last_stage;
+  control.set_download_progress_callback([&last_stage, &last_progress](unfold::UpdateStage stage, auto progress) {
+    if (stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        EXPECT_GE(progress, last_progress);
+        last_progress = progress;
+      }
+
+    if (!last_stage)
+      {
+        EXPECT_EQ(stage, unfold::UpdateStage::DownloadInstaller);
+      }
+    else if (*last_stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        EXPECT_TRUE(stage == unfold::UpdateStage::DownloadInstaller || stage == unfold::UpdateStage::VerifyInstaller);
+      }
+    else
+      {
+        EXPECT_EQ(stage, *last_stage + 1);
+      }
+    last_stage = stage;
+  });
+
+  std::optional<outcome::std_result<void>> status;
+  control.set_update_status_callback([&](outcome::std_result<void> rc) {
+    if (rc.has_error())
+      {
+        spdlog::info("Update status: {}", rc.error().message());
+      }
+    status = rc;
+  });
+
+  control.get_hooks()->hook_terminate() = []() { return false; };
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await control.check_for_update();
+          EXPECT_EQ(rc.has_error(), false);
+
+          auto update_info = control.get_update_info();
+          EXPECT_EQ(update_info->title, "Workrave");
+          EXPECT_EQ(update_info->current_version, "1.10.45");
+          EXPECT_EQ(update_info->version, "1.11.0-alpha.1");
+          EXPECT_EQ(update_info->release_notes.size(), 4);
+          EXPECT_EQ(update_info->release_notes.front().version, "1.11.0-alpha.1");
+
+          std::filesystem::remove("installer.log");
+
+          auto ri = co_await control.install_update();
+          EXPECT_EQ(ri.has_error(), true);
+          int tries = 100;
+          bool found = false;
+          do
+            {
+              found = std::filesystem::exists("installer.log");
+              std::this_thread::sleep_for(std::chrono::milliseconds(50));
+              tries--;
+            }
+          while (tries > 0 && !found);
+          EXPECT_FALSE(found);
+          EXPECT_GE(100, last_progress);
+          EXPECT_EQ(platform->is_terminated(), false);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          EXPECT_TRUE(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+  EXPECT_EQ(status.has_value(), false);
+  EXPECT_EQ(*last_stage, unfold::UpdateStage::VerifyInstaller);
+}
+
+TEST_F(IntegrationTest, UpdateError)
+{
+  unfold::coro::IOContext io_context;
+  UpgradeControl control(platform, time_source, io_context);
+
+  init_appcast();
+  control.set_configuration_prefix("Software\\Unfold\\Test");
+
+  auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  EXPECT_EQ(rc.has_error(), false);
+
+  control.set_certificate(cert);
+  control.set_configuration_prefix("Software\\Unfold\\Test");
+
+  rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_current_version("1.10.45");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_allowed_channels({"alpha"});
+  EXPECT_EQ(rc.has_error(), false);
+
+  double last_progress = 0.0;
+  std::optional<unfold::UpdateStage> last_stage;
+  control.set_download_progress_callback([&last_stage, &last_progress](unfold::UpdateStage stage, auto progress) {
+    if (stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        EXPECT_GE(progress, last_progress);
+        last_progress = progress;
+      }
+
+    if (!last_stage)
+      {
+        EXPECT_EQ(stage, unfold::UpdateStage::DownloadInstaller);
+      }
+    else if (*last_stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        EXPECT_TRUE(stage == unfold::UpdateStage::DownloadInstaller || stage == unfold::UpdateStage::VerifyInstaller);
+      }
+    else
+      {
+        EXPECT_EQ(stage, *last_stage + 1);
+      }
+    last_stage = stage;
+  });
+
+  std::optional<outcome::std_result<void>> status;
+  control.set_update_status_callback([&](outcome::std_result<void> rc) {
+    if (rc.has_error())
+      {
+        spdlog::info("Update status: {}", rc.error().message());
+      }
+    status = rc;
+  });
+
+  bool validation_called = false;
+  control.set_update_validation_callback([&](const unfold::UpdateInfo &update_info) -> outcome::std_result<bool> {
+    validation_called = true;
+    return outcome::failure(unfold::UnfoldErrc::InternalError); // Validation error
+  });
+
+  control.get_hooks()->hook_terminate() = []() { return false; };
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await control.check_for_update();
+          EXPECT_EQ(rc.has_error(), true);
+
+          auto update_info = control.get_update_info();
+          EXPECT_EQ(update_info, nullptr);
+
+          std::filesystem::remove("installer.log");
+
+          auto ri = co_await control.install_update();
+          EXPECT_EQ(ri.has_error(), true);
+          EXPECT_GE(100, last_progress);
+          EXPECT_EQ(platform->is_terminated(), false);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          EXPECT_TRUE(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+  EXPECT_EQ(status.has_value(), false);
+  EXPECT_EQ(*last_stage, unfold::UpdateStage::DownloadInstaller);
+}
+
+TEST_F(IntegrationTest, UpdateRejected)
+{
+  unfold::coro::IOContext io_context;
+  UpgradeControl control(platform, time_source, io_context);
+
+  init_appcast();
+  control.set_configuration_prefix("Software\\Unfold\\Test");
+
+  auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  EXPECT_EQ(rc.has_error(), false);
+
+  control.set_certificate(cert);
+  control.set_configuration_prefix("Software\\Unfold\\Test");
+
+  rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_current_version("1.10.45");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_allowed_channels({"alpha"});
+  EXPECT_EQ(rc.has_error(), false);
+
+  double last_progress = 0.0;
+  std::optional<unfold::UpdateStage> last_stage;
+  control.set_download_progress_callback([&last_stage, &last_progress](unfold::UpdateStage stage, auto progress) {
+    if (stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        EXPECT_GE(progress, last_progress);
+        last_progress = progress;
+      }
+
+    if (!last_stage)
+      {
+        EXPECT_EQ(stage, unfold::UpdateStage::DownloadInstaller);
+      }
+    else if (*last_stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        EXPECT_TRUE(stage == unfold::UpdateStage::DownloadInstaller || stage == unfold::UpdateStage::VerifyInstaller);
+      }
+    else
+      {
+        EXPECT_EQ(stage, *last_stage + 1);
+      }
+    last_stage = stage;
+  });
+
+  std::optional<outcome::std_result<void>> status;
+  control.set_update_status_callback([&](outcome::std_result<void> rc) {
+    if (rc.has_error())
+      {
+        spdlog::info("Update status: {}", rc.error().message());
+      }
+    status = rc;
+  });
+
+  bool validation_called = false;
+  control.set_update_validation_callback([&](const unfold::UpdateInfo &update_info) -> outcome::std_result<bool> {
+    validation_called = true;
+    return outcome::success(false); // Reject the update
+  });
+
+  control.get_hooks()->hook_terminate() = []() { return false; };
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await control.check_for_update();
+          EXPECT_EQ(rc.has_error(), false);
+          EXPECT_EQ(rc.value(), false);
+
+          auto update_info = control.get_update_info();
+          EXPECT_EQ(update_info, nullptr);
+
+          std::filesystem::remove("installer.log");
+
+          auto ri = co_await control.install_update();
+          EXPECT_EQ(ri.has_error(), true);
+          EXPECT_GE(100, last_progress);
+          EXPECT_EQ(platform->is_terminated(), false);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          EXPECT_TRUE(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+  EXPECT_EQ(status.has_value(), false);
+  EXPECT_EQ(*last_stage, unfold::UpdateStage::DownloadInstaller);
+}
+
+TEST_F(IntegrationTest, UpdateAccepted)
+{
+  unfold::coro::IOContext io_context;
+  UpgradeControl control(platform, time_source, io_context);
+
+  init_appcast();
+  control.set_configuration_prefix("Software\\Unfold\\Test");
+
+  auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  EXPECT_EQ(rc.has_error(), false);
+
+  control.set_certificate(cert);
+  control.set_configuration_prefix("Software\\Unfold\\Test");
+
+  rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_current_version("1.10.45");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_allowed_channels({"alpha"});
+  EXPECT_EQ(rc.has_error(), false);
+
+  double last_progress = 0.0;
+  std::optional<unfold::UpdateStage> last_stage;
+  control.set_download_progress_callback([&last_stage, &last_progress](unfold::UpdateStage stage, auto progress) {
+    if (stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        EXPECT_GE(progress, last_progress);
+        last_progress = progress;
+      }
+
+    if (!last_stage)
+      {
+        EXPECT_EQ(stage, unfold::UpdateStage::DownloadInstaller);
+      }
+    else if (*last_stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        EXPECT_TRUE(stage == unfold::UpdateStage::DownloadInstaller || stage == unfold::UpdateStage::VerifyInstaller);
+      }
+    else
+      {
+        EXPECT_EQ(stage, *last_stage + 1);
+      }
+    last_stage = stage;
+  });
+
+  std::optional<outcome::std_result<void>> status;
+  control.set_update_status_callback([&](outcome::std_result<void> rc) {
+    if (rc.has_error())
+      {
+        spdlog::info("Update status: {}", rc.error().message());
+      }
+    status = rc;
+  });
+
+  bool validation_called = false;
+  control.set_update_validation_callback([&](const unfold::UpdateInfo &update_info) -> outcome::std_result<bool> {
+    validation_called = true;
+    return outcome::success(true); // Accept the update
+  });
+
+  control.get_hooks()->hook_terminate() = []() { return false; };
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await control.check_for_update();
+          EXPECT_EQ(rc.has_error(), false);
+
+          auto update_info = control.get_update_info();
+          EXPECT_NE(update_info, nullptr);
+
+          std::filesystem::remove("installer.log");
+
+          auto ri = co_await control.install_update();
+          EXPECT_EQ(ri.has_error(), false);
+          EXPECT_GE(100, last_progress);
+          EXPECT_EQ(platform->is_terminated(), false);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          EXPECT_TRUE(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+  EXPECT_EQ(status.has_value(), false);
+  EXPECT_EQ(*last_stage, unfold::UpdateStage::RunInstaller);
+}
+
+TEST_F(IntegrationTest, InstallerAccepted)
+{
+  unfold::coro::IOContext io_context;
+  UpgradeControl control(platform, time_source, io_context);
+
+  init_appcast();
+  control.set_configuration_prefix("Software\\Unfold\\Test");
+
+  auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  EXPECT_EQ(rc.has_error(), false);
+
+  control.set_certificate(cert);
+  control.set_configuration_prefix("Software\\Unfold\\Test");
+
+  rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_current_version("1.10.45");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_allowed_channels({"alpha"});
+  EXPECT_EQ(rc.has_error(), false);
+
+  double last_progress = 0.0;
+  std::optional<unfold::UpdateStage> last_stage;
+  control.set_download_progress_callback([&last_stage, &last_progress](unfold::UpdateStage stage, auto progress) {
+    if (stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        EXPECT_GE(progress, last_progress);
+        last_progress = progress;
+      }
+
+    if (!last_stage)
+      {
+        EXPECT_EQ(stage, unfold::UpdateStage::DownloadInstaller);
+      }
+    else if (*last_stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        EXPECT_TRUE(stage == unfold::UpdateStage::DownloadInstaller || stage == unfold::UpdateStage::VerifyInstaller);
+      }
+    else
+      {
+        EXPECT_EQ(stage, *last_stage + 1);
+      }
+    last_stage = stage;
+  });
+
+  std::optional<outcome::std_result<void>> status;
+  control.set_update_status_callback([&](outcome::std_result<void> rc) {
+    if (rc.has_error())
+      {
+        spdlog::info("Update status: {}", rc.error().message());
+      }
+    status = rc;
+  });
+
+  bool validation_called = false;
+  control.set_installer_validation_callback([&](const std::string &installer_path) -> outcome::std_result<bool> {
+    validation_called = true;
+    return outcome::success(true); // Accept the installer
+  });
+
+  control.get_hooks()->hook_terminate() = []() { return false; };
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await control.check_for_update();
+          EXPECT_EQ(rc.has_error(), false);
+
+          auto update_info = control.get_update_info();
+          EXPECT_NE(update_info, nullptr);
+
+          std::filesystem::remove("installer.log");
+
+          auto ri = co_await control.install_update();
+          EXPECT_EQ(ri.has_error(), false);
+          EXPECT_GE(100, last_progress);
+          EXPECT_EQ(platform->is_terminated(), false);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          EXPECT_TRUE(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+  EXPECT_EQ(status.has_value(), false);
+  EXPECT_EQ(*last_stage, unfold::UpdateStage::RunInstaller);
+}
+
+TEST_F(IntegrationTest, InstallerRejected)
+{
+  unfold::coro::IOContext io_context;
+  UpgradeControl control(platform, time_source, io_context);
+
+  init_appcast();
+  control.set_configuration_prefix("Software\\Unfold\\Test");
+
+  auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  EXPECT_EQ(rc.has_error(), false);
+
+  control.set_certificate(cert);
+  control.set_configuration_prefix("Software\\Unfold\\Test");
+
+  rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_current_version("1.10.45");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_allowed_channels({"alpha"});
+  EXPECT_EQ(rc.has_error(), false);
+
+  double last_progress = 0.0;
+  std::optional<unfold::UpdateStage> last_stage;
+  control.set_download_progress_callback([&last_stage, &last_progress](unfold::UpdateStage stage, auto progress) {
+    if (stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        EXPECT_GE(progress, last_progress);
+        last_progress = progress;
+      }
+
+    if (!last_stage)
+      {
+        EXPECT_EQ(stage, unfold::UpdateStage::DownloadInstaller);
+      }
+    else if (*last_stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        EXPECT_TRUE(stage == unfold::UpdateStage::DownloadInstaller || stage == unfold::UpdateStage::VerifyInstaller);
+      }
+    else
+      {
+        EXPECT_EQ(stage, *last_stage + 1);
+      }
+    last_stage = stage;
+  });
+
+  std::optional<outcome::std_result<void>> status;
+  control.set_update_status_callback([&](outcome::std_result<void> rc) {
+    if (rc.has_error())
+      {
+        spdlog::info("Update status: {}", rc.error().message());
+      }
+    status = rc;
+  });
+
+  bool validation_called = false;
+  control.set_installer_validation_callback([&](const std::string &installer_path) -> outcome::std_result<bool> {
+    validation_called = true;
+    return outcome::success(false);
+  });
+
+  control.get_hooks()->hook_terminate() = []() { return false; };
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await control.check_for_update();
+          EXPECT_EQ(rc.has_error(), false);
+
+          auto update_info = control.get_update_info();
+          EXPECT_NE(update_info, nullptr);
+
+          std::filesystem::remove("installer.log");
+
+          auto ri = co_await control.install_update();
+          EXPECT_EQ(ri.has_error(), true);
+          EXPECT_GE(100, last_progress);
+          EXPECT_EQ(platform->is_terminated(), false);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          EXPECT_TRUE(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+  EXPECT_EQ(status.has_value(), false);
+  EXPECT_EQ(*last_stage, unfold::UpdateStage::VerifyInstaller);
+}
+
+TEST_F(IntegrationTest, InstallerError)
+{
+  unfold::coro::IOContext io_context;
+  UpgradeControl control(platform, time_source, io_context);
+
+  init_appcast();
+  control.set_configuration_prefix("Software\\Unfold\\Test");
+
+  auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  EXPECT_EQ(rc.has_error(), false);
+
+  control.set_certificate(cert);
+  control.set_configuration_prefix("Software\\Unfold\\Test");
+
+  rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_current_version("1.10.45");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_allowed_channels({"alpha"});
+  EXPECT_EQ(rc.has_error(), false);
+
+  double last_progress = 0.0;
+  std::optional<unfold::UpdateStage> last_stage;
+  control.set_download_progress_callback([&last_stage, &last_progress](unfold::UpdateStage stage, auto progress) {
+    if (stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        EXPECT_GE(progress, last_progress);
+        last_progress = progress;
+      }
+
+    if (!last_stage)
+      {
+        EXPECT_EQ(stage, unfold::UpdateStage::DownloadInstaller);
+      }
+    else if (*last_stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        EXPECT_TRUE(stage == unfold::UpdateStage::DownloadInstaller || stage == unfold::UpdateStage::VerifyInstaller);
+      }
+    else
+      {
+        EXPECT_EQ(stage, *last_stage + 1);
+      }
+    last_stage = stage;
+  });
+
+  std::optional<outcome::std_result<void>> status;
+  control.set_update_status_callback([&](outcome::std_result<void> rc) {
+    if (rc.has_error())
+      {
+        spdlog::info("Update status: {}", rc.error().message());
+      }
+    status = rc;
+  });
+
+  bool validation_called = false;
+  control.set_installer_validation_callback([&](const std::string &installer_path) -> outcome::std_result<bool> {
+    validation_called = true;
+    return outcome::failure(unfold::UnfoldErrc::InternalError); // Simulate an error during installer validation
+  });
+
+  control.get_hooks()->hook_terminate() = []() { return false; };
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await control.check_for_update();
+          EXPECT_EQ(rc.has_error(), false);
+
+          auto update_info = control.get_update_info();
+          EXPECT_NE(update_info, nullptr);
+
+          std::filesystem::remove("installer.log");
+
+          auto ri = co_await control.install_update();
+          EXPECT_EQ(ri.has_error(), true);
+          EXPECT_GE(100, last_progress);
+          EXPECT_EQ(platform->is_terminated(), false);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          EXPECT_TRUE(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+  EXPECT_EQ(status.has_value(), false);
+  EXPECT_EQ(*last_stage, unfold::UpdateStage::VerifyInstaller);
+}
+
 // TODO: detect invalid cert
 // TEST_F(IntegrationTest, InvalidCert)
 // {
@@ -279,7 +960,7 @@ TEST_F(IntegrationTest, CheckAlpha)
   control.set_update_status_callback([&](outcome::std_result<void> rc) {
     if (rc.has_error())
       {
-        spdlog::info("Update status {}", rc.error().message());
+        spdlog::info("Update status: {}", rc.error().message());
       }
     status = rc;
   });
@@ -294,6 +975,7 @@ TEST_F(IntegrationTest, CheckAlpha)
         {
           auto rc = co_await control.check_for_update();
           EXPECT_EQ(rc.has_error(), false);
+          EXPECT_EQ(rc.value(), true);
 
           auto update_info = control.get_update_info();
           EXPECT_EQ(update_info->title, "Workrave");
@@ -308,13 +990,16 @@ TEST_F(IntegrationTest, CheckAlpha)
           EXPECT_EQ(ri.has_error(), false);
           int tries = 100;
           bool found = false;
-          do
+          if (!ri.has_error())
             {
-              found = std::filesystem::exists("installer.log");
-              std::this_thread::sleep_for(std::chrono::milliseconds(50));
-              tries--;
+              do
+                {
+                  found = std::filesystem::exists("installer.log");
+                  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                  tries--;
+                }
+              while (tries > 0 && !found);
             }
-          while (tries > 0 && !found);
           EXPECT_TRUE(found);
           EXPECT_GE(100, last_progress);
           EXPECT_EQ(platform->is_terminated(), false);
@@ -411,13 +1096,16 @@ TEST_F(IntegrationTest, CheckAlphaAndRelease)
           EXPECT_EQ(ri.has_error(), false);
           int tries = 100;
           bool found = false;
-          do
+          if (!ri.has_error())
             {
-              found = std::filesystem::exists("installer.log");
-              std::this_thread::sleep_for(std::chrono::milliseconds(50));
-              tries--;
+              do
+                {
+                  found = std::filesystem::exists("installer.log");
+                  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                  tries--;
+                }
+              while (tries > 0 && !found);
             }
-          while (tries > 0 && !found);
           EXPECT_TRUE(found);
           EXPECT_GE(100, last_progress);
           EXPECT_EQ(platform->is_terminated(), false);
@@ -513,13 +1201,16 @@ TEST_F(IntegrationTest, CheckRelease)
           EXPECT_EQ(ri.has_error(), false);
           int tries = 100;
           bool found = false;
-          do
+          if (!ri.has_error())
             {
-              found = std::filesystem::exists("installer.log");
-              std::this_thread::sleep_for(std::chrono::milliseconds(50));
-              tries--;
+              do
+                {
+                  found = std::filesystem::exists("installer.log");
+                  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                  tries--;
+                }
+              while (tries > 0 && !found);
             }
-          while (tries > 0 && !found);
           EXPECT_TRUE(found);
           EXPECT_GE(100, last_progress);
           EXPECT_EQ(platform->is_terminated(), false);
@@ -786,7 +1477,7 @@ TEST_F(IntegrationTest, PeriodicCheckCanaryHighPrio)
     status = rc;
     if (rc.has_error())
       {
-        spdlog::info("Update status {}", rc.error().message());
+        spdlog::info("Update status: {}", rc.error().message());
       }
   });
 
@@ -859,7 +1550,8 @@ TEST_F(IntegrationTest, PeriodicCheckInstallNow)
   control.set_update_status_callback([&](outcome::std_result<void> rc) {
     if (rc.has_error())
       {
-        spdlog::info("Update status {}", rc.error().message());
+        spdlog::info("Update status: {}", rc.error().message());
+        io_context.stop();
       }
     status = rc;
   });
@@ -876,6 +1568,6 @@ TEST_F(IntegrationTest, PeriodicCheckInstallNow)
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
       tries--;
     }
-  while (tries > 0 && !found);
+  while (tries > 0 && !found && !status.has_value());
   EXPECT_TRUE(found);
 }

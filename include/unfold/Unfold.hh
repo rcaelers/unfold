@@ -86,6 +86,7 @@ namespace unfold
     using update_status_callback_t = std::function<void(outcome::std_result<void>)>;
     using download_progress_callback_t = std::function<void(UpdateStage stage, double progress)>;
     using update_validation_callback_t = std::function<outcome::std_result<bool>(const UpdateInfo& update_info)>;
+    using installer_validation_callback_t = std::function<outcome::std_result<bool>(const std::string& installer_path)>;
 
     static std::shared_ptr<Unfold> create(unfold::coro::IOContext &io_context);
 
@@ -103,6 +104,7 @@ namespace unfold
     virtual void set_download_progress_callback(download_progress_callback_t callback) = 0;
     virtual void set_update_status_callback(update_status_callback_t callback) = 0;
     virtual void set_update_validation_callback(update_validation_callback_t callback) = 0;
+    virtual void set_installer_validation_callback(installer_validation_callback_t callback) = 0;
     virtual void set_proxy(ProxyType proxy) = 0;
     virtual void set_custom_proxy(const std::string &proxy) = 0;
 

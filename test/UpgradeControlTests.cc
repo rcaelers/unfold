@@ -71,7 +71,7 @@ namespace
 
 struct UpgradeControlTest : public ::testing::Test
 {
-  ~UpgradeControlTest() = default;
+  ~UpgradeControlTest() override = default;
 
   UpgradeControlTest(const UpgradeControlTest &) = delete;
   UpgradeControlTest &operator=(const UpgradeControlTest &) = delete;
@@ -709,7 +709,7 @@ TEST_F(UpgradeControlTest, NoCallback)
       info->current_version = "1.10.45";
       info->version = "1.11.0-alpha.1";
       info->title = "Workrave";
-      auto r = unfold::UpdateReleaseNotes{.version="1.11.0-alpha.1", .date="x", .markdown="x"};
+      auto r = unfold::UpdateReleaseNotes{.version = "1.11.0-alpha.1", .date = "x", .markdown = "x"};
       info->release_notes.push_back(r);
       return info;
     }));
@@ -887,6 +887,14 @@ TEST_F(UpgradeControlTest, CallbackInstall)
     status = rc;
   });
 
+  EXPECT_CALL(*installer, set_installer_validation_callback(_))
+    .Times(AtLeast(1))
+    .WillRepeatedly(
+      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
+
+  control->set_installer_validation_callback(
+    [&](const std::string &installer_path) -> outcome::std_result<bool> { return outcome::success(true); });
+
   EXPECT_CALL(*checker, check_for_update())
     .Times(AtLeast(1))
     .WillRepeatedly(
@@ -1043,222 +1051,4 @@ TEST_F(UpgradeControlTest, Priority)
   ret = control->set_priority(0);
   EXPECT_EQ(ret.has_error(), false);
   EXPECT_EQ(control->get_active_priority(), 10);
-}
-
-TEST_F(UpgradeControlTest, UpdateValidationCallbackAccept)
-{
-  EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
-
-  bool validation_called = false;
-  control->set_update_validation_callback([&](const unfold::UpdateInfo &update_info) -> outcome::std_result<bool> {
-    validation_called = true;
-    EXPECT_EQ(update_info.version, "1.11.0-alpha.1");
-    EXPECT_EQ(update_info.download_url, "https://trusted-domain.com/update.exe");
-    return outcome::success(true); // Accept the update
-  });
-
-  control->set_update_available_callback(
-    [&]() -> boost::asio::awaitable<unfold::UpdateResponse> { co_return unfold::UpdateResponse::Install; });
-
-  EXPECT_CALL(*checker, check_for_update())
-    .Times(AtLeast(1))
-    .WillRepeatedly(
-      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
-
-  EXPECT_CALL(*checker, get_update_info())
-    .Times(AtLeast(1))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
-      auto info = std::make_shared<unfold::UpdateInfo>();
-      info->current_version = "1.10.45";
-      info->version = "1.11.0-alpha.1";
-      info->download_url = "https://trusted-domain.com/update.exe";
-      info->title = "Workrave";
-      auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
-      info->release_notes.push_back(r);
-      return info;
-    }));
-
-  auto item = std::make_shared<AppcastItem>();
-  EXPECT_CALL(*checker, get_selected_update())
-    .Times(AtLeast(1))
-    .WillRepeatedly(InvokeWithoutArgs([item]() -> std::shared_ptr<AppcastItem> { return item; }));
-
-  EXPECT_CALL(*installer, install(item))
-    .Times(AtLeast(1))
-    .WillRepeatedly(
-      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
-
-  boost::asio::io_context ioc;
-  boost::asio::co_spawn(
-    ioc,
-    [&]() -> boost::asio::awaitable<void> {
-      try
-        {
-          auto result = co_await control->check_for_update_and_notify();
-          EXPECT_FALSE(result.has_error());
-          EXPECT_TRUE(validation_called);
-        }
-      catch (std::exception &e)
-        {
-          spdlog::info("Exception {}", e.what());
-          EXPECT_TRUE(false);
-        }
-    },
-    boost::asio::detached);
-  ioc.run();
-}
-
-TEST_F(UpgradeControlTest, UpdateValidationCallbackReject)
-{
-  EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
-
-  bool validation_called = false;
-  control->set_update_validation_callback([&](const unfold::UpdateInfo &update_info) -> outcome::std_result<bool> {
-    validation_called = true;
-    EXPECT_EQ(update_info.version, "1.11.0-alpha.1");
-    EXPECT_EQ(update_info.download_url, "https://untrusted-domain.com/update.exe");
-    return outcome::success(false); // Reject the update
-  });
-
-  control->set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
-    ADD_FAILURE() << "Update available callback should not be called when validation rejects";
-    co_return unfold::UpdateResponse::Install;
-  });
-
-  EXPECT_CALL(*checker, check_for_update())
-    .Times(1)
-    .WillOnce(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
-
-  EXPECT_CALL(*checker, get_update_info()).Times(1).WillOnce(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
-    auto info = std::make_shared<unfold::UpdateInfo>();
-    info->current_version = "1.10.45";
-    info->version = "1.11.0-alpha.1";
-    info->title = "Workrave";
-    info->download_url = "https://untrusted-domain.com/update.exe";
-    auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
-    info->release_notes.push_back(r);
-    return info;
-  }));
-
-  // Installer should NOT be called
-  EXPECT_CALL(*installer, install(_)).Times(0);
-
-  boost::asio::io_context ioc;
-  boost::asio::co_spawn(
-    ioc,
-    [&]() -> boost::asio::awaitable<void> {
-      try
-        {
-          auto result = co_await control->check_for_update_and_notify();
-          EXPECT_FALSE(result.has_error()); // Should succeed but not proceed with update
-          EXPECT_TRUE(validation_called);
-        }
-      catch (std::exception &e)
-        {
-          spdlog::info("Exception {}", e.what());
-          EXPECT_TRUE(false);
-        }
-    },
-    boost::asio::detached);
-  ioc.run();
-}
-
-TEST_F(UpgradeControlTest, UpdateValidationCallbackError)
-{
-  EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
-
-  bool validation_called = false;
-  control->set_update_validation_callback([&](const unfold::UpdateInfo &update_info) -> outcome::std_result<bool> {
-    validation_called = true;
-    return outcome::failure(unfold::UnfoldErrc::InternalError); // Validation error
-  });
-
-  control->set_update_available_callback([&]() -> boost::asio::awaitable<unfold::UpdateResponse> {
-    ADD_FAILURE() << "Update available callback should not be called when validation fails";
-    co_return unfold::UpdateResponse::Install;
-  });
-
-  EXPECT_CALL(*checker, check_for_update())
-    .Times(1)
-    .WillOnce(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
-
-  EXPECT_CALL(*checker, get_update_info()).Times(1).WillOnce(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
-    auto info = std::make_shared<unfold::UpdateInfo>();
-    info->current_version = "1.10.45";
-    info->version = "1.11.0-alpha.1";
-    info->title = "Workrave";
-    info->download_url = "https://some-domain.com/update.exe";
-    auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
-    info->release_notes.push_back(r);
-    return info;
-  }));
-
-  EXPECT_CALL(*installer, install(_)).Times(0);
-
-  boost::asio::io_context ioc;
-  boost::asio::co_spawn(
-    ioc,
-    [&]() -> boost::asio::awaitable<void> {
-      try
-        {
-          auto result = co_await control->check_for_update_and_notify();
-          EXPECT_TRUE(result.has_error()); // Should fail due to validation error
-          EXPECT_EQ(result.error(), unfold::UnfoldErrc::InternalError);
-          EXPECT_TRUE(validation_called);
-        }
-      catch (std::exception &e)
-        {
-          spdlog::info("Exception {}", e.what());
-          EXPECT_TRUE(false);
-        }
-    },
-    boost::asio::detached);
-  ioc.run();
-}
-
-TEST_F(UpgradeControlTest, UpdateValidationCallbackNotSet)
-{
-  EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
-
-  control->set_update_available_callback(
-    [&]() -> boost::asio::awaitable<unfold::UpdateResponse> { co_return unfold::UpdateResponse::Install; });
-
-  EXPECT_CALL(*checker, check_for_update())
-    .Times(1)
-    .WillOnce(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
-
-  EXPECT_CALL(*checker, get_update_info()).Times(1).WillOnce(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
-    auto info = std::make_shared<unfold::UpdateInfo>();
-    info->current_version = "1.10.45";
-    info->version = "1.11.0-alpha.1";
-    info->title = "Workrave";
-    info->download_url = "https://some-domain.com/update.exe";
-    auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
-    info->release_notes.push_back(r);
-    return info;
-  }));
-
-  EXPECT_CALL(*checker, get_selected_update()).Times(1).WillOnce(Return(std::shared_ptr<AppcastItem>{}));
-
-  EXPECT_CALL(*installer, install(_))
-    .Times(1)
-    .WillOnce(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
-
-  boost::asio::io_context ioc;
-  boost::asio::co_spawn(
-    ioc,
-    [&]() -> boost::asio::awaitable<void> {
-      try
-        {
-          auto result = co_await control->check_for_update_and_notify();
-          EXPECT_FALSE(result.has_error());
-        }
-      catch (std::exception &e)
-        {
-          spdlog::info("Exception {}", e.what());
-          EXPECT_TRUE(false);
-        }
-    },
-    boost::asio::detached);
-  ioc.run();
 }

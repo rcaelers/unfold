@@ -22,8 +22,6 @@
 #define INSTALLER_HH
 
 #include <memory>
-#include <string>
-#include <filesystem>
 
 #include "unfold/Unfold.hh"
 #include "AppCast.hh"
@@ -36,6 +34,7 @@ public:
   virtual ~Installer() = default;
 
   virtual void set_download_progress_callback(unfold::Unfold::download_progress_callback_t callback) = 0;
+  virtual void set_installer_validation_callback(unfold::Unfold::installer_validation_callback_t callback) = 0;
   virtual boost::asio::awaitable<outcome::std_result<void>> install(std::shared_ptr<AppcastItem> item) = 0;
 };
 

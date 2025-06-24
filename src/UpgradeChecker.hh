@@ -24,11 +24,9 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <filesystem>
 
 #include "unfold/Unfold.hh"
 #include "http/HttpClient.hh"
-#include "crypto/SignatureVerifier.hh"
 #include "utils/Logging.hh"
 
 #include "AppCast.hh"
@@ -48,6 +46,7 @@ public:
   outcome::std_result<void> set_appcast(const std::string &url) override;
   outcome::std_result<void> set_current_version(const std::string &version) override;
   outcome::std_result<void> set_allowed_channels(const std::vector<std::string> &channels) override;
+  void set_update_validation_callback(unfold::Unfold::update_validation_callback_t callback) override;
 
   std::shared_ptr<unfold::UpdateInfo> get_update_info() const override;
   std::shared_ptr<AppcastItem> get_selected_update() const override;
@@ -72,6 +71,7 @@ private:
 
   std::shared_ptr<AppcastItem> selected_item;
   std::shared_ptr<unfold::UpdateInfo> update_info;
+  unfold::Unfold::update_validation_callback_t update_validation_callback;
 
   std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:checker")};
 };

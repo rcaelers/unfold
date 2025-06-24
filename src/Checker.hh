@@ -38,6 +38,7 @@ public:
   virtual outcome::std_result<void> set_appcast(const std::string &url) = 0;
   virtual outcome::std_result<void> set_current_version(const std::string &version) = 0;
   virtual outcome::std_result<void> set_allowed_channels(const std::vector<std::string> &channels) = 0;
+  virtual void set_update_validation_callback(unfold::Unfold::update_validation_callback_t callback) = 0;
   virtual std::shared_ptr<unfold::UpdateInfo> get_update_info() const = 0;
   virtual std::shared_ptr<AppcastItem> get_selected_update() const = 0;
   virtual std::chrono::seconds get_rollout_delay_for_priority(int priority) const = 0;

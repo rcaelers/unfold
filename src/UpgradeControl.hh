@@ -76,6 +76,7 @@ public:
   void set_download_progress_callback(download_progress_callback_t callback) override;
   void set_update_status_callback(update_status_callback_t callback) override;
   void set_update_validation_callback(update_validation_callback_t callback) override;
+  void set_installer_validation_callback(installer_validation_callback_t callback) override;
   std::optional<std::chrono::system_clock::time_point> get_last_update_check_time() override;
   int get_active_priority() const override;
 

@@ -29,7 +29,7 @@ namespace unfold
   enum class UnfoldErrc
   {
     Success = 0,
-    InvalidArgument = 1,
+    InvalidArgument,
     InvalidAppcast,
     AppcastDownloadFailed,
     InstallerDownloadFailed,

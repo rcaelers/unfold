@@ -66,6 +66,12 @@ UpgradeInstaller::set_download_progress_callback(unfold::Unfold::download_progre
   this->progress_callback = callback;
 }
 
+void
+UpgradeInstaller::set_installer_validation_callback(unfold::Unfold::installer_validation_callback_t callback)
+{
+  this->installer_validation_callback = callback;
+}
+
 boost::asio::awaitable<outcome::std_result<void>>
 UpgradeInstaller::install(std::shared_ptr<AppcastItem> item)
 {
@@ -79,6 +85,24 @@ UpgradeInstaller::install(std::shared_ptr<AppcastItem> item)
 
   BOOST_OUTCOME_CO_TRYV(co_await download_installer());
   BOOST_OUTCOME_CO_TRYV(co_await verify_installer());
+
+  // Validate installer if callback is set
+  if (installer_validation_callback)
+    {
+      auto validation_result = installer_validation_callback(installer_path.string());
+      if (!validation_result)
+        {
+          logger->error("installer validation failed: {}", validation_result.error().message());
+          co_return validation_result.as_failure();
+        }
+      if (!validation_result.value())
+        {
+          logger->warn("installer validation rejected for version {}", item->version);
+          co_return outcome::failure(unfold::UnfoldErrc::InstallerVerificationFailed);
+        }
+      logger->info("installer validation successful for version {}", item->version);
+    }
+
   BOOST_OUTCOME_CO_TRYV(co_await run_installer());
 
   co_return outcome::success();

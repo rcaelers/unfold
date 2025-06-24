@@ -75,6 +75,12 @@ UpgradeChecker::set_allowed_channels(const std::vector<std::string> &channels)
   return outcome::success();
 }
 
+void
+UpgradeChecker::set_update_validation_callback(unfold::Unfold::update_validation_callback_t callback)
+{
+  update_validation_callback = callback;
+}
+
 std::shared_ptr<unfold::UpdateInfo>
 UpgradeChecker::get_update_info() const
 {
@@ -144,6 +150,30 @@ UpgradeChecker::check_for_update()
   if (!items.empty())
     {
       build_update_info(appcast.value());
+
+      // Validate update if callback is set
+      if (update_validation_callback && update_info)
+        {
+          logger->info("update available, validating update");
+
+          auto validation_result = update_validation_callback(*update_info);
+          if (!validation_result)
+            {
+              logger->error("update validation failed: {}", validation_result.error().message());
+              selected_item.reset();
+              update_info.reset();
+              co_return validation_result.as_failure();
+            }
+          if (!validation_result.value())
+            {
+              logger->warn("update to version {} rejected by validation callback", update_info->version);
+              selected_item.reset();
+              update_info.reset();
+              co_return false;
+            }
+          logger->info("update to version {} validated successfully", update_info->version);
+        }
+
       co_return true;
     }
 

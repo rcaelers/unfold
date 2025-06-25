@@ -40,8 +40,8 @@
             <description>Version 2 update</description>
             <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>
             <sparkle:version>2.0.0</sparkle:version>
-            <enclosure os="windows-x64" url="http://localhost:1337/v1.zip" sparkle:version="2.0" />
-            <sparkle:criticalUpdate sparkle:version="1.5" />
+            <enclosure os="windows-x64" url="http://localhost:1337/v1.zip" sparkle:edSignature="xx" length="1234" sparkle:version="2.0" />
+            <sparkle:criticalUpdate sparkle:version="1.5.0" />
             <unfold:canary>
                 <interval>
                     <percentage>10</percentage>

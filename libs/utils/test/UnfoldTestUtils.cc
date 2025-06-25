@@ -22,7 +22,6 @@
 #include <gmock/gmock.h>
 
 #include <memory>
-#include <fstream>
 
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -34,7 +33,6 @@
 #  include <spdlog/cfg/env.h>
 #endif
 
-#include "utils/Logging.hh"
 #include "utils/StringUtils.hh"
 #include "utils/DateUtils.hh"
 #include "utils/Base64.hh"
@@ -44,7 +42,7 @@ using namespace unfold::utils;
 struct GlobalFixture : public ::testing::Environment
 {
   GlobalFixture() = default;
-  ~GlobalFixture() = default;
+  ~GlobalFixture() override = default;
 
   GlobalFixture(const GlobalFixture &) = delete;
   GlobalFixture &operator=(const GlobalFixture &) = delete;
@@ -212,4 +210,168 @@ TEST(UtilsTest, utils_dateutils_incorrect_date)
 {
   std::string date_str_rfc = "2023-13-13T15:35:22";
   EXPECT_THROW(unfold::utils::DateUtils::parse_time_point(date_str_rfc), std::runtime_error);
+}
+
+TEST(UtilsTest, utils_base64_empty_string)
+{
+  // Test empty string handling
+  std::string empty_encoded = unfold::utils::Base64::encode("");
+  std::string empty_decoded = unfold::utils::Base64::decode("");
+
+  EXPECT_EQ(empty_encoded, "");
+  EXPECT_EQ(empty_decoded, "");
+}
+
+TEST(UtilsTest, utils_base64_decode_invalid_character)
+{
+  // Test invalid characters
+  EXPECT_THROW(unfold::utils::Base64::decode("Hello@World!"), unfold::utils::Base64Exception);
+  EXPECT_THROW(unfold::utils::Base64::decode("SGVs#G8g"), unfold::utils::Base64Exception);
+  EXPECT_THROW(unfold::utils::Base64::decode("test$"), unfold::utils::Base64Exception);
+}
+
+TEST(UtilsTest, utils_base64_decode_whitespace_error)
+{
+  // Test that whitespace is treated as an error
+  EXPECT_THROW(unfold::utils::Base64::decode("SGVs bG8g V29y bGQ="), unfold::utils::Base64Exception);
+  EXPECT_THROW(unfold::utils::Base64::decode("SGVsbG8g\nV29ybGQ="), unfold::utils::Base64Exception);
+  EXPECT_THROW(unfold::utils::Base64::decode("SGVsbG8g\tV29ybGQ="), unfold::utils::Base64Exception);
+  EXPECT_THROW(unfold::utils::Base64::decode(" SGVsbG8gV29ybGQ="), unfold::utils::Base64Exception);
+  EXPECT_THROW(unfold::utils::Base64::decode("SGVsbG8gV29ybGQ= "), unfold::utils::Base64Exception);
+}
+
+TEST(UtilsTest, utils_base64_decode_invalid_padding)
+{
+  // Test too many padding characters
+  EXPECT_THROW(unfold::utils::Base64::decode("SGVsbG8gV29ybGQ==="), unfold::utils::Base64Exception);
+  EXPECT_THROW(unfold::utils::Base64::decode("SGVsbG8gV29y===="), unfold::utils::Base64Exception);
+
+  // Test padding in the middle
+  EXPECT_THROW(unfold::utils::Base64::decode("SGVs=G8gV29ybGQ="), unfold::utils::Base64Exception);
+  EXPECT_THROW(unfold::utils::Base64::decode("SG=sbG8gV29ybGQ="), unfold::utils::Base64Exception);
+
+  // Test mixed padding
+  EXPECT_THROW(unfold::utils::Base64::decode("SGVs=b8gV29ybGQ="), unfold::utils::Base64Exception);
+}
+
+TEST(UtilsTest, utils_base64_decode_invalid_length)
+{
+  // Test inputs that would result in invalid length after validation
+  // Note: The current implementation auto-pads, so we test cases that are invalid even after padding
+  // These are cases where the input has invalid length semantics in Base64
+
+  // Single character - not enough for any valid Base64
+  EXPECT_THROW(unfold::utils::Base64::decode("A"), unfold::utils::Base64Exception);
+}
+
+TEST(UtilsTest, utils_base64_decode_valid_padding)
+{
+  // Test valid padding cases
+  std::string result1 = unfold::utils::Base64::decode("SGVsbG8="); // 1 padding char
+  EXPECT_EQ(result1, "Hello");
+
+  std::string result2 = unfold::utils::Base64::decode("SGVsbA=="); // 2 padding chars
+  EXPECT_EQ(result2, "Hell");
+
+  std::string result3 = unfold::utils::Base64::decode("SGVsbG8gV29ybGQ="); // 1 padding char
+  EXPECT_EQ(result3, "Hello World");
+}
+
+TEST(UtilsTest, utils_base64_roundtrip_various_sizes)
+{
+  // Test round-trip encoding/decoding for various input sizes
+  std::vector<std::string> test_inputs = {
+    "A",                                           // 1 byte
+    "AB",                                          // 2 bytes
+    "ABC",                                         // 3 bytes
+    "ABCD",                                        // 4 bytes
+    "ABCDE",                                       // 5 bytes
+    "Hello",                                       // 5 bytes
+    "Hello World",                                 // 11 bytes
+    "The quick brown fox jumps over the lazy dog", // 43 bytes
+    std::string(100, 'x'),                         // 100 bytes
+    std::string(255, 'y'),                         // 255 bytes
+  };
+
+  for (const auto &input: test_inputs)
+    {
+      std::string encoded = unfold::utils::Base64::encode(input);
+      std::string decoded = unfold::utils::Base64::decode(encoded);
+      EXPECT_EQ(decoded, input) << "Failed for input: " << input;
+    }
+}
+
+TEST(UtilsTest, utils_base64_binary_data)
+{
+  // Test with binary data including null bytes
+  std::string binary_data = {'\x00', '\x01', '\x02', '\x03', '\xff', '\xfe', '\xfd', '\xfc'};
+  std::string encoded = unfold::utils::Base64::encode(binary_data);
+  std::string decoded = unfold::utils::Base64::decode(encoded);
+
+  EXPECT_EQ(decoded, binary_data);
+  EXPECT_EQ(decoded.size(), 8);
+}
+
+TEST(UtilsTest, utils_base64_special_characters)
+{
+  // Test with special characters that are valid in Base64
+  std::string special_input = "Test+/=data";
+  std::string encoded = unfold::utils::Base64::encode(special_input);
+  std::string decoded = unfold::utils::Base64::decode(encoded);
+
+  EXPECT_EQ(decoded, special_input);
+}
+
+TEST(UtilsTest, utils_base64_exception_messages)
+{
+  // Test that exception messages are informative
+  try
+    {
+      unfold::utils::Base64::decode("Hello@World");
+      FAIL() << "Expected Base64Exception";
+    }
+  catch (const unfold::utils::Base64Exception &e)
+    {
+      std::string message = e.what();
+      EXPECT_TRUE(message.find("Invalid character") != std::string::npos);
+      EXPECT_TRUE(message.find("@") != std::string::npos);
+    }
+
+  try
+    {
+      unfold::utils::Base64::decode("SGVs bG8g");
+      FAIL() << "Expected Base64Exception";
+    }
+  catch (const unfold::utils::Base64Exception &e)
+    {
+      std::string message = e.what();
+      EXPECT_TRUE(message.find("Invalid character") != std::string::npos);
+    }
+
+  try
+    {
+      unfold::utils::Base64::decode("SGVsbG8gV29ybGQ===");
+      FAIL() << "Expected Base64Exception";
+    }
+  catch (const unfold::utils::Base64Exception &e)
+    {
+      std::string message = e.what();
+      EXPECT_TRUE(message.find("Too many padding") != std::string::npos);
+    }
+}
+
+TEST(UtilsTest, utils_base64_validation_logic)
+{
+  // Test that validation actually catches issues before auto-padding
+  // These inputs would become valid length after padding, but have other issues
+
+  // Input with invalid characters - should fail before padding
+  EXPECT_THROW(unfold::utils::Base64::decode("ABC@"), unfold::utils::Base64Exception);
+
+  // Input with padding in wrong place - should fail in original validation
+  EXPECT_THROW(unfold::utils::Base64::decode("AB=C"), unfold::utils::Base64Exception);
+
+  // Input that would have too much padding after auto-padding
+  // Original: "A=" (2 chars), after padding: "A==="  (4 chars) - too much padding
+  EXPECT_THROW(unfold::utils::Base64::decode("A="), unfold::utils::Base64Exception);
 }

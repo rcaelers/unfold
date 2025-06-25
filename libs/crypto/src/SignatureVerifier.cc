@@ -32,9 +32,9 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
 
-#include "ECDSASignatureAlgorithm.hh"
 #include "utils/Base64.hh"
 #include "crypto/SignatureVerifierErrors.hh"
+#include "SignatureAlgorithm.hh"
 
 using namespace unfold::crypto;
 

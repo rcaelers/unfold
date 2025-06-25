@@ -31,6 +31,11 @@
 
 using namespace unfold::crypto;
 
+namespace
+{
+  constexpr size_t ED25519_SIGNATURE_SIZE = 64;
+}
+
 outcome::std_result<void>
 ECDSASignatureAlgorithm::set_key(const std::string &key)
 {
@@ -54,13 +59,33 @@ ECDSASignatureAlgorithm::verify(std::string_view data, const std::string &signat
   if (pkey == nullptr)
     {
       logger->error("failed load public key ({})", ERR_error_string(ERR_get_error(), nullptr));
+      ERR_clear_error();
       return SignatureVerifierErrc::InvalidPublicKey;
+    }
+
+  if (EVP_PKEY_base_id(pkey) != EVP_PKEY_ED25519)
+    {
+      logger->error("invalid public key type: expected ED25519, got {}", EVP_PKEY_base_id(pkey));
+      return SignatureVerifierErrc::InvalidPublicKey;
+    }
+
+  if (data.size() > INT_MAX)
+    {
+      logger->error("data exceeds maximum data size = {}", data.size());
+      return SignatureVerifierErrc::InternalFailure;
+    }
+
+  if (signature.size() != ED25519_SIGNATURE_SIZE)
+    {
+      logger->error("signature has invalid size = {}", signature.size());
+      return SignatureVerifierErrc::InternalFailure;
     }
 
   EVP_MD_CTX *md_ctx = EVP_MD_CTX_new();
   if (md_ctx == nullptr)
     {
       logger->error("failed to check signature ({})", ERR_error_string(ERR_get_error(), nullptr));
+      ERR_clear_error();
       return SignatureVerifierErrc::InternalFailure;
     }
 
@@ -69,14 +94,16 @@ ECDSASignatureAlgorithm::verify(std::string_view data, const std::string &signat
     {
       logger->error("failed to check signature ({})", ERR_error_string(ERR_get_error(), nullptr));
       EVP_MD_CTX_free(md_ctx);
+      ERR_clear_error();
       return SignatureVerifierErrc::InternalFailure;
     }
 
-  ret = EVP_DigestVerify(md_ctx,
-                         reinterpret_cast<const unsigned char *>(signature.data()),
-                         signature.size(),
-                         reinterpret_cast<const unsigned char *>(data.data()),
-                         data.size());
+  ret = EVP_DigestVerify(
+    md_ctx,
+    reinterpret_cast<const unsigned char *>(signature.data()), // NOLINT:cppcoreguidelines-pro-type-reinterpret-cast
+    signature.size(),
+    reinterpret_cast<const unsigned char *>(data.data()), // NOLINT:cppcoreguidelines-pro-type-reinterpret-cast
+    data.size());
 
   outcome::std_result<void> rc = outcome::success();
 
@@ -87,6 +114,7 @@ ECDSASignatureAlgorithm::verify(std::string_view data, const std::string &signat
   else if (ret != 1)
     {
       logger->error("failed to check signature: {}", ERR_error_string(ERR_get_error(), nullptr));
+      ERR_clear_error();
       rc = outcome::failure(SignatureVerifierErrc::InternalFailure);
     }
 

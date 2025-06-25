@@ -49,7 +49,7 @@ private:
 private:
   std::string public_key;
   EVP_PKEY *pkey{nullptr};
-  std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:signatures")};
+  std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:crypto:publickey")};
 };
 
 #endif // PUBLIC_KEYS_HH

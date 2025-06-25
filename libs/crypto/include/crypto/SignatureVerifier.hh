@@ -22,14 +22,12 @@
 #define SIGNATURE_VERIFIER_HH
 
 #include <string>
-#include <string_view>
 #include <memory>
 
 #include <boost/outcome/std_result.hpp>
 
 #include "SignatureAlgorithmType.hh"
 #include "utils/Logging.hh"
-#include "SignatureVerifierErrors.hh"
 
 namespace outcome = boost::outcome_v2;
 
@@ -48,7 +46,7 @@ namespace unfold::crypto
 
   private:
     std::shared_ptr<SignatureAlgorithm> algo;
-    std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:signatures")};
+    std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:crypto")};
   };
 
 } // namespace unfold::crypto

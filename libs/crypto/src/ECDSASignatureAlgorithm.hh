@@ -39,7 +39,7 @@ public:
 
 private:
   std::unique_ptr<PublicKey> public_key;
-  std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:signatures:ecdsa")};
+  std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:crypto:ecdsa")};
 };
 
 #endif // ECDSA_SIGNATURE_ALGORITHM_HH

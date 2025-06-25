@@ -36,10 +36,11 @@ PublicKey::~PublicKey()
       EVP_PKEY_free(pkey);
     }
 }
+
 void
 PublicKey::load_pem()
 {
-  BIO *bio = BIO_new_mem_buf(reinterpret_cast<const unsigned char *>(public_key.data()), static_cast<int>(public_key.size()));
+  BIO *bio = BIO_new_mem_buf(public_key.data(), static_cast<int>(public_key.size()));
   if (bio != nullptr)
     {
       PEM_read_bio_PUBKEY(bio, &pkey, nullptr, nullptr);
@@ -50,7 +51,7 @@ PublicKey::load_pem()
 void
 PublicKey::load_der()
 {
-  BIO *bio = BIO_new_mem_buf(reinterpret_cast<const unsigned char *>(public_key.data()), static_cast<int>(public_key.size()));
+  BIO *bio = BIO_new_mem_buf(public_key.data(), static_cast<int>(public_key.size()));
   if (bio != nullptr)
     {
       d2i_PUBKEY_bio(bio, &pkey);
@@ -64,7 +65,7 @@ PublicKey::load_base64_der()
   try
     {
       std::string p = unfold::utils::Base64::decode(public_key);
-      BIO *bio = BIO_new_mem_buf(reinterpret_cast<const unsigned char *>(p.data()), static_cast<int>(p.size()));
+      BIO *bio = BIO_new_mem_buf(p.data(), static_cast<int>(p.size()));
       if (bio != nullptr)
         {
           d2i_PUBKEY_bio(bio, &pkey);

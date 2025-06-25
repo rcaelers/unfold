@@ -317,18 +317,10 @@ TEST(CheckerTest, InvalidItemsInAppcast)
       try
         {
           auto check_result = co_await checker.check_for_update();
-          EXPECT_EQ(check_result.has_error(), false);
-          EXPECT_EQ(check_result.value(), true);
+          EXPECT_EQ(check_result.has_error(), true);
 
           auto appcast = checker.get_selected_update();
-          EXPECT_EQ(appcast->version, "4.0.0");
-          auto info = checker.get_update_info();
-          EXPECT_EQ(info->title, "Workrave Test Appcast");
-          EXPECT_EQ(info->current_version, "1.0.0");
-          EXPECT_EQ(info->version, "4.0.0");
-          EXPECT_EQ(info->download_url, "https://example.com/workrave-win32-v4.0.0.exe");
-          EXPECT_EQ(info->release_notes.size(), 1);
-          EXPECT_EQ(info->release_notes.front().version, "4.0.0");
+          EXPECT_EQ(appcast, nullptr);
         }
       catch (std::exception &e)
         {

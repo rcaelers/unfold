@@ -153,7 +153,7 @@ Changes since Workrave 1.11.0-alpha.1:
       <link>https://workrave.org</link>
       <sparkle:version>1.10.45</sparkle:version>
       <pubDate>Sat, 27 Mar 2021 02:19:02 +0100</pubDate>
-      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.45.exe" sparkle:`="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
+      <enclosure os="windows-x64" url="https://127.0.0.1:1337/workrave-1.10.45.exe" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="8192" type="application/octet-stream" />
     </item>
 
     <item>

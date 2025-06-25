@@ -29,6 +29,8 @@
 #include "http/HttpClient.hh"
 #include "utils/Logging.hh"
 
+#include "semver.hpp"
+
 #include "AppCast.hh"
 #include "Platform.hh"
 #include "Hooks.hh"

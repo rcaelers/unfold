@@ -22,9 +22,19 @@
 #define UTILS_BASE64_HH
 
 #include <string>
+#include <stdexcept>
 
 namespace unfold::utils
 {
+  class Base64Exception : public std::runtime_error
+  {
+  public:
+    explicit Base64Exception(const std::string &message)
+      : std::runtime_error(message)
+    {
+    }
+  };
+
   class Base64
   {
   public:

@@ -42,7 +42,7 @@ TEST(AppCastTest, LoadFromString)
     "            <title>Version 1.0</title>\n"
     "            <link>https://workrave.org</link>\n"
     "            <sparkle:channel>release</sparkle:channel>\n"
-    "            <sparkle:version>1.0</sparkle:version>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
     "            <sparkle:releaseNotesLink>https://workrave.org/v1.html</sparkle:releaseNotesLink>\n"
     "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
     "            <enclosure url=\"http://localhost:1337/v2.zip\" sparkle:edSignature=\"xx\" length=\"1234\" type=\"application/octet-stream\" />\n"
@@ -62,7 +62,7 @@ TEST(AppCastTest, LoadFromString)
   EXPECT_EQ(appcast->items[0]->channel, "release");
   EXPECT_EQ(appcast->items[0]->title, "Version 1.0");
   EXPECT_EQ(appcast->items[0]->link, "https://workrave.org");
-  EXPECT_EQ(appcast->items[0]->version, "1.0");
+  EXPECT_EQ(appcast->items[0]->version, "1.0.0");
   EXPECT_EQ(appcast->items[0]->short_version, "");
   EXPECT_EQ(appcast->items[0]->description, "");
   EXPECT_EQ(appcast->items[0]->release_notes_link, "https://workrave.org/v1.html");
@@ -91,7 +91,7 @@ TEST(AppCastTest, LoadFromFile)
   EXPECT_EQ(appcast->items[0]->channel, "");
   EXPECT_EQ(appcast->items[0]->title, "Version 1.0");
   EXPECT_EQ(appcast->items[0]->link, "https://workrave.org");
-  EXPECT_EQ(appcast->items[0]->version, "1.0");
+  EXPECT_EQ(appcast->items[0]->version, "1.0.0");
   EXPECT_EQ(appcast->items[0]->short_version, "");
   EXPECT_EQ(appcast->items[0]->description, "");
   EXPECT_EQ(appcast->items[0]->release_notes_link, "https://workrave.org/v1.html");
@@ -106,7 +106,7 @@ TEST(AppCastTest, LoadFromFile)
   EXPECT_EQ(appcast->items[1]->channel, "");
   EXPECT_EQ(appcast->items[1]->title, "Version 2.0");
   EXPECT_EQ(appcast->items[1]->link, "");
-  EXPECT_EQ(appcast->items[1]->version, "");
+  EXPECT_EQ(appcast->items[1]->version, "2.0.0");
   EXPECT_EQ(appcast->items[1]->short_version, "");
   EXPECT_EQ(appcast->items[1]->description, "Version 2 update");
   EXPECT_EQ(appcast->items[1]->release_notes_link, "");
@@ -115,7 +115,7 @@ TEST(AppCastTest, LoadFromFile)
   EXPECT_EQ(appcast->items[1]->minimum_auto_update_version, "");
   EXPECT_EQ(appcast->items[1]->ignore_skipped_upgrades_below_version, "");
   EXPECT_EQ(appcast->items[1]->critical_update, true);
-  EXPECT_EQ(appcast->items[1]->critical_update_version, "1.5");
+  EXPECT_EQ(appcast->items[1]->critical_update_version, "1.5.0");
   EXPECT_EQ(appcast->items[1]->canary_rollout_intervals.size(), 0);
 }
 
@@ -187,7 +187,7 @@ TEST(AppCastTest, Canary)
   EXPECT_EQ(appcast->items[1]->minimum_auto_update_version, "");
   EXPECT_EQ(appcast->items[1]->ignore_skipped_upgrades_below_version, "");
   EXPECT_EQ(appcast->items[1]->critical_update, true);
-  EXPECT_EQ(appcast->items[1]->critical_update_version, "1.5");
+  EXPECT_EQ(appcast->items[1]->critical_update_version, "1.5.0");
   EXPECT_EQ(appcast->items[1]->canary_rollout_intervals.size(), 3);
 }
 

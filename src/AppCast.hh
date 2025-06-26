@@ -109,10 +109,6 @@ private:
 
   std::optional<boost::urls::url> parse_url(const std::string &url_str);
   bool is_secure_url(const std::string &url_str);
-  std::string get_url_domain(const std::string &url_str);
-
-  std::optional<semver::version> parse_version(const std::string &version_str);
-  bool compare_versions(const std::string &version1, const std::string &version2);
 
 private:
   std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:appcast")};

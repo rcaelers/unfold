@@ -319,3 +319,910 @@ TEST(AppCastTest, SignatureValidation)
 
   EXPECT_EQ(reader->load_from_string(missing_signature), nullptr);
 }
+
+// Tests for 100% branch coverage
+
+TEST(AppCastTest, EmptyFilename)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  auto appcast = reader->load_from_file("");
+  EXPECT_EQ(appcast, nullptr);
+}
+
+TEST(AppCastTest, FilenameToolong)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  const size_t max_filename_plus_one = 5000; // Exceeds MAX_FILENAME_LENGTH (4096)
+  std::string long_filename(max_filename_plus_one, 'a');
+  auto appcast = reader->load_from_file(long_filename);
+  EXPECT_EQ(appcast, nullptr);
+}
+
+TEST(AppCastTest, EmptyString)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  auto appcast = reader->load_from_string("");
+  EXPECT_EQ(appcast, nullptr);
+}
+
+TEST(AppCastTest, StringTooLarge)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  const size_t kb_size = 1024;
+  const size_t mb_size = kb_size * kb_size;
+  const size_t large_size = 11 * mb_size; // Exceeds MAX_XML_SIZE (10MB)
+  std::string large_string(large_size, 'a');
+  auto appcast = reader->load_from_string(large_string);
+  EXPECT_EQ(appcast, nullptr);
+}
+
+TEST(AppCastTest, NonExistentFile)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  auto appcast = reader->load_from_file("non_existent_file.xml");
+  EXPECT_EQ(appcast, nullptr);
+}
+
+TEST(AppCastTest, MalformedXML)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  std::string malformed_xml = "<?xml version='1.0'?><rss><channel><unclosed_tag></channel></rss>";
+  auto appcast = reader->load_from_string(malformed_xml);
+  EXPECT_EQ(appcast, nullptr);
+}
+
+TEST(AppCastTest, MissingChannel)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  std::string no_channel = "<?xml version='1.0'?><rss version='2.0'></rss>";
+  auto appcast = reader->load_from_string(no_channel);
+  EXPECT_EQ(appcast, nullptr);
+}
+
+TEST(AppCastTest, InvalidChannelLink)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  std::string invalid_link =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>invalid://url</link>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(invalid_link);
+  EXPECT_EQ(appcast, nullptr);
+}
+
+TEST(AppCastTest, HttpChannelLink)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  std::string http_link =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>http://example.com/</link>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(http_link);
+  EXPECT_NE(appcast, nullptr);
+  EXPECT_EQ(appcast->link, "http://example.com/");
+}
+
+TEST(AppCastTest, TooManyItems)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  std::string many_items_start =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n";
+
+  std::string many_items_end = "    </channel>\n</rss>\n";
+
+  std::string items;
+  // Create more than MAX_ITEMS_PER_APPCAST (1000) items
+  const int max_items_plus_extra = 1100;
+  for (int i = 0; i < max_items_plus_extra; i++)
+    {
+      items += "        <item>\n"
+             "            <title>Version " + std::to_string(i) + "</title>\n"
+             "            <sparkle:version>" + std::to_string(i) + ".0.0</sparkle:version>\n"
+             "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+             "            <enclosure url=\"https://example.com/app-" + std::to_string(i) + ".dmg\" "
+             "sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" "
+             "length=\"1234\" type=\"application/octet-stream\" />\n"
+             "        </item>\n";
+    }
+
+  std::string many_items_xml = many_items_start + items + many_items_end;
+  auto appcast = reader->load_from_string(many_items_xml);
+  EXPECT_NE(appcast, nullptr);
+  EXPECT_EQ(appcast->items.size(), 1000); // Should be limited to MAX_ITEMS_PER_APPCAST
+}
+
+TEST(AppCastTest, InvalidItemVersion)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  std::string invalid_version =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <sparkle:version>invalid.version.format</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure url=\"https://example.com/app-1.0.0.dmg\" "
+    "sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" "
+    "length=\"1234\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(invalid_version);
+  EXPECT_EQ(appcast, nullptr);
+}
+
+TEST(AppCastTest, InvalidShortVersion)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  std::string invalid_short_version =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <sparkle:shortVersionString>invalid.short.version</sparkle:shortVersionString>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure url=\"https://example.com/app-1.0.0.dmg\" "
+    "sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" "
+    "length=\"1234\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(invalid_short_version);
+  EXPECT_EQ(appcast, nullptr);
+}
+
+TEST(AppCastTest, InvalidItemLink)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  std::string invalid_item_link =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <link>invalid://link</link>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure url=\"https://example.com/app-1.0.0.dmg\" "
+    "sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" "
+    "length=\"1234\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(invalid_item_link);
+  EXPECT_EQ(appcast, nullptr);
+}
+
+TEST(AppCastTest, HttpItemLink)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  std::string http_item_link =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <link>http://example.com/item</link>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure url=\"https://example.com/app-1.0.0.dmg\" "
+    "sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" "
+    "length=\"1234\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(http_item_link);
+  EXPECT_NE(appcast, nullptr);
+  EXPECT_EQ(appcast->items[0]->link, "http://example.com/item");
+}
+
+TEST(AppCastTest, InvalidReleaseNotesLink)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  std::string invalid_release_notes =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <sparkle:releaseNotesLink>invalid://notes</sparkle:releaseNotesLink>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure url=\"https://example.com/app-1.0.0.dmg\" "
+    "sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" "
+    "length=\"1234\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(invalid_release_notes);
+  EXPECT_EQ(appcast, nullptr);
+}
+
+TEST(AppCastTest, HttpReleaseNotesLink)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  std::string http_release_notes =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <sparkle:releaseNotesLink>http://example.com/notes</sparkle:releaseNotesLink>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure url=\"https://example.com/app-1.0.0.dmg\" "
+    "sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" "
+    "length=\"1234\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(http_release_notes);
+  EXPECT_NE(appcast, nullptr);
+  EXPECT_EQ(appcast->items[0]->release_notes_link, "http://example.com/notes");
+}
+
+TEST(AppCastTest, CriticalUpdateWithInvalidVersion)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  std::string critical_update_invalid =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <sparkle:criticalUpdate sparkle:version=\"invalid.critical.version\" />\n"
+    "            <enclosure url=\"https://example.com/app-1.0.0.dmg\" "
+    "sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" "
+    "length=\"1234\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(critical_update_invalid);
+  EXPECT_EQ(appcast, nullptr);
+}
+
+TEST(AppCastTest, TooManyEnclosures)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  std::string many_enclosures_start =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n";
+
+  std::string many_enclosures_end =
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  std::string enclosures;
+  // Create more than MAX_ENCLOSURES_PER_ITEM (10) enclosures
+  const int max_enclosures_plus_extra = 15;
+  for (int i = 0; i < max_enclosures_plus_extra; i++)
+    {
+      enclosures += "            <enclosure url=\"https://example.com/app-" + std::to_string(i) + ".dmg\" "
+                  "sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" "
+                  "length=\"1234\" type=\"application/octet-stream\" />\n";
+    }
+
+  std::string many_enclosures_xml = many_enclosures_start + enclosures + many_enclosures_end;
+  auto appcast = reader->load_from_string(many_enclosures_xml);
+  EXPECT_NE(appcast, nullptr);
+  EXPECT_EQ(appcast->items.size(), 1);
+}
+
+TEST(AppCastTest, InvalidEnclosureUrl)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  std::string invalid_enclosure_url =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure url=\"invalid://url\" "
+    "sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" "
+    "length=\"1234\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(invalid_enclosure_url);
+  EXPECT_EQ(appcast, nullptr);
+}
+
+TEST(AppCastTest, HttpEnclosureUrl)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  std::string http_enclosure_url =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure url=\"http://example.com/app-1.0.0.dmg\" "
+    "sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" "
+    "length=\"1234\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(http_enclosure_url);
+  EXPECT_NE(appcast, nullptr);
+  EXPECT_EQ(appcast->items[0]->enclosure->url, "http://example.com/app-1.0.0.dmg");
+}
+
+TEST(AppCastTest, InvalidMimeType)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  std::string invalid_mime_type =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure url=\"https://example.com/app-1.0.0.dmg\" "
+    "sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" "
+    "length=\"1234\" type=\"invalid/mime/type/with/too/many/slashes\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(invalid_mime_type);
+  EXPECT_EQ(appcast, nullptr);
+}
+
+TEST(AppCastTest, SuspiciousFileLength)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  const uint64_t max_file_size = 10ULL * 1024 * 1024 * 1024; // 10GB
+  const uint64_t huge_size = max_file_size + 1;              // Exceeds MAX_FILE_SIZE
+
+  std::string suspicious_length =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure url=\"https://example.com/app-1.0.0.dmg\" "
+    "sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" "
+    "length=\"" + std::to_string(huge_size) + "\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(suspicious_length);
+  EXPECT_EQ(appcast, nullptr);
+}
+
+TEST(AppCastTest, WrongSignatureLength)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  std::string wrong_signature_length =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure url=\"https://example.com/app-1.0.0.dmg\" "
+    "sparkle:edSignature=\"dGVzdA==\" "
+    "length=\"1234\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(wrong_signature_length);
+  EXPECT_EQ(appcast, nullptr);
+}
+
+TEST(AppCastTest, FilterRejectsItem)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return false; }); // Filter rejects all items
+
+  std::string valid_appcast =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure url=\"https://example.com/app-1.0.0.dmg\" "
+    "sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" "
+    "length=\"1234\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(valid_appcast);
+  EXPECT_NE(appcast, nullptr);
+  EXPECT_EQ(appcast->items.size(), 0); // No items should be included due to filter
+}
+
+TEST(AppCastTest, EmptyUrlString)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  // Test is_valid_url with empty string
+  std::string empty_url_test =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure url=\"\" "
+    "sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" "
+    "length=\"1234\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(empty_url_test);
+  EXPECT_EQ(appcast, nullptr);
+}
+
+TEST(AppCastTest, FtpUrl)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  std::string ftp_url =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure url=\"ftp://example.com/app-1.0.0.dmg\" "
+    "sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" "
+    "length=\"1234\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(ftp_url);
+  EXPECT_EQ(appcast, nullptr);
+}
+
+TEST(AppCastTest, EmptyHostUrl)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  std::string empty_host_url =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure url=\"https://\" "
+    "sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" "
+    "length=\"1234\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(empty_host_url);
+  EXPECT_EQ(appcast, nullptr);
+}
+
+TEST(AppCastTest, EmptyVersion)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  std::string empty_version_test =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <sparkle:version></sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure url=\"https://example.com/app-1.0.0.dmg\" "
+    "sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" "
+    "length=\"1234\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(empty_version_test);
+  EXPECT_NE(appcast, nullptr); // Empty version should be allowed
+  EXPECT_EQ(appcast->items.size(), 1);
+  EXPECT_EQ(appcast->items[0]->version, "");
+}
+
+TEST(AppCastTest, InvalidCanaryPercentage)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  std::string invalid_canary_percentage =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\" xmlns:unfold=\"http://unfold.update.org/xml-namespaces/unfold\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <unfold:canary>\n"
+    "                <interval>\n"
+    "                    <percentage>150</percentage>\n"
+    "                    <days>7</days>\n"
+    "                </interval>\n"
+    "            </unfold:canary>\n"
+    "            <enclosure url=\"https://example.com/app-1.0.0.dmg\" "
+    "sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" "
+    "length=\"1234\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(invalid_canary_percentage);
+  EXPECT_EQ(appcast, nullptr);
+}
+
+TEST(AppCastTest, InvalidCanaryDays)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  std::string invalid_canary_days =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\" xmlns:unfold=\"http://unfold.update.org/xml-namespaces/unfold\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <unfold:canary>\n"
+    "                <interval>\n"
+    "                    <percentage>5</percentage>\n"
+    "                    <days>-10</days>\n"
+    "                </interval>\n"
+    "            </unfold:canary>\n"
+    "            <enclosure url=\"https://example.com/app-1.0.0.dmg\" "
+    "sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" "
+    "length=\"1234\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(invalid_canary_days);
+  EXPECT_EQ(appcast, nullptr);
+}
+
+TEST(AppCastTest, InvalidPhasedPercentage)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  // Test with invalid canary interval that has percentage > 100
+  std::string invalid_phased_percentage =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\" xmlns:unfold=\"http://unfold.update.org/xml-namespaces/unfold\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <unfold:canary>\n"
+    "                <interval>\n"
+    "                    <percentage>200</percentage>\n"
+    "                    <days>7</days>\n"
+    "                </interval>\n"
+    "            </unfold:canary>\n"
+    "            <enclosure url=\"https://example.com/app-1.0.0.dmg\" "
+    "sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" "
+    "length=\"1234\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(invalid_phased_percentage);
+  EXPECT_EQ(appcast, nullptr); // Should fail due to invalid percentage > 100
+}
+
+TEST(AppCastTest, InvalidPhasedDays)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  // For phased rollouts, the days value is indirectly calculated from phasedRolloutInterval
+  // To test invalid days, we need to test with canary rollout intervals
+  std::string invalid_phased_days =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\" xmlns:unfold=\"http://unfold.update.org/xml-namespaces/unfold\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <unfold:canary>\n"
+    "                <interval>\n"
+    "                    <percentage>25</percentage>\n"
+    "                    <days>0</days>\n"
+    "                </interval>\n"
+    "            </unfold:canary>\n"
+    "            <enclosure url=\"https://example.com/app-1.0.0.dmg\" "
+    "sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" "
+    "length=\"1234\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(invalid_phased_days);
+  EXPECT_EQ(appcast, nullptr);
+}
+
+TEST(AppCastTest, ValidPhasedRollout)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  // Use a larger interval value that will result in at least 1 day per phase
+  // With 7 phases, we need at least 86400 seconds (1 day) per phase
+  const uint64_t daily_interval = 86400; // 1 day in seconds
+
+  std::string valid_phased_rollout =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <sparkle:phasedRolloutInterval>" + std::to_string(daily_interval) + "</sparkle:phasedRolloutInterval>\n"
+    "            <enclosure url=\"https://example.com/app-1.0.0.dmg\" "
+    "sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" "
+    "length=\"1234\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(valid_phased_rollout);
+  EXPECT_NE(appcast, nullptr);
+  EXPECT_EQ(appcast->items.size(), 1);
+  // Rollout interval validation should pass
+}
+
+TEST(AppCastTest, StringTooLongForSanitize)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  const size_t max_string_length = 1024; // MAX_STRING_LENGTH
+  const size_t extra_length = 100;
+  std::string long_title(max_string_length + extra_length, 'a');
+
+  std::string long_title_appcast =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>" + long_title + "</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure url=\"https://example.com/app-1.0.0.dmg\" "
+    "sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" "
+    "length=\"1234\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(long_title_appcast);
+  EXPECT_NE(appcast, nullptr);                           // String gets sanitized, not rejected
+  EXPECT_EQ(appcast->title.length(), max_string_length); // Should be truncated to MAX_STRING_LENGTH
+}
+
+TEST(AppCastTest, InvalidBase64Signature)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  std::string invalid_base64_signature =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure url=\"https://example.com/app-1.0.0.dmg\" "
+    "sparkle:edSignature=\"invalid!!!base64!!!characters!!!here!!!that!!!cannot!!!be!!!decoded!!!\" "
+    "length=\"1234\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(invalid_base64_signature);
+  EXPECT_EQ(appcast, nullptr);
+}
+
+TEST(AppCastTest, MissingEnclosureForItem)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  std::string no_enclosure_test =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(no_enclosure_test);
+  EXPECT_NE(appcast, nullptr);         // Should succeed but have no items
+  EXPECT_EQ(appcast->items.size(), 0); // Item is filtered out due to missing enclosure
+}

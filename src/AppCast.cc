@@ -315,7 +315,6 @@ AppcastReader::parse_canary_rollout_intervals(boost::property_tree::ptree rollou
   return intervals;
 }
 
-// Validation functions
 void
 AppcastReader::validate_channel(std::shared_ptr<Appcast> appcast)
 {
@@ -521,7 +520,6 @@ AppcastReader::validate_phased_percentage_constraints(CanaryRolloutIntervals &in
       last_percentage = percentage;
     }
 
-  // Ensure final percentage doesn't exceed 100%
   if (intervals.back().second > MAX_PERCENTAGE)
     {
       throw std::runtime_error("final rollout percentage exceeds 100%: " + std::to_string(intervals.back().second));
@@ -540,10 +538,8 @@ AppcastReader::validate_rollout_intervals(CanaryRolloutIntervals &intervals, boo
       return;
     }
 
-  // First pass: validate individual intervals and remove invalid ones
   validate_individual_intervals(intervals, is_canary);
 
-  // Second pass: validate ordering and constraints
   if (!intervals.empty())
     {
       if (is_canary)
@@ -556,7 +552,6 @@ AppcastReader::validate_rollout_intervals(CanaryRolloutIntervals &intervals, boo
         }
     }
 
-  // Final validation and logging
   if (intervals.empty())
     {
       if (is_canary)
@@ -598,13 +593,11 @@ AppcastReader::is_valid_url(const std::string &url)
       return false;
     }
 
-  // Check that it's HTTP or HTTPS
   if (parsed_url->scheme() != "http" && parsed_url->scheme() != "https")
     {
       return false;
     }
 
-  // Check that host is not empty
   if (parsed_url->host().empty())
     {
       return false;
@@ -657,45 +650,20 @@ AppcastReader::is_valid_version(const std::string &version)
       return false;
     }
 
-  return parse_version(version).has_value();
-}
-
-std::optional<semver::version>
-AppcastReader::parse_version(const std::string &version_str)
-{
-  if (version_str.empty())
-    {
-      return std::nullopt;
-    }
-
   try
     {
       semver::version parsed_version;
-      if (parsed_version.from_string_noexcept(version_str))
+      if (parsed_version.from_string_noexcept(version))
         {
-          return parsed_version;
+          return true;
         }
     }
   catch (const std::exception &e)
     {
-      logger->debug("version parsing failed for '{}': {}", version_str, e.what());
+      logger->error("version parsing failed for '{}': {}", version, e.what());
     }
 
-  return std::nullopt;
-}
-
-bool
-AppcastReader::compare_versions(const std::string &version1, const std::string &version2)
-{
-  auto v1 = parse_version(version1);
-  auto v2 = parse_version(version2);
-
-  if (!v1 || !v2)
-    {
-      return false; // Invalid versions cannot be compared
-    }
-
-  return v1->compare(*v2) >= 0; // version1 >= version2
+  return false;
 }
 
 bool
@@ -743,12 +711,11 @@ AppcastReader::is_valid_ed_signature(const std::string &signature)
           logger->error("Signature is invalid");
           return false;
         }
-
       return true;
     }
   catch (const std::exception &e)
     {
-      logger->error("signature validation failed for '{}': {}", signature, e.what());
+      logger->error("signature validation failed: {}", e.what());
       return false;
     }
 }
@@ -761,16 +728,4 @@ AppcastReader::sanitize_string(std::string &str, size_t max_length)
     {
       str = str.substr(0, max_length);
     }
-}
-
-std::string
-AppcastReader::get_url_domain(const std::string &url_str)
-{
-  auto parsed_url = parse_url(url_str);
-  if (!parsed_url)
-    {
-      return "";
-    }
-
-  return std::string(parsed_url->host());
 }

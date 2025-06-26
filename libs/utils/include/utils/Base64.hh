@@ -38,6 +38,7 @@ namespace unfold::utils
   class Base64
   {
   public:
+    static bool is_valid_base64(const std::string &input);
     static std::string decode(const std::string &val);
     static std::string encode(const std::string &val);
   };

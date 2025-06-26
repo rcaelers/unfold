@@ -45,7 +45,7 @@ TEST(AppCastTest, LoadFromString)
     "            <sparkle:version>1.0.0</sparkle:version>\n"
     "            <sparkle:releaseNotesLink>https://workrave.org/v1.html</sparkle:releaseNotesLink>\n"
     "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
-    "            <enclosure url=\"http://localhost:1337/v2.zip\" sparkle:edSignature=\"xx\" length=\"1234\" type=\"application/octet-stream\" />\n"
+    "            <enclosure url=\"http://localhost:1337/v2.zip\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"1234\" type=\"application/octet-stream\" />\n"
     "        </item>\n"
     "    </channel>\n"
     "</rss>\n";
@@ -221,4 +221,101 @@ TEST(AppCastTest, CanarySparkle)
   EXPECT_EQ(appcast->items[0]->canary_rollout_intervals[5].second, 90);
   EXPECT_EQ(appcast->items[0]->canary_rollout_intervals[6].first, std::chrono::days(14));
   EXPECT_EQ(appcast->items[0]->canary_rollout_intervals[6].second, 100);
+}
+
+TEST(AppCastTest, SignatureValidation)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  // Test 1: Valid 64-byte signature should pass
+  std::string valid_appcast =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure url=\"https://example.com/app-1.0.0.dmg\" "
+    "sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" "
+    "length=\"1234\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(valid_appcast);
+  EXPECT_NE(appcast, nullptr);
+  EXPECT_EQ(appcast->items.size(), 1);
+  EXPECT_NE(appcast->items[0]->enclosure, nullptr);
+  EXPECT_EQ(appcast->items[0]->enclosure->signature,
+            "aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==");
+
+  // Test 2: Invalid short signature should fail
+  std::string invalid_short_signature =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure url=\"https://example.com/app-1.0.0.dmg\" "
+    "sparkle:edSignature=\"dGVzdA==\" "
+    "length=\"1234\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  EXPECT_EQ(reader->load_from_string(invalid_short_signature), nullptr);
+
+  // Test 3: Invalid base64 signature should fail
+  std::string invalid_base64_signature =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure url=\"https://example.com/app-1.0.0.dmg\" "
+    "sparkle:edSignature=\"invalid@base64!\" "
+    "length=\"1234\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  EXPECT_EQ(reader->load_from_string(invalid_base64_signature), nullptr);
+
+  // Test 4: Missing signature should fail
+  std::string missing_signature =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\" xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 1.0</title>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure url=\"https://example.com/app-1.0.0.dmg\" "
+    "length=\"1234\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  EXPECT_EQ(reader->load_from_string(missing_signature), nullptr);
 }

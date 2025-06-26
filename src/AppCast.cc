@@ -24,6 +24,7 @@
 #include <regex>
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/iostreams/stream.hpp>
+#include "utils/Base64.hh"
 
 namespace
 {
@@ -37,6 +38,7 @@ namespace
   constexpr size_t MAX_URL_LENGTH = 2048;
   constexpr size_t MAX_VERSION_LENGTH = 100;
   constexpr size_t MAX_SIGNATURE_LENGTH = 512;
+  constexpr size_t SIGNATURE_LENGTH = 88;
   constexpr size_t MAX_LANGUAGE_LENGTH = 10;
   constexpr size_t MAX_OS_LENGTH = 50;
   constexpr uint64_t MAX_FILE_SIZE = 10ULL * 1024 * 1024 * 1024; // 10GB
@@ -222,9 +224,9 @@ AppcastReader::parse_item(boost::property_tree::ptree item_pt)
                 {
                   break;
                 }
+              item->enclosure.reset();
             }
 
-          item->enclosure.reset();
           enclosure_count++;
         }
     }
@@ -331,7 +333,7 @@ AppcastReader::validate_channel(std::shared_ptr<Appcast> appcast)
     {
       throw std::runtime_error("invalid channel link URL: " + appcast->link);
     }
-  
+
   if (!appcast->link.empty() && !is_secure_url(appcast->link))
     {
       logger->warn("channel link URL is not secure (HTTP instead of HTTPS): {}", appcast->link);
@@ -372,7 +374,7 @@ AppcastReader::validate_item(std::shared_ptr<AppcastItem> item)
     {
       throw std::runtime_error("invalid item link URL: " + item->link);
     }
-  
+
   if (!item->link.empty() && !is_secure_url(item->link))
     {
       logger->warn("item link URL is not secure (HTTP instead of HTTPS): {}", item->link);
@@ -382,7 +384,7 @@ AppcastReader::validate_item(std::shared_ptr<AppcastItem> item)
     {
       throw std::runtime_error("invalid release notes URL: " + item->release_notes_link);
     }
-  
+
   if (!item->release_notes_link.empty() && !is_secure_url(item->release_notes_link))
     {
       logger->warn("release notes URL is not secure (HTTP instead of HTTPS): {}", item->release_notes_link);
@@ -427,7 +429,7 @@ AppcastReader::validate_enclosure(std::shared_ptr<AppcastEnclosure> enclosure)
     {
       throw std::runtime_error("invalid enclosure URL: " + enclosure->url);
     }
-  
+
   if (!is_secure_url(enclosure->url))
     {
       logger->warn("enclosure URL is not secure (HTTP instead of HTTPS) - security risk: {}", enclosure->url);
@@ -447,6 +449,12 @@ AppcastReader::validate_enclosure(std::shared_ptr<AppcastEnclosure> enclosure)
     {
       throw std::runtime_error("enclosure missing signature - security risk");
     }
+
+  if (!is_valid_ed_signature(enclosure->signature))
+    {
+      throw std::runtime_error("invalid EdDSA signature format or length: " + enclosure->signature);
+    }
+
 }
 
 void
@@ -463,12 +471,14 @@ AppcastReader::validate_individual_intervals(CanaryRolloutIntervals &intervals, 
 
       if (!is_valid_days(static_cast<int>(days)))
         {
-          throw std::runtime_error("invalid days value in " + std::string(is_canary ? "canary " : "") + "rollout interval: " + std::to_string(days));
+          throw std::runtime_error("invalid days value in " + std::string(is_canary ? "canary " : "")
+                                   + "rollout interval: " + std::to_string(days));
         }
 
       if (!is_valid_percentage(percentage))
         {
-          throw std::runtime_error("invalid percentage value in " + std::string(is_canary ? "canary " : "") + "rollout interval: " + std::to_string(percentage));
+          throw std::runtime_error("invalid percentage value in " + std::string(is_canary ? "canary " : "")
+                                   + "rollout interval: " + std::to_string(percentage));
         }
 
       // For canary rollouts, validate increasing durations
@@ -487,7 +497,7 @@ AppcastReader::validate_canary_percentage_constraints(CanaryRolloutIntervals &in
 {
   int current_total = 0;
 
-  for (const auto &[duration, percentage] : intervals)
+  for (const auto &[duration, percentage]: intervals)
     {
       if (current_total + (percentage - current_total) > MAX_PERCENTAGE)
         {
@@ -587,19 +597,19 @@ AppcastReader::is_valid_url(const std::string &url)
     {
       return false;
     }
-  
+
   // Check that it's HTTP or HTTPS
   if (parsed_url->scheme() != "http" && parsed_url->scheme() != "https")
     {
       return false;
     }
-  
+
   // Check that host is not empty
   if (parsed_url->host().empty())
     {
       return false;
     }
-  
+
   return true;
 }
 
@@ -623,7 +633,7 @@ AppcastReader::parse_url(const std::string &url_str)
     {
       logger->debug("URL parsing failed for '{}': {}", url_str, e.what());
     }
-  
+
   return std::nullopt;
 }
 
@@ -635,7 +645,7 @@ AppcastReader::is_secure_url(const std::string &url_str)
     {
       return false;
     }
-  
+
   return parsed_url->scheme() == "https";
 }
 
@@ -718,6 +728,31 @@ AppcastReader::is_valid_mime_type(const std::string &mime_type)
   return std::regex_match(mime_type, mime_pattern);
 }
 
+bool
+AppcastReader::is_valid_ed_signature(const std::string &signature)
+{
+  try
+    {
+      if (signature.length() != SIGNATURE_LENGTH)
+        {
+          logger->error("Signature length is invalid");
+          return false;
+        }
+      if (!unfold::utils::Base64::is_valid_base64(signature))
+        {
+          logger->error("Signature is invalid");
+          return false;
+        }
+
+      return true;
+    }
+  catch (const std::exception &e)
+    {
+      logger->error("signature validation failed for '{}': {}", signature, e.what());
+      return false;
+    }
+}
+
 void
 AppcastReader::sanitize_string(std::string &str, size_t max_length)
 {
@@ -736,6 +771,6 @@ AppcastReader::get_url_domain(const std::string &url_str)
     {
       return "";
     }
-  
+
   return std::string(parsed_url->host());
 }

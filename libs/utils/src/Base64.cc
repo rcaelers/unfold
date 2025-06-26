@@ -37,38 +37,41 @@ namespace
   {
     return std::isalnum(static_cast<unsigned char>(c)) != 0 || c == '+' || c == '/' || c == '=';
   }
-
-  void validate_base64_input(const std::string &input)
-  {
-    if (input.empty())
-      {
-        throw Base64Exception("Base64 input cannot be empty");
-      }
-
-    auto invalid_char = std::ranges::find_if(input, [](char c) { return !is_valid_base64_char(c); });
-    if (invalid_char != input.end())
-      {
-        throw Base64Exception("Invalid character in Base64 input: '" + std::string(1, *invalid_char) + "'");
-      }
-
-    size_t padding_pos = input.find('=');
-    if (padding_pos != std::string::npos)
-      {
-        // After first '=', there can be at most 1 more character and it must be '='
-        size_t padding_count = input.length() - padding_pos;
-        if (padding_count > 2)
-          {
-            throw Base64Exception("Too many padding characters in Base64 input");
-          }
-
-        // If there's a second character after first '=', it must also be '='
-        if (padding_count == 2 && input[padding_pos + 1] != '=')
-          {
-            throw Base64Exception("Invalid Base64 padding");
-          }
-      }
-  }
 } // anonymous namespace
+
+bool
+Base64::is_valid_base64(const std::string &input)
+{
+  if (input.empty())
+    {
+      return false;
+    }
+
+  auto invalid_char = std::ranges::find_if(input, [](char c) { return !is_valid_base64_char(c); });
+  if (invalid_char != input.end())
+    {
+      return false;
+    }
+
+  size_t padding_pos = input.find('=');
+  if (padding_pos != std::string::npos)
+    {
+      // After first '=', there can be at most 1 more character and it must be '='
+      size_t padding_count = input.length() - padding_pos;
+      if (padding_count > 2)
+        {
+          return false;
+        }
+
+      // If there's a second character after first '=', it must also be '='
+      if (padding_count == 2 && input[padding_pos + 1] != '=')
+        {
+          return false;
+        }
+    }
+
+  return true;
+}
 
 std::string
 Base64::decode(const std::string &val)
@@ -86,7 +89,10 @@ Base64::decode(const std::string &val)
       input.append(padding_needed, '=');
 
       // Validate the final input (characters, padding, and length)
-      validate_base64_input(input);
+      if (!Base64::is_valid_base64(input))
+        {
+          throw Base64Exception("Invalid Base64 input");
+        }
 
       // Ensure final length is multiple of 4 (should always be true after padding)
       if (input.length() % 4 != 0)

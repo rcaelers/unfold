@@ -13,7 +13,7 @@
             <sparkle:version>1.0.0</sparkle:version>
             <sparkle:releaseNotesLink>https://workrave.org/v1.html</sparkle:releaseNotesLink>
             <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>
-            <enclosure url="http://localhost:1337/v2.zip" sparkle:edSignature="xx" length="1234" type="application/octet-stream" />
+            <enclosure url="http://localhost:1337/v2.zip" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="1234" type="application/octet-stream" />
         </item>
 
         <item>
@@ -21,7 +21,7 @@
             <description>Version 2 update</description>
             <sparkle:version>2.0.0</sparkle:version>
             <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>
-            <enclosure url="http://localhost:1337/v1.zip" sparkle:edSignature="xx" length="1235" type="application/octet-stream" />
+            <enclosure url="http://localhost:1337/v1.zip" sparkle:edSignature="aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==" length="1235" type="application/octet-stream" />
             <sparkle:criticalUpdate sparkle:version="1.5.0" />
         </item>
     </channel>

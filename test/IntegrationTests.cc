@@ -185,7 +185,7 @@ struct IntegrationTest : public ::testing::Test
     std::ifstream finstaller("test-installer.exe", std::ios::binary);
     std::string content((std::istreambuf_iterator<char>(finstaller)), std::istreambuf_iterator<char>());
 
-    std::ifstream fappcast("appcast.xml");
+    std::ifstream fappcast("appcast-tmpl.xml");
     std::string appcast((std::istreambuf_iterator<char>(fappcast)), std::istreambuf_iterator<char>());
 
     const auto *key =

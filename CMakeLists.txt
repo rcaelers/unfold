@@ -25,9 +25,9 @@ include(CheckCXXCompilerFlag)
 #----------------------------------------------------------------------------------------------------
 # Compiler
 
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_C_STANDARD 23)
+set(CMAKE_CXX_STANDARD 26)
+set(CMAKE_CXX_EXTENSIONS ON)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
@@ -116,6 +116,18 @@ FetchContent_Declare(
   GIT_TAG v0.3.1
 )
 FetchContent_MakeAvailable(semver)
+
+#----------------------------------------------------------------------------------------------------
+# libxml2
+
+find_package(LibXml2 QUIET)
+
+#----------------------------------------------------------------------------------------------------
+# xmlsec
+
+pkg_check_modules(XMLSEC1 REQUIRED IMPORTED_TARGET xmlsec1)
+pkg_check_modules(XMLSEC1_OPENSSL REQUIRED IMPORTED_TARGET xmlsec1-openssl)
+
 
 #----------------------------------------------------------------------------------------------------
 # Google test/mock

@@ -33,6 +33,8 @@ jobs:
         shell: bash
         run: |
           gh extension install github/gh-attestation
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Verify attestation
         shell: bash

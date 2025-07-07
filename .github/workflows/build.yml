@@ -78,7 +78,7 @@ jobs:
 
       - shell: msys2 {0}
         run: |
-          pacman -U _ext/*.pkg.tar.xz --noconfirm --needed
+          pacman -U _ext/*.pkg.tar.zst --noconfirm --needed
           mkdir _build _deploy
           export MINGW_ROOT=/c/msys64
           export MSYSTEM=CLANG64

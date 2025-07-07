@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <rss version="2.0"
   xmlns:sparkle="https://www.andymatuschak.org/xml-namespaces/sparkle"
-  xmlns:unfold="https://github.com/rcaelers/unfold">
+  xmlns:unfold="https://github.com/rcaelers/unfold"
+  xmlns:dsig="http://www.w3.org/2000/09/xmldsig#">
   <channel>
     <title>Workrave</title>
     <description>Workrave</description>
@@ -1490,4 +1491,24 @@ Workrave 0.1.0 has been released.
     </item>
 
   </channel>
+
+  <!-- XML Signature Template -->
+  <dsig:Signature>
+    <dsig:SignedInfo>
+      <dsig:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#" />
+      <dsig:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256" />
+      <dsig:Reference URI="">
+        <dsig:Transforms>
+          <dsig:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature" />
+          <dsig:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#" />
+        </dsig:Transforms>
+        <dsig:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256" />
+        <dsig:DigestValue></dsig:DigestValue>
+      </dsig:Reference>
+    </dsig:SignedInfo>
+    <dsig:SignatureValue></dsig:SignatureValue>
+    <dsig:KeyInfo>
+      <dsig:KeyName>unfold</dsig:KeyName>
+    </dsig:KeyInfo>
+  </dsig:Signature>
 </rss>

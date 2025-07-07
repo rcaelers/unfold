@@ -28,9 +28,12 @@
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/url.hpp>
+#include <boost/outcome/std_result.hpp>
 
-#include "semver.hpp"
 #include "utils/Logging.hh"
+#include "crypto/XMLDSigVerifier.hh"
+
+namespace outcome = boost::outcome_v2;
 
 struct AppcastEnclosure
 {
@@ -79,10 +82,19 @@ public:
   using filter_func_t = std::function<bool(std::shared_ptr<AppcastItem>)>;
   explicit AppcastReader(filter_func_t filter);
 
+  outcome::std_result<void> add_xmldsig_public_key(const std::string &key_name, const std::string &public_key_pem);
+  void clear_xmldsig_trusted_keys();
+  void set_xmldsig_verification_enabled(bool enabled);
+
   std::shared_ptr<Appcast> load_from_file(const std::string &filename);
   std::shared_ptr<Appcast> load_from_string(const std::string &str);
 
 private:
+  std::string read_file_content(const std::string &filename);
+  std::shared_ptr<Appcast> process_xml_content(const std::string &xml_content);
+  std::shared_ptr<Appcast> parse_xml_content(const std::string &xml_content);
+  void verify_xml_signature(const std::string &xml_content);
+
   std::shared_ptr<Appcast> parse_channel(boost::property_tree::ptree pt);
   std::shared_ptr<AppcastItem> parse_item(boost::property_tree::ptree item_pt);
   std::shared_ptr<AppcastEnclosure> parse_enclosure(boost::property_tree::ptree enclosure_pt);
@@ -113,6 +125,8 @@ private:
 private:
   std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:appcast")};
   filter_func_t filter;
+  std::unique_ptr<unfold::crypto::XMLDSigVerifier> xmldsig_verifier;
+  bool xmldsig_verification_enabled = false;
 };
 
 #endif // APPCAST_HH

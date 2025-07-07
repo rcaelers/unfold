@@ -34,6 +34,12 @@ public:
   MOCK_METHOD(outcome::std_result<void>, set_appcast, (const std::string &url), (override));
   MOCK_METHOD(outcome::std_result<void>, set_current_version, (const std::string &version), (override));
   MOCK_METHOD(outcome::std_result<void>, set_allowed_channels, (const std::vector<std::string> &channels), (override));
+  MOCK_METHOD(outcome::std_result<void>,
+              add_xmldsig_public_key,
+              (const std::string &key_name, const std::string &public_key_pem),
+              (override));
+  MOCK_METHOD(void, clear_xmldsig_trusted_keys, (), (override));
+  MOCK_METHOD(void, set_xmldsig_verification_enabled, (bool enabled), (override));
   MOCK_METHOD(void, set_update_validation_callback, (unfold::Unfold::update_validation_callback_t callback), (override));
   MOCK_METHOD(std::shared_ptr<unfold::UpdateInfo>, get_update_info, (), (const, override));
   MOCK_METHOD(std::shared_ptr<AppcastItem>, get_selected_update, (), (const, override));

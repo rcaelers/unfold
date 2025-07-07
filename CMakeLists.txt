@@ -125,9 +125,8 @@ find_package(LibXml2 QUIET)
 #----------------------------------------------------------------------------------------------------
 # xmlsec
 
-pkg_check_modules(XMLSEC1 REQUIRED IMPORTED_TARGET xmlsec1)
-pkg_check_modules(XMLSEC1_OPENSSL REQUIRED IMPORTED_TARGET xmlsec1-openssl)
-
+pkg_check_modules(XMLSEC1 REQUIRED IMPORTED_TARGET xmlsec1>=1.3.7)
+pkg_check_modules(XMLSEC1_OPENSSL REQUIRED IMPORTED_TARGET xmlsec1-openssl>=1.3.7)
 
 #----------------------------------------------------------------------------------------------------
 # Google test/mock

@@ -135,6 +135,24 @@ UpgradeControl::set_signature_verification_key(const std::string &key)
   return outcome::success();
 }
 
+outcome::std_result<void>
+UpgradeControl::add_xmldsig_public_key(const std::string &key_name, const std::string &public_key_pem)
+{
+  return checker->add_xmldsig_public_key(key_name, public_key_pem);
+}
+
+void
+UpgradeControl::clear_xmldsig_trusted_keys()
+{
+  checker->clear_xmldsig_trusted_keys();
+}
+
+void
+UpgradeControl::set_xmldsig_verification_enabled(bool enabled)
+{
+  checker->set_xmldsig_verification_enabled(enabled);
+}
+
 void
 UpgradeControl::set_certificate(const std::string &cert)
 {

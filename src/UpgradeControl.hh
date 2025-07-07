@@ -66,6 +66,9 @@ public:
   outcome::std_result<void> set_current_version(const std::string &version) override;
   outcome::std_result<void> set_allowed_channels(const std::vector<std::string> &channels) override;
   outcome::std_result<void> set_signature_verification_key(const std::string &key) override;
+  outcome::std_result<void> add_xmldsig_public_key(const std::string &key_name, const std::string &public_key_pem) override;
+  void clear_xmldsig_trusted_keys() override;
+  void set_xmldsig_verification_enabled(bool enabled) override;
   outcome::std_result<void> set_priority(int prio) override;
   void unset_priority() override;
   void set_certificate(const std::string &cert) override;

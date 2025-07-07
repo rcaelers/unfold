@@ -42,6 +42,7 @@ UpgradeChecker::UpgradeChecker(std::shared_ptr<Platform> platform,
   : platform(std::move(platform))
   , http(std::move(http))
   , hooks(hooks)
+  , appcast_reader(std::make_shared<AppcastReader>([this](auto item) { return is_applicable(item); }))
 {
 }
 
@@ -210,9 +211,7 @@ UpgradeChecker::download_appcast()
 outcome::std_result<std::shared_ptr<Appcast>>
 UpgradeChecker::parse_appcast(const std::string &appcast_xml)
 {
-  AppcastReader reader([this](auto item) { return is_applicable(item); });
-
-  auto appcast = reader.load_from_string(appcast_xml);
+  auto appcast = appcast_reader->load_from_string(appcast_xml);
   if (!appcast)
     {
       logger->info("failed to parse appcast");
@@ -290,4 +289,22 @@ UpgradeChecker::build_update_info(std::shared_ptr<Appcast> appcast)
           update_info->release_notes.push_back(r);
         }
     }
+}
+
+outcome::std_result<void>
+UpgradeChecker::add_xmldsig_public_key(const std::string &key_name, const std::string &public_key_pem)
+{
+  return appcast_reader->add_xmldsig_public_key(key_name, public_key_pem);
+}
+
+void
+UpgradeChecker::clear_xmldsig_trusted_keys()
+{
+  appcast_reader->clear_xmldsig_trusted_keys();
+}
+
+void
+UpgradeChecker::set_xmldsig_verification_enabled(bool enabled)
+{
+  appcast_reader->set_xmldsig_verification_enabled(enabled);
 }

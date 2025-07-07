@@ -94,6 +94,9 @@ namespace unfold
     virtual outcome::std_result<void> set_current_version(const std::string &version) = 0;
     virtual outcome::std_result<void> set_allowed_channels(const std::vector<std::string> &channels) = 0;
     virtual outcome::std_result<void> set_signature_verification_key(const std::string &key) = 0;
+    virtual outcome::std_result<void> add_xmldsig_public_key(const std::string &key_name, const std::string &public_key_pem) = 0;
+    virtual void clear_xmldsig_trusted_keys() = 0;
+    virtual void set_xmldsig_verification_enabled(bool enabled) = 0;
     virtual outcome::std_result<void> set_priority(int prio) = 0;
     virtual void unset_priority() = 0;
     virtual void set_certificate(const std::string &cert) = 0;

@@ -22,9 +22,13 @@
 
 #include <exception>
 #include <regex>
+#include <fstream>
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/iostreams/stream.hpp>
+
+#include "semver.hpp"
 #include "utils/Base64.hh"
+#include "crypto/XMLDSigVerifier.hh"
 
 namespace
 {
@@ -52,42 +56,57 @@ namespace
 AppcastReader::AppcastReader(AppcastReader::filter_func_t filter)
   : filter(filter)
 {
+  auto verifier_result = unfold::crypto::XMLDSigVerifier::create();
+  if (verifier_result)
+    {
+      xmldsig_verifier = std::make_unique<unfold::crypto::XMLDSigVerifier>(std::move(verifier_result.value()));
+    }
+  else
+    {
+      logger->error("Failed to create XMLDSig verifier: {}", verifier_result.error().message());
+    }
 }
 
-std::shared_ptr<Appcast>
-AppcastReader::load_from_file(const std::string &filename)
+outcome::std_result<void>
+AppcastReader::add_xmldsig_public_key(const std::string &key_name, const std::string &public_key_pem)
 {
-  if (filename.empty())
+  if (!xmldsig_verifier)
     {
-      logger->error("filename cannot be empty");
-      return {};
+      logger->error("XMLDSig verifier not available");
+      return outcome::failure(std::make_error_code(std::errc::operation_not_supported));
     }
 
-  if (filename.length() > MAX_FILENAME_LENGTH)
+  auto result = xmldsig_verifier->add_trusted_public_key(key_name, public_key_pem);
+  if (!result)
     {
-      logger->error("filename too long: {}", filename.length());
-      return {};
-    }
-
-  try
-    {
-      boost::property_tree::ptree pt;
-      read_xml(filename, pt);
-
-      auto result = parse_channel(pt);
-      if (!result)
-        {
-          logger->error("failed to parse channel from file: {}", filename);
-          return {};
-        }
-
+      logger->error("Failed to add XMLDSig public key: {}", result.error().message());
       return result;
     }
-  catch (std::exception &e)
+  return outcome::success();
+}
+
+void
+AppcastReader::clear_xmldsig_trusted_keys()
+{
+  if (xmldsig_verifier)
     {
-      logger->error("failed to load XML file {} ({})", filename, e.what());
+      auto result = xmldsig_verifier->clear_trusted_keys();
+      if (!result)
+        {
+          logger->error("Failed to clear XMLDSig trusted keys: {}", result.error().message());
+        }
     }
-  return {};
+  else
+    {
+      logger->warn("XMLDSig verifier not available");
+    }
+}
+
+void
+AppcastReader::set_xmldsig_verification_enabled(bool enabled)
+{
+  xmldsig_verification_enabled = enabled;
+  logger->info("XMLDSig verification {}", enabled ? "enabled" : "disabled");
 }
 
 std::shared_ptr<Appcast>
@@ -107,17 +126,97 @@ AppcastReader::load_from_string(const std::string &str)
 
   try
     {
+      return process_xml_content(str);
+    }
+  catch (std::exception &e)
+    {
+      logger->error("failed to process XML from string ({})", e.what());
+    }
+  return {};
+}
+
+std::shared_ptr<Appcast>
+AppcastReader::load_from_file(const std::string &filename)
+{
+  if (filename.empty())
+    {
+      logger->error("filename cannot be empty");
+      return {};
+    }
+
+  if (filename.length() > MAX_FILENAME_LENGTH)
+    {
+      logger->error("filename too long: {}", filename.length());
+      return {};
+    }
+
+  try
+    {
+      std::string xml_content = read_file_content(filename);
+      return process_xml_content(xml_content);
+    }
+  catch (std::exception &e)
+    {
+      logger->error("failed to load XML file {} ({})", filename, e.what());
+    }
+  return {};
+}
+
+std::string
+AppcastReader::read_file_content(const std::string &filename)
+{
+  std::ifstream file(filename, std::ios::binary);
+  if (!file.is_open())
+    {
+      throw std::runtime_error("cannot open file: " + filename);
+    }
+
+  file.seekg(0, std::ios::end);
+  auto file_size = file.tellg();
+  if (file_size > static_cast<std::streamsize>(MAX_XML_SIZE))
+    {
+      throw std::runtime_error("file too large: " + std::to_string(file_size) + " bytes");
+    }
+  file.seekg(0, std::ios::beg);
+
+  std::string content;
+  content.reserve(static_cast<size_t>(file_size));
+  content.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+
+  if (content.empty())
+    {
+      throw std::runtime_error("file is empty: " + filename);
+    }
+
+  logger->debug("read {} bytes from file: {}", content.size(), filename);
+  return content;
+}
+
+std::shared_ptr<Appcast>
+AppcastReader::process_xml_content(const std::string &xml_content)
+{
+  if (xmldsig_verification_enabled)
+    {
+      verify_xml_signature(xml_content);
+    }
+
+  return parse_xml_content(xml_content);
+}
+
+std::shared_ptr<Appcast>
+AppcastReader::parse_xml_content(const std::string &xml_content)
+{
+  try
+    {
       boost::property_tree::ptree pt;
-
-      boost::iostreams::array_source source(str.c_str(), str.size());
+      boost::iostreams::array_source source(xml_content.c_str(), xml_content.size());
       boost::iostreams::stream<boost::iostreams::array_source> stream(source);
-
       boost::property_tree::read_xml(stream, pt);
 
       auto result = parse_channel(pt);
       if (!result)
         {
-          logger->error("failed to parse channel from string");
+          logger->error("failed to parse channel from XML");
           return {};
         }
 
@@ -125,9 +224,9 @@ AppcastReader::load_from_string(const std::string &str)
     }
   catch (std::exception &e)
     {
-      logger->error("failed to parse XML ({})", e.what());
+      logger->error("failed to parse XML from ({})", e.what());
+      return {};
     }
-  return {};
 }
 
 std::shared_ptr<Appcast>
@@ -358,6 +457,7 @@ AppcastReader::validate_item(std::shared_ptr<AppcastItem> item)
   sanitize_string(item->minimum_system_version, MAX_VERSION_LENGTH);
   sanitize_string(item->minimum_auto_update_version, MAX_VERSION_LENGTH);
   sanitize_string(item->ignore_skipped_upgrades_below_version, MAX_VERSION_LENGTH);
+  sanitize_string(item->critical_update_version, MAX_VERSION_LENGTH);
 
   if (!item->version.empty() && !is_valid_version(item->version))
     {
@@ -391,8 +491,6 @@ AppcastReader::validate_item(std::shared_ptr<AppcastItem> item)
 
   if (item->critical_update)
     {
-      sanitize_string(item->critical_update_version, MAX_VERSION_LENGTH);
-
       if (!item->critical_update_version.empty() && !is_valid_version(item->critical_update_version))
         {
           throw std::runtime_error("invalid critical update version: " + item->critical_update_version);
@@ -453,7 +551,6 @@ AppcastReader::validate_enclosure(std::shared_ptr<AppcastEnclosure> enclosure)
     {
       throw std::runtime_error("invalid EdDSA signature format or length: " + enclosure->signature);
     }
-
 }
 
 void
@@ -727,5 +824,39 @@ AppcastReader::sanitize_string(std::string &str, size_t max_length)
   if (str.length() > max_length)
     {
       str = str.substr(0, max_length);
+    }
+}
+
+void
+AppcastReader::verify_xml_signature(const std::string &xml_content)
+{
+  if (!xmldsig_verifier)
+    {
+      throw std::runtime_error("XMLDSig verifier not available - cannot verify signature");
+    }
+
+  if (!unfold::crypto::XMLDSigVerifier::has_signature(xml_content))
+    {
+      logger->warn("XMLDSig verification enabled but no signature found in XML");
+      return;
+    }
+
+  logger->info("Verifying XML digital signature");
+
+  auto result = xmldsig_verifier->verify(xml_content);
+  if (!result)
+    {
+      throw std::runtime_error("XMLDSig verification failed: invalid or untrusted signature");
+    }
+
+  auto sig_info = result.value();
+  logger->info("XMLDSig verification successful");
+  logger->info("Signature method: {}", sig_info.signature_method);
+  logger->info("Digest method: {}", sig_info.digest_method);
+  logger->info("Canonicalization method: {}", sig_info.canonicalization_method);
+
+  if (sig_info.has_x509_certificate)
+    {
+      logger->info("Signature contains X.509 certificate");
     }
 }

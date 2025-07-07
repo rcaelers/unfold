@@ -19,6 +19,7 @@ jobs:
           fetch-depth: 0
 
       - name: Download extra packages
+        shell: bash
         run: |
           gh release download windows-latest \
             --repo rcaelers/workrave-dependencies \
@@ -29,10 +30,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install GitHub CLI attestation extension
+        shell: bash
         run: |
           gh extension install github/gh-attestation
 
       - name: Verify attestation
+        shell: bash
         run: |
           gh attestation verify workrave-mingw-packages.tar.gz \
             --repo rcaelers/workrave-dependencies \
@@ -43,6 +46,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Extract and verify contents
+        shell: bash
         run: |
           mkdir _ext
           tar -xzf workrave-mingw-packages.tar.gz -C _ext

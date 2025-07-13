@@ -76,7 +76,7 @@ find_package(OpenSSL REQUIRED)
 #----------------------------------------------------------------------------------------------------
 # Boost
 
-set(BOOST_COMPONENTS filesystem process url)
+set(BOOST_COMPONENTS filesystem process url json)
 set(Boost_DEBUG OFF)
 
 if (WIN32)

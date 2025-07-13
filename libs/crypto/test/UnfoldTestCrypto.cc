@@ -22,7 +22,6 @@
 #include <gmock/gmock.h>
 
 #include <memory>
-#include <fstream>
 
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -45,7 +44,7 @@ using namespace unfold::utils;
 struct GlobalCryptoTest : public ::testing::Environment
 {
   GlobalCryptoTest() = default;
-  ~GlobalCryptoTest() = default;
+  ~GlobalCryptoTest() override = default;
 
   GlobalCryptoTest(const GlobalCryptoTest &) = delete;
   GlobalCryptoTest &operator=(const GlobalCryptoTest &) = delete;
@@ -77,10 +76,12 @@ struct GlobalCryptoTest : public ::testing::Environment
   }
 };
 
+::testing::Environment *const global_env = ::testing::AddGlobalTestEnvironment(new GlobalCryptoTest);
+
 struct CryptoTest : public ::testing::Test
 {
   CryptoTest() = default;
-  ~CryptoTest() = default;
+  ~CryptoTest() override = default;
 
   CryptoTest(const CryptoTest &) = delete;
   CryptoTest &operator=(const CryptoTest &) = delete;
@@ -146,7 +147,6 @@ TEST_F(CryptoTest, signature_verify_file_ok_der)
 
 TEST_F(CryptoTest, signature_verify_invalid_der)
 {
-  std::string signature = "aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==";
   std::string pub_key = "xxxxMCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=xxx";
 
   SignatureVerifier verifier;

@@ -42,20 +42,32 @@ namespace unfold::http
   using Response = std::pair<int, std::string>;
   using ProgressCallback = std::function<void(double progress)>;
 
-  class HttpClient
+  class IHttpClient
+  {
+  public:
+    virtual ~IHttpClient() = default;
+
+    virtual Options &options() = 0;
+    virtual boost::asio::awaitable<outcome::std_result<unfold::http::Response>> get(std::string url) = 0;
+    virtual boost::asio::awaitable<outcome::std_result<unfold::http::Response>> get(std::string url,
+                                                                                    std::string file,
+                                                                                    unfold::http::ProgressCallback cb) = 0;
+  };
+
+  class HttpClient : public IHttpClient
   {
   public:
     HttpClient() = default;
 
-    Options &options()
+    Options &options() override
     {
       return options_;
     }
 
-    boost::asio::awaitable<outcome::std_result<unfold::http::Response>> get(std::string url);
+    boost::asio::awaitable<outcome::std_result<unfold::http::Response>> get(std::string url) override;
     boost::asio::awaitable<outcome::std_result<unfold::http::Response>> get(std::string url,
                                                                             std::string file,
-                                                                            unfold::http::ProgressCallback cb);
+                                                                            unfold::http::ProgressCallback cb) override;
 
   private:
     unfold::http::Options options_;

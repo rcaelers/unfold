@@ -7,6 +7,7 @@ target_sources(unfold-sigstore PRIVATE
   src/SigstoreBundleBase.cc
   src/SigstoreLegacyBundle.cc
   src/SigstoreStandardBundle.cc
+  src/TransparencyLogEntry.cc
   src/TransparencyLogVerifier.cc
   src/CertificateStore.cc
   src/Certificate.cc

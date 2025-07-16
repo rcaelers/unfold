@@ -4,6 +4,7 @@ add_executable(unfold-test-sigstore
   CertificateStoreTest.cc
   CertificateTest.cc
   PublicKeyTest.cc
+  TransparencyLogEntryTest.cc
 )
 
 target_link_libraries(unfold-test-sigstore

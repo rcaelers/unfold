@@ -46,7 +46,7 @@ namespace unfold::sigstore
   public:
     SigstoreStandardBundle(Certificate certificate, MessageSignature message_sig, std::vector<TransparencyLogEntry> tlog_entries);
 
-    static outcome::std_result<std::unique_ptr<SigstoreStandardBundle>> from_json(const boost::json::value &json_val);
+    static outcome::std_result<std::shared_ptr<SigstoreStandardBundle>> from_json(const boost::json::value &json_val);
 
     std::string get_signature() const override
     {
@@ -74,7 +74,7 @@ namespace unfold::sigstore
   public:
     SigstoreStandardBundleLoader() = default;
 
-    outcome::std_result<std::unique_ptr<SigstoreStandardBundle>> from_json(const boost::json::value &json_val);
+    outcome::std_result<std::shared_ptr<SigstoreStandardBundle>> from_json(const boost::json::value &json_val);
 
   private:
     std::string extract_certificate_from_verification_material(const boost::json::value &verification_material);

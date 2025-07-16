@@ -21,6 +21,7 @@
 #include "sigstore/SigstoreVerifier.hh"
 
 #include "TransparencyLogVerifier.hh"
+#include "SigstoreStandardBundle.hh"
 #include "JsonUtils.hh"
 #include "CertificateStore.hh"
 
@@ -76,7 +77,7 @@ namespace unfold::sigstore
     }
 
   public:
-    outcome::std_result<std::unique_ptr<SigstoreBundleBase>> parse_bundle(const std::string &bundle_json)
+    outcome::std_result<std::shared_ptr<SigstoreBundleBase>> parse_bundle(const std::string &bundle_json)
     {
       auto bundle_result = SigstoreBundleBase::from_json(bundle_json);
       if (!bundle_result)
@@ -125,13 +126,17 @@ namespace unfold::sigstore
           co_return bundle_result.error();
         }
 
-      auto bundle = std::move(bundle_result.value());
+      auto bundle = bundle_result.value();
 
       auto verify_result = verify_signature(data, *bundle);
       if (!verify_result)
         {
           logger_->error("Signature verification failed");
           co_return verify_result.error();
+        }
+      if (!verify_result.value())
+        {
+          logger_->warn("Signature verification failed: signature does not match");
         }
 
       auto chain_result = verify_certificate_chain(*bundle);

@@ -42,7 +42,7 @@ namespace unfold::sigstore
     virtual const Certificate &get_certificate() const = 0;
     virtual int64_t get_log_index() const = 0;
 
-    static outcome::std_result<std::unique_ptr<SigstoreBundleBase>> from_json(const std::string &json_str);
+    static outcome::std_result<std::shared_ptr<SigstoreBundleBase>> from_json(const std::string &json_str);
 
   private:
     JsonUtils json_utils_;

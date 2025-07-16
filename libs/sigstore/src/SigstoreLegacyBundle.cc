@@ -36,13 +36,13 @@ namespace unfold::sigstore
   {
   }
 
-  outcome::std_result<std::unique_ptr<SigstoreLegacyBundle>> SigstoreLegacyBundle::from_json(const boost::json::value &json_val)
+  outcome::std_result<std::shared_ptr<SigstoreLegacyBundle>> SigstoreLegacyBundle::from_json(const boost::json::value &json_val)
   {
     SigstoreLegacyBundleLoader loader;
     return loader.from_json(json_val);
   }
 
-  outcome::std_result<std::unique_ptr<SigstoreLegacyBundle>> SigstoreLegacyBundleLoader::from_json(
+  outcome::std_result<std::shared_ptr<SigstoreLegacyBundle>> SigstoreLegacyBundleLoader::from_json(
     const boost::json::value &json_val)
   {
     try
@@ -88,7 +88,7 @@ namespace unfold::sigstore
             logger_->error("Invalid certificate in Sigstore LegacyBundle: {}", cert.error().message());
             return cert.error();
           }
-        return std::make_unique<SigstoreLegacyBundle>(std::move(signature), std::move(cert.value()), log_index);
+        return std::make_shared<SigstoreLegacyBundle>(std::move(signature), std::move(cert.value()), log_index);
       }
     catch (const std::exception &)
       {

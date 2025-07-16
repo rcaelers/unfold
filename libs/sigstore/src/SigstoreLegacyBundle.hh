@@ -33,7 +33,7 @@ namespace unfold::sigstore
   public:
     SigstoreLegacyBundle(std::string signature, Certificate certificate, int64_t log_index);
 
-    static outcome::std_result<std::unique_ptr<SigstoreLegacyBundle>> from_json(const boost::json::value &json_val);
+    static outcome::std_result<std::shared_ptr<SigstoreLegacyBundle>> from_json(const boost::json::value &json_val);
 
     std::string get_signature() const override
     {
@@ -59,7 +59,7 @@ namespace unfold::sigstore
   public:
     SigstoreLegacyBundleLoader() = default;
 
-    outcome::std_result<std::unique_ptr<SigstoreLegacyBundle>> from_json(const boost::json::value &json_val);
+    outcome::std_result<std::shared_ptr<SigstoreLegacyBundle>> from_json(const boost::json::value &json_val);
 
   private:
     std::shared_ptr<spdlog::logger> logger_{unfold::utils::Logging::create("unfold:sigstore:legacy_bundle")};

@@ -24,10 +24,11 @@
 #include "SigstoreStandardBundle.hh"
 #include "sigstore/SigstoreErrors.hh"
 #include <boost/json.hpp>
+#include <memory>
 
 namespace unfold::sigstore
 {
-  outcome::std_result<std::unique_ptr<SigstoreBundleBase>> SigstoreBundleBase::from_json(const std::string &json_str)
+  outcome::std_result<std::shared_ptr<SigstoreBundleBase>> SigstoreBundleBase::from_json(const std::string &json_str)
   {
     try
       {
@@ -45,7 +46,7 @@ namespace unfold::sigstore
             auto result = SigstoreStandardBundle::from_json(json_val);
             if (result)
               {
-                return std::unique_ptr<SigstoreBundleBase>(result.value().release());
+                return result.value();
               }
             return outcome::failure(result.error());
           }
@@ -56,7 +57,7 @@ namespace unfold::sigstore
             auto result = SigstoreLegacyBundle::from_json(json_val);
             if (result)
               {
-                return std::unique_ptr<SigstoreBundleBase>(result.value().release());
+                return result.value();
               }
             return outcome::failure(result.error());
           }

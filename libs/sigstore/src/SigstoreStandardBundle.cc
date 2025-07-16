@@ -31,7 +31,7 @@
 
 namespace unfold::sigstore
 {
-  outcome::std_result<std::unique_ptr<SigstoreStandardBundle>> SigstoreStandardBundle::from_json(
+  outcome::std_result<std::shared_ptr<SigstoreStandardBundle>> SigstoreStandardBundle::from_json(
     const boost::json::value &json_val)
   {
     SigstoreStandardBundleLoader loader;
@@ -56,7 +56,7 @@ namespace unfold::sigstore
     return 0;
   }
 
-  outcome::std_result<std::unique_ptr<SigstoreStandardBundle>> SigstoreStandardBundleLoader::from_json(
+  outcome::std_result<std::shared_ptr<SigstoreStandardBundle>> SigstoreStandardBundleLoader::from_json(
     const boost::json::value &json_val)
   {
     try
@@ -121,7 +121,7 @@ namespace unfold::sigstore
               }
           }
 
-        return std::make_unique<SigstoreStandardBundle>(std::move(cert.value()),
+        return std::make_shared<SigstoreStandardBundle>(std::move(cert.value()),
                                                         message_sig_result.value(),
                                                         std::move(tlog_entries_));
       }

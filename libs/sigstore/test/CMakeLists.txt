@@ -33,3 +33,7 @@ file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/data/appcast-sigstore.xml.sigstore.new.bu
 
 add_test(NAME unfold-test-sigstore COMMAND unfold-test-sigstore)
 target_code_coverage(unfold-test-sigstore AUTO ALL)
+
+if(WIN32)
+  set_tests_properties(unfold-test-sigstore PROPERTIES ENVIRONMENT "PATH=${TEST_PATH_ENV}")
+endif()

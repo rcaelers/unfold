@@ -18,8 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "../src/CertificateStore.hh"
-#include "../src/Certificate.hh"
+#include "CertificateStore.hh"
+#include "Certificate.hh"
 #include "utils/Base64.hh"
 
 #include <gtest/gtest.h>

@@ -22,6 +22,7 @@
 
 #include "Certificate.hh"
 #include "JsonUtils.hh"
+#include "TransparencyLogEntry.hh"
 #include "sigstore/SigstoreErrors.hh"
 #include "utils/Base64.hh"
 
@@ -110,9 +111,10 @@ namespace unfold::sigstore
             const auto &tlog_entries_json = verification_material.as_object().at("tlogEntries");
             if (tlog_entries_json.is_array())
               {
+                TransparencyLogEntryParser parser;
                 for (const auto &entry_json: tlog_entries_json.as_array())
                   {
-                    auto entry_result = parse_tlog_entry(entry_json);
+                    auto entry_result = parser.parse(entry_json);
                     if (entry_result)
                       {
                         tlog_entries_.push_back(entry_result.value());
@@ -157,20 +159,6 @@ namespace unfold::sigstore
       }
 
     return message_sig;
-  }
-
-  outcome::std_result<TransparencyLogEntry> SigstoreStandardBundleLoader::parse_tlog_entry(const boost::json::value &json_val)
-  {
-    if (!json_val.is_object())
-      {
-        logger_->error("Invalid tlog entry JSON in Sigstore StandardBundle");
-        return outcome::failure(make_error_code(SigstoreError::InvalidBundle));
-      }
-
-    JsonUtils json_utils;
-    TransparencyLogEntry entry{};
-    entry.log_index = std::stoll(std::string(json_val.at("logIndex").as_string()));
-    return entry;
   }
 
   std::string SigstoreStandardBundleLoader::extract_certificate_from_verification_material(

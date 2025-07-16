@@ -22,6 +22,7 @@
 #define SIGSTORE_STANDARD_BUNDLE_HH
 
 #include "SigstoreBundleBase.hh"
+#include "TransparencyLogEntry.hh"
 
 #include <vector>
 
@@ -29,10 +30,6 @@
 
 namespace unfold::sigstore
 {
-  struct TransparencyLogEntry
-  {
-    int64_t log_index;
-  };
 
   struct MessageSignature
   {
@@ -63,6 +60,11 @@ namespace unfold::sigstore
       return message_signature_;
     }
 
+    const std::vector<TransparencyLogEntry> &get_transparency_log_entries() const
+    {
+      return tlog_entries_;
+    }
+
   private:
     Certificate certificate_;
     MessageSignature message_signature_;
@@ -79,7 +81,6 @@ namespace unfold::sigstore
   private:
     std::string extract_certificate_from_verification_material(const boost::json::value &verification_material);
     outcome::std_result<MessageSignature> parse_message_signature(const boost::json::value &json_val);
-    outcome::std_result<TransparencyLogEntry> parse_tlog_entry(const boost::json::value &json_val);
 
   private:
     std::shared_ptr<spdlog::logger> logger_{unfold::utils::Logging::create("unfold:sigstore:standard_bundle")};

@@ -18,7 +18,8 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include "../src/Certificate.hh"
+#include "Certificate.hh"
+#include "CryptographicAlgorithms.hh"
 #include "utils/Base64.hh"
 
 #include <gtest/gtest.h>
@@ -97,6 +98,36 @@ namespace unfold::sigstore::test
     EXPECT_EQ(cert.value().oidc_issuer(), "https://github.com/login/oauth");
     EXPECT_EQ(cert.value().subject_email(), "rob.caelers@gmail.com");
     EXPECT_FALSE(cert.value().is_self_signed());
+  }
+
+  TEST_F(CertificateTest, VerifySignatureMethodExists)
+  {
+    // Test that the new verify_signature methods exist and can be called
+    // We don't have real signature data, so we test with empty data to verify the API
+    const std::string cert_der_base64 =
+      "MIIC0zCCAlqgAwIBAgIUYFPFMu0cnyfOHpM6mReGmYXv0a0wCgYIKoZIzj0EAwMwNzEVMBMGA1UEChMMc2lnc3RvcmUuZGV2MR4wHAYDVQQDExVzaWdzdG9yZS1pbnRlcm1lZGlhdGUwHhcNMjUwNzA5MTgwMjQ2WhcNMjUwNzA5MTgxMjQ2WjAAMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEXqsGYRZ1J8HzmrXj1YQgImCb9ID9SLOwMPf43ZNEqZ9X7iS1HWvZ4618h5QjJNjn710qcZaQY5eMuNjevpW9WaOCAXkwggF1MA4GA1UdDwEB/wQEAwIHgDATBgNVHSUEDDAKBggrBgEFBQcDAzAdBgNVHQ4EFgQUvFypVql0k/nBFMqct8PqqlXeOcEwHwYDVR0jBBgwFoAU39Ppz1YkEZb5qNjpKFWixi4YZD8wIwYDVR0RAQH/BBkwF4EVcm9iLmNhZWxlcnNAZ21haWwuY29tMCwGCisGAQQBg78wAQEEHmh0dHBzOi8vZ2l0aHViLmNvbS9sb2dpbi9vYXV0aDAuBgorBgEEAYO/MAEIBCAMHmh0dHBzOi8vZ2l0aHViLmNvbS9sb2dpbi9vYXV0aDCBigYKKwYBBAHWeQIEAgR8BHoAeAB2AN09MGrGxxEyYxkeHJlnNwKiSl643jyt/4eKcoAvKe6OAAABl/BatuEAAAQDAEcwRQIgHfTWqEtNiKJdIP3Hlx3jfpTlE5EKLrzQaDr8XNod/l8CIQCo41Lry0E0RgCk12NjzXLgI3fX90IMbjYOCi7qpJ1pojAKBggqhkjOPQQDAwNnADBkAjBDxtCzMBi9uGaYflFklkHb9gaI1AepSy9DxRuIegdsLnvtHNd3rLwbfPqJZOw4B4QCMb41oC+O1hO15qi1LtQVBmzkXLtWIy6youHR1ksJCMY9imNWVe+pUJQM/4lxvj7/qg==";
+
+    auto cert_der_string = unfold::utils::Base64::decode(cert_der_base64);
+    auto cert_result = Certificate::from_der(cert_der_string);
+
+    ASSERT_TRUE(cert_result.has_value());
+    auto &cert = cert_result.value();
+
+    // Test vector<uint8_t> version with empty data (should fail but not crash)
+    std::vector<uint8_t> empty_data;
+    std::vector<uint8_t> empty_signature;
+    auto result1 = cert.verify_signature(empty_data, empty_signature);
+    EXPECT_TRUE(result1.has_value()); // Should return a bool result, even if false
+
+    // Test string version with empty data (should fail but not crash)
+    std::string empty_data_str;
+    std::string empty_signature_str;
+    auto result2 = cert.verify_signature(empty_data_str, empty_signature_str);
+    EXPECT_TRUE(result2.has_value()); // Should return a bool result, even if false
+
+    // Test with different digest algorithms
+    auto result3 = cert.verify_signature(empty_data, empty_signature, DigestAlgorithm::SHA384);
+    EXPECT_TRUE(result3.has_value());
   }
 
 } // namespace unfold::sigstore::test

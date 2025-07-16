@@ -18,16 +18,15 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef CERTIFICATE_HH
-#define CERTIFICATE_HH
+#ifndef PUBLICKEY_HH
+#define PUBLICKEY_HH
 
 #include <memory>
 #include <string>
 #include <vector>
-#include <chrono>
 #include <boost/outcome/std_result.hpp>
 #include <spdlog/spdlog.h>
-#include <openssl/x509.h>
+#include <openssl/evp.h>
 
 #include "utils/Logging.hh"
 #include "CryptographicAlgorithms.hh"
@@ -36,35 +35,39 @@ namespace outcome = boost::outcome_v2;
 
 namespace unfold::sigstore
 {
-  class PublicKey; // Forward declaration
-
-  class Certificate
+  class PublicKey
   {
+  private:
+    struct EVPKeyDeleter
+    {
+      void operator()(EVP_PKEY *key) const
+      {
+        if (key != nullptr)
+          {
+            EVP_PKEY_free(key);
+          }
+      }
+    };
+
   public:
-    explicit Certificate(std::unique_ptr<X509, decltype(&X509_free)> x509_cert);
-    Certificate() = delete;
+    explicit PublicKey(std::unique_ptr<EVP_PKEY, EVPKeyDeleter> evp_key);
+    PublicKey() = delete;
+    PublicKey(PublicKey &&other) noexcept = default;
+    PublicKey &operator=(PublicKey &&other) noexcept = default;
+    PublicKey(const PublicKey &) = delete;
+    PublicKey &operator=(const PublicKey &) = delete;
+    ~PublicKey() = default;
 
-    Certificate(Certificate &&other) noexcept = default;
-    Certificate &operator=(Certificate &&other) noexcept = default;
-    Certificate(const Certificate &) = delete;
-    Certificate &operator=(const Certificate &) = delete;
-    ~Certificate() = default;
+    static outcome::std_result<PublicKey> from_pem(const std::string &key_pem);
+    static outcome::std_result<PublicKey> from_der(const std::vector<uint8_t> &key_der);
+    static outcome::std_result<PublicKey> from_der(const std::string &key_der);
+    static outcome::std_result<PublicKey> from_certificate(const std::string &cert_pem);
+    static outcome::std_result<PublicKey> from_evp_key(EVP_PKEY *evp_key);
 
-    X509 *get() const;
-
-    static outcome::std_result<Certificate> from_pem(const std::string &cert_pem);
-    static outcome::std_result<Certificate> from_der(const std::vector<uint8_t> &cert_der);
-    static outcome::std_result<Certificate> from_der(const std::string &cert_der);
-
-    std::string subject_email() const;
-    std::string oidc_issuer() const;
-    bool is_self_signed() const;
-
-    outcome::std_result<std::chrono::system_clock::time_point> get_not_before() const;
-    outcome::std_result<std::chrono::system_clock::time_point> get_not_after() const;
-    outcome::std_result<bool> is_valid_at_time(const std::chrono::system_clock::time_point &timestamp) const;
-
-    outcome::std_result<PublicKey> get_public_key() const;
+    EVP_PKEY *get() const;
+    KeyAlgorithm get_algorithm() const;
+    int get_key_size_bits() const;
+    std::string get_algorithm_name() const;
 
     outcome::std_result<bool> verify_signature(const std::vector<uint8_t> &data,
                                                const std::vector<uint8_t> &signature,
@@ -75,10 +78,10 @@ namespace unfold::sigstore
                                                DigestAlgorithm digest_algorithm = DigestAlgorithm::SHA256) const;
 
   private:
-    std::unique_ptr<X509, decltype(&X509_free)> x509_cert_{nullptr, X509_free};
-    std::shared_ptr<spdlog::logger> logger_{unfold::utils::Logging::create("unfold:sigstore:certificate")};
+    std::unique_ptr<EVP_PKEY, EVPKeyDeleter> evp_key_{nullptr};
+    std::shared_ptr<spdlog::logger> logger_{unfold::utils::Logging::create("unfold:sigstore:publickey")};
   };
 
 } // namespace unfold::sigstore
 
-#endif // CERTIFICATE_HH
+#endif // PUBLICKEY_HH

@@ -11,6 +11,8 @@ target_sources(unfold-sigstore PRIVATE
   src/CertificateStore.cc
   src/SignatureVerifier.cc
   src/Certificate.cc
+  src/PublicKey.cc
+  src/CryptographicAlgorithms.cc
 )
 
 target_link_libraries(unfold-sigstore PRIVATE unfold-utils unfold-http spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto Boost::json)

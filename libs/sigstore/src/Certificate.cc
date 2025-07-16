@@ -20,12 +20,16 @@
 
 #include "Certificate.hh"
 
+#include <chrono>
+#include <ctime>
 #include <openssl/bio.h>
 #include <openssl/pem.h>
 #include <openssl/x509v3.h>
 #include <openssl/evp.h>
+#include <openssl/asn1.h>
 
 #include "sigstore/SigstoreErrors.hh"
+#include "PublicKey.hh"
 
 namespace unfold::sigstore
 {
@@ -160,7 +164,6 @@ namespace unfold::sigstore
   {
     X509 *cert = get();
 
-    // Look for the OIDC issuer extension (OID: 1.3.6.1.4.1.57264.1.1)
     ASN1_OBJECT *oid = OBJ_txt2obj("1.3.6.1.4.1.57264.1.1", 1);
     if (oid == nullptr)
       {
@@ -197,6 +200,133 @@ namespace unfold::sigstore
     // NOLINTNEXTLINE: OpenSSL API requires binary data conversion
     std::string issuer = std::string(reinterpret_cast<const char *>(data), len);
     return issuer;
+  }
+
+  outcome::std_result<std::chrono::system_clock::time_point> Certificate::get_not_before() const
+  {
+    X509 *cert = get();
+    if (cert == nullptr)
+      {
+        logger_->error("Certificate is null");
+        return SigstoreError::InvalidCertificate;
+      }
+
+    const ASN1_TIME *not_before = X509_get0_notBefore(cert);
+    if (not_before == nullptr)
+      {
+        logger_->error("Certificate has no notBefore time");
+        return SigstoreError::InvalidCertificate;
+      }
+
+    struct tm tm_time = {};
+    if (ASN1_TIME_to_tm(not_before, &tm_time) != 1)
+      {
+        logger_->error("Failed to convert certificate notBefore time");
+        return SigstoreError::InvalidCertificate;
+      }
+
+    std::time_t time_t_value = std::mktime(&tm_time);
+    return std::chrono::system_clock::from_time_t(time_t_value);
+  }
+
+  outcome::std_result<std::chrono::system_clock::time_point> Certificate::get_not_after() const
+  {
+    X509 *cert = get();
+    if (cert == nullptr)
+      {
+        logger_->error("Certificate is null");
+        return SigstoreError::InvalidCertificate;
+      }
+
+    const ASN1_TIME *not_after = X509_get0_notAfter(cert);
+    if (not_after == nullptr)
+      {
+        logger_->error("Certificate has no notAfter time");
+        return SigstoreError::InvalidCertificate;
+      }
+
+    struct tm tm_time = {};
+    if (ASN1_TIME_to_tm(not_after, &tm_time) != 1)
+      {
+        logger_->error("Failed to convert certificate notAfter time");
+        return SigstoreError::InvalidCertificate;
+      }
+
+    std::time_t time_t_value = std::mktime(&tm_time);
+    return std::chrono::system_clock::from_time_t(time_t_value);
+  }
+
+  outcome::std_result<bool> Certificate::is_valid_at_time(const std::chrono::system_clock::time_point &timestamp) const
+  {
+    auto not_before_result = get_not_before();
+    auto not_after_result = get_not_after();
+
+    if (!not_before_result.has_value())
+      {
+        logger_->error("Failed to get certificate notBefore time: {}", not_before_result.error().message());
+        return not_before_result.error();
+      }
+    if (!not_after_result.has_value())
+      {
+        logger_->error("Failed to get certificate notAfter time: {}", not_after_result.error().message());
+        return not_after_result.error();
+      }
+
+    auto not_before = not_before_result.value();
+    auto not_after = not_after_result.value();
+
+    bool valid = (timestamp >= not_before && timestamp <= not_after);
+
+    if (!valid)
+      {
+        logger_->debug("Certificate not valid at timestamp {}: valid from {} to {}", timestamp, not_before, not_after);
+      }
+
+    return valid;
+  }
+
+  outcome::std_result<PublicKey> Certificate::get_public_key() const
+  {
+    if (!x509_cert_)
+      {
+        logger_->error("Cannot extract public key: no certificate loaded");
+        return SigstoreError::InvalidCertificate;
+      }
+
+    EVP_PKEY *pkey = X509_get_pubkey(x509_cert_.get());
+    if (pkey == nullptr)
+      {
+        logger_->error("Failed to extract public key from certificate");
+        return SigstoreError::InvalidCertificate;
+      }
+
+    return PublicKey::from_evp_key(pkey);
+  }
+
+  outcome::std_result<bool> Certificate::verify_signature(const std::vector<uint8_t> &data,
+                                                          const std::vector<uint8_t> &signature,
+                                                          DigestAlgorithm digest_algorithm) const
+  {
+    auto public_key_result = get_public_key();
+    if (!public_key_result)
+      {
+        return public_key_result.error();
+      }
+
+    return public_key_result.value().verify_signature(data, signature, digest_algorithm);
+  }
+
+  outcome::std_result<bool> Certificate::verify_signature(const std::string &data,
+                                                          const std::string &signature,
+                                                          DigestAlgorithm digest_algorithm) const
+  {
+    auto public_key_result = get_public_key();
+    if (!public_key_result)
+      {
+        return public_key_result.error();
+      }
+
+    return public_key_result.value().verify_signature(data, signature, digest_algorithm);
   }
 
 } // namespace unfold::sigstore

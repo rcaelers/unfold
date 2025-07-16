@@ -30,6 +30,7 @@ namespace unfold::sigstore
     InvalidBundle = 1,
     InvalidSignature,
     InvalidCertificate,
+    InvalidPublicKey,
     FulcioChainInvalid,
     TransparencyLogInvalid,
     JsonParseError,
@@ -54,6 +55,8 @@ namespace unfold::sigstore
           return "Invalid signature";
         case SigstoreError::InvalidCertificate:
           return "Invalid certificate";
+        case SigstoreError::InvalidPublicKey:
+          return "Invalid public key";
         case SigstoreError::FulcioChainInvalid:
           return "Fulcio certificate chain invalid";
         case SigstoreError::TransparencyLogInvalid:

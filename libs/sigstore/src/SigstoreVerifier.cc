@@ -23,7 +23,6 @@
 #include "TransparencyLogVerifier.hh"
 #include "JsonUtils.hh"
 #include "CertificateStore.hh"
-#include "SignatureVerifier.hh"
 
 #include <memory>
 #include <boost/json.hpp>
@@ -33,7 +32,9 @@
 #include <openssl/sha.h>
 
 #include "utils/Logging.hh"
+#include "utils/Base64.hh"
 #include "http/HttpClient.hh"
+#include "sigstore/SigstoreErrors.hh"
 
 #include "SigstoreBundleBase.hh"
 
@@ -88,8 +89,23 @@ namespace unfold::sigstore
 
     outcome::std_result<bool> verify_signature(const std::string_view &content, const SigstoreBundleBase &bundle)
     {
-      auto signature_verifier = std::make_unique<SignatureVerifier>();
-      return signature_verifier->verify_signature(content, bundle.get_certificate(), bundle.get_signature());
+      const auto &certificate = bundle.get_certificate();
+      const auto &signature = bundle.get_signature();
+      
+      std::vector<uint8_t> signature_bytes;
+      try
+        {
+          std::string decoded_sig = unfold::utils::Base64::decode(signature);
+          signature_bytes.assign(decoded_sig.begin(), decoded_sig.end());
+        }
+      catch (const std::exception &e)
+        {
+          logger_->error("Failed to decode signature: {}", e.what());
+          return SigstoreError::InvalidSignature;
+        }
+
+      std::vector<uint8_t> content_bytes(content.begin(), content.end());
+      return certificate.verify_signature(content_bytes, signature_bytes);
     }
 
     outcome::std_result<bool> verify_certificate_chain(const SigstoreBundleBase &bundle)

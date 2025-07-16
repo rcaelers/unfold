@@ -9,7 +9,6 @@ target_sources(unfold-sigstore PRIVATE
   src/SigstoreStandardBundle.cc
   src/TransparencyLogVerifier.cc
   src/CertificateStore.cc
-  src/SignatureVerifier.cc
   src/Certificate.cc
   src/PublicKey.cc
   src/CryptographicAlgorithms.cc

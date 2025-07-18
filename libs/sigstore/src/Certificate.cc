@@ -329,4 +329,19 @@ namespace unfold::sigstore
     return public_key_result.value().verify_signature(data, signature, digest_algorithm);
   }
 
+  bool Certificate::operator==(const Certificate &other) const
+  {
+    if (!x509_cert_ || !other.x509_cert_)
+      {
+        return x509_cert_ == other.x509_cert_;
+      }
+
+    return X509_cmp(x509_cert_.get(), other.x509_cert_.get()) == 0;
+  }
+
+  bool Certificate::operator!=(const Certificate &other) const
+  {
+    return !(*this == other);
+  }
+
 } // namespace unfold::sigstore

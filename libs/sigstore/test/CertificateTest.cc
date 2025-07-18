@@ -130,4 +130,41 @@ namespace unfold::sigstore::test
     EXPECT_TRUE(result3.has_value());
   }
 
+  TEST_F(CertificateTest, CertificateComparison)
+  {
+    // Test certificate created from DER
+    std::string cert_base64 =
+      "MIIC1TCCAlqgAwIBAgIUVyf2i/kSHHcUvZCiAGB2q+B39eMwCgYIKoZIzj0EAwMwNzEVMBMGA1UEChMMc2lnc3RvcmUuZGV2MR4wHAYDVQQDExVzaWdzdG9yZS1pbnRlcm1lZGlhdGUwHhcNMjUwNzEwMTgwNjA2WhcNMjUwNzEwMTgxNjA2WjAAMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEIZLdcmiYUHnyCmbyDODkt0TUS3hnUfD6hLLqWYKR0X48eL6aR7UsehluA0gYtNKypbJOLJdY/P94uKGZ1lvqbaOCAXkwggF1MA4GA1UdDwEB/wQEAwIHgDATBgNVHSUEDDAKBggrBgEFBQcDAzAdBgNVHQ4EFgQUWg8/Map8qWkIDlker4y1lyi8mEswHwYDVR0jBBgwFoAU39Ppz1YkEZb5qNjpKFWixi4YZD8wIwYDVR0RAQH/BBkwF4EVcm9iLmNhZWxlcnNAZ21haWwuY29tMCwGCisGAQQBg78wAQEEHmh0dHBzOi8vZ2l0aHViLmNvbS9sb2dpbi9vYXV0aDCBigYKKwYBBAHWeQIEAgR8BHoAeAB2AN09MGrGxxEyYxkeHJlnNwKiSl643jyt/4eKcoAvKe6OAAABl/WEIfUAAAQDAEcwRQIhANStMu8Ou4C2PHLIO6l5S0HZhdKVmIE9bTSobiOkjQBIAiATIbUPI8/xWAdKw3qTYvynwqTN1Ic4GSQZiMrnSy9P/jAKBggqhkjOPQQDAwNpADBmAjEAyLhTOg6lSrmMjX1HmcnbC/LSNJMBwugR3Vg1T5b81V5Ky3wLfDFM7pi4xRht4MONAjEAwEtFcEY1XfinR+mknwGt653egNEnUJmRK48UbplR9KmQ6/9iISMk50sX1JI2tlxP";
+
+    std::string cert_der_str = unfold::utils::Base64::decode(cert_base64);
+    std::vector<uint8_t> cert_der(cert_der_str.begin(), cert_der_str.end());
+
+    // Create first certificate from DER
+    auto cert1_result = Certificate::from_der(cert_der);
+    ASSERT_TRUE(cert1_result.has_value());
+    Certificate cert1 = std::move(cert1_result.value());
+
+    // Create second certificate from DER (same data)
+    auto cert2_result = Certificate::from_der(cert_der);
+    ASSERT_TRUE(cert2_result.has_value());
+    Certificate cert2 = std::move(cert2_result.value());
+
+    // Test equality
+    EXPECT_TRUE(cert1 == cert2);
+    EXPECT_FALSE(cert1 != cert2);
+
+    // Convert to PEM and create new certificate from PEM
+    std::string pem_cert = "-----BEGIN CERTIFICATE-----\n";
+    pem_cert += cert_base64 + "\n";
+    pem_cert += "-----END CERTIFICATE-----";
+
+    auto cert_pem_result = Certificate::from_pem(pem_cert);
+    ASSERT_TRUE(cert_pem_result.has_value());
+    Certificate cert_from_pem = std::move(cert_pem_result.value());
+
+    // Test that certificate from PEM equals certificate from DER
+    EXPECT_TRUE(cert1 == cert_from_pem);
+    EXPECT_FALSE(cert1 != cert_from_pem);
+  }
+
 } // namespace unfold::sigstore::test

@@ -74,6 +74,9 @@ namespace unfold::sigstore
                                                const std::string &signature,
                                                DigestAlgorithm digest_algorithm = DigestAlgorithm::SHA256) const;
 
+    bool operator==(const Certificate &other) const;
+    bool operator!=(const Certificate &other) const;
+
   private:
     std::unique_ptr<X509, decltype(&X509_free)> x509_cert_{nullptr, X509_free};
     std::shared_ptr<spdlog::logger> logger_{unfold::utils::Logging::create("unfold:sigstore:certificate")};

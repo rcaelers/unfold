@@ -42,7 +42,7 @@ namespace unfold::sigstore
   class SigstoreStandardBundle : public SigstoreBundleBase
   {
   public:
-    SigstoreStandardBundle(Certificate certificate, MessageSignature message_sig, std::vector<TransparencyLogEntry> tlog_entries);
+    SigstoreStandardBundle(std::shared_ptr<Certificate> certificate, MessageSignature message_sig, std::vector<TransparencyLogEntry> tlog_entries);
 
     static outcome::std_result<std::shared_ptr<SigstoreStandardBundle>> from_json(const boost::json::value &json_val);
 
@@ -50,7 +50,7 @@ namespace unfold::sigstore
     {
       return message_signature_.signature;
     }
-    const Certificate &get_certificate() const override
+    std::shared_ptr<Certificate> get_certificate() const override
     {
       return certificate_;
     }
@@ -70,7 +70,7 @@ namespace unfold::sigstore
     }
 
   private:
-    Certificate certificate_;
+    std::shared_ptr<Certificate> certificate_;
     MessageSignature message_signature_;
     std::vector<TransparencyLogEntry> tlog_entries_;
   };

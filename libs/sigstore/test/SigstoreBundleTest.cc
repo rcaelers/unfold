@@ -44,9 +44,9 @@ TEST_F(SigstoreBundleTest, ParseStandardBundle)
   ASSERT_NE(bundle, nullptr);
 
   // Verify certificate is present
-  EXPECT_EQ(bundle->get_certificate().oidc_issuer(), "https://github.com/login/oauth");
-  EXPECT_EQ(bundle->get_certificate().subject_email(), "rob.caelers@gmail.com");
-  EXPECT_FALSE(bundle->get_certificate().is_self_signed());
+  EXPECT_EQ(bundle->get_certificate()->oidc_issuer(), "https://github.com/login/oauth");
+  EXPECT_EQ(bundle->get_certificate()->subject_email(), "rob.caelers@gmail.com");
+  EXPECT_FALSE(bundle->get_certificate()->is_self_signed());
 
   EXPECT_FALSE(bundle->get_signature().empty());
 
@@ -58,11 +58,11 @@ TEST_F(SigstoreBundleTest, ParseStandardBundle)
   auto algorithm = standard_bundle->get_algorithm();
   EXPECT_TRUE(algorithm.has_value());
   EXPECT_EQ(algorithm.value(), "SHA2_256");
-  
+
   auto digest = standard_bundle->get_message_digest();
   EXPECT_TRUE(digest.has_value());
   EXPECT_FALSE(digest.value().empty());
-  
+
   EXPECT_FALSE(standard_bundle->get_signature().empty());
 }
 
@@ -81,9 +81,9 @@ TEST_F(SigstoreBundleTest, ParseLegacyBundle)
 
   EXPECT_EQ(bundle->get_signature(),
             "MEUCID1iKgR4BeZTz+zoHqocEDZ/zWgFD2P3dUZJ0AuQqJxmAiEA9g/4S9fhwuh4VPQ8eRhkO2x8SN2X2J8BjfOSxnFrDzw=");
-  EXPECT_EQ(bundle->get_certificate().oidc_issuer(), "https://github.com/login/oauth");
-  EXPECT_EQ(bundle->get_certificate().subject_email(), "rob.caelers@gmail.com");
-  EXPECT_FALSE(bundle->get_certificate().is_self_signed());
+  EXPECT_EQ(bundle->get_certificate()->oidc_issuer(), "https://github.com/login/oauth");
+  EXPECT_EQ(bundle->get_certificate()->subject_email(), "rob.caelers@gmail.com");
+  EXPECT_FALSE(bundle->get_certificate()->is_self_signed());
   EXPECT_EQ(bundle->get_log_index(), 268807149);
 }
 

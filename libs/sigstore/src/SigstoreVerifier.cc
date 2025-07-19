@@ -90,7 +90,7 @@ namespace unfold::sigstore
 
     outcome::std_result<bool> verify_signature(const std::string_view &content, const SigstoreBundleBase &bundle)
     {
-      const auto &certificate = bundle.get_certificate();
+      auto certificate = bundle.get_certificate();
       const auto &signature = bundle.get_signature();
       
       std::vector<uint8_t> signature_bytes;
@@ -106,13 +106,13 @@ namespace unfold::sigstore
         }
 
       std::vector<uint8_t> content_bytes(content.begin(), content.end());
-      return certificate.verify_signature(content_bytes, signature_bytes);
+      return certificate->verify_signature(content_bytes, signature_bytes);
     }
 
     outcome::std_result<bool> verify_certificate_chain(const SigstoreBundleBase &bundle)
     {
-      const auto &cert = bundle.get_certificate();
-      return certificate_store_->verify_certificate_chain(cert);
+      auto cert = bundle.get_certificate();
+      return certificate_store_->verify_certificate_chain(*cert);
     }
 
     boost::asio::awaitable<outcome::std_result<bool>> verify(std::string_view data, std::string_view bundle_json)

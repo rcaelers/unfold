@@ -32,7 +32,7 @@ namespace unfold::sigstore
   class SigstoreLegacyBundle : public SigstoreBundleBase
   {
   public:
-    SigstoreLegacyBundle(std::string signature, Certificate certificate, int64_t log_index);
+    SigstoreLegacyBundle(std::string signature, std::shared_ptr<Certificate> certificate, int64_t log_index);
 
     static outcome::std_result<std::shared_ptr<SigstoreLegacyBundle>> from_json(const boost::json::value &json_val);
 
@@ -40,7 +40,7 @@ namespace unfold::sigstore
     {
       return signature_;
     }
-    const Certificate &get_certificate() const override
+    std::shared_ptr<Certificate> get_certificate() const override
     {
       return certificate_;
     }
@@ -59,7 +59,7 @@ namespace unfold::sigstore
 
   private:
     std::string signature_;
-    Certificate certificate_;
+    std::shared_ptr<Certificate> certificate_;
     int64_t log_index_;
   };
 

@@ -40,7 +40,7 @@ namespace unfold::sigstore
     virtual ~SigstoreBundleBase() = default;
 
     virtual std::string get_signature() const = 0;
-    virtual const Certificate &get_certificate() const = 0;
+    virtual std::shared_ptr<Certificate> get_certificate() const = 0;
     virtual std::optional<std::string> get_message_digest() const = 0;
     virtual std::optional<std::string> get_algorithm() const = 0;
     virtual int64_t get_log_index() const = 0;

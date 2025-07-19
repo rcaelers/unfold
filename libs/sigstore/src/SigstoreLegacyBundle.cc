@@ -29,7 +29,7 @@
 namespace unfold::sigstore
 {
 
-  SigstoreLegacyBundle::SigstoreLegacyBundle(std::string signature, Certificate certificate, int64_t log_index)
+  SigstoreLegacyBundle::SigstoreLegacyBundle(std::string signature, std::shared_ptr<Certificate> certificate, int64_t log_index)
     : signature_(std::move(signature))
     , certificate_(std::move(certificate))
     , log_index_(log_index)
@@ -88,7 +88,9 @@ namespace unfold::sigstore
             logger_->error("Invalid certificate in Sigstore LegacyBundle: {}", cert.error().message());
             return cert.error();
           }
-        return std::make_shared<SigstoreLegacyBundle>(std::move(signature), std::move(cert.value()), log_index);
+        return std::make_shared<SigstoreLegacyBundle>(std::move(signature),
+                                                      std::make_shared<Certificate>(std::move(cert.value())),
+                                                      log_index);
       }
     catch (const std::exception &)
       {

@@ -39,7 +39,7 @@ namespace unfold::sigstore
     return loader.from_json(json_val);
   }
 
-  SigstoreStandardBundle::SigstoreStandardBundle(Certificate certificate,
+  SigstoreStandardBundle::SigstoreStandardBundle(std::shared_ptr<Certificate> certificate,
                                                  MessageSignature message_sig,
                                                  std::vector<TransparencyLogEntry> tlog_entries)
     : certificate_(std::move(certificate))
@@ -123,7 +123,7 @@ namespace unfold::sigstore
               }
           }
 
-        return std::make_shared<SigstoreStandardBundle>(std::move(cert.value()),
+        return std::make_shared<SigstoreStandardBundle>(std::make_shared<Certificate>(std::move(cert.value())),
                                                         message_sig_result.value(),
                                                         std::move(tlog_entries_));
       }

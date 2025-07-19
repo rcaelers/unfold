@@ -21,6 +21,7 @@
 #ifndef SIGSTORE_LEGACY_BUNDLE_HH
 #define SIGSTORE_LEGACY_BUNDLE_HH
 
+#include <optional>
 #include "Certificate.hh"
 #include "SigstoreBundleBase.hh"
 
@@ -42,6 +43,14 @@ namespace unfold::sigstore
     const Certificate &get_certificate() const override
     {
       return certificate_;
+    }
+    std::optional<std::string> get_message_digest() const override
+    {
+      return std::nullopt;
+    }
+    std::optional<std::string> get_algorithm() const override
+    {
+      return std::nullopt;
     }
     int64_t get_log_index() const override
     {

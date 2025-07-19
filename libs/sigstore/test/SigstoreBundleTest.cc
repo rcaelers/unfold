@@ -55,10 +55,15 @@ TEST_F(SigstoreBundleTest, ParseStandardBundle)
   auto *standard_bundle = dynamic_cast<SigstoreStandardBundle *>(bundle.get());
   ASSERT_NE(standard_bundle, nullptr);
 
-  const auto &message_sig = standard_bundle->get_message_signature();
-  EXPECT_EQ(message_sig.algorithm, "SHA2_256");
-  EXPECT_FALSE(message_sig.digest.empty());
-  EXPECT_FALSE(message_sig.signature.empty());
+  auto algorithm = standard_bundle->get_algorithm();
+  EXPECT_TRUE(algorithm.has_value());
+  EXPECT_EQ(algorithm.value(), "SHA2_256");
+  
+  auto digest = standard_bundle->get_message_digest();
+  EXPECT_TRUE(digest.has_value());
+  EXPECT_FALSE(digest.value().empty());
+  
+  EXPECT_FALSE(standard_bundle->get_signature().empty());
 }
 
 TEST_F(SigstoreBundleTest, ParseLegacyBundle)

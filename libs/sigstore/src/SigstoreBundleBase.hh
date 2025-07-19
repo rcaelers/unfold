@@ -23,6 +23,7 @@
 
 #include <string>
 #include <memory>
+#include <optional>
 #include <boost/outcome/std_result.hpp>
 #include <boost/json.hpp>
 
@@ -40,6 +41,8 @@ namespace unfold::sigstore
 
     virtual std::string get_signature() const = 0;
     virtual const Certificate &get_certificate() const = 0;
+    virtual std::optional<std::string> get_message_digest() const = 0;
+    virtual std::optional<std::string> get_algorithm() const = 0;
     virtual int64_t get_log_index() const = 0;
 
     static outcome::std_result<std::shared_ptr<SigstoreBundleBase>> from_json(const std::string &json_str);

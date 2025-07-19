@@ -21,6 +21,7 @@
 #ifndef SIGSTORE_STANDARD_BUNDLE_HH
 #define SIGSTORE_STANDARD_BUNDLE_HH
 
+#include <optional>
 #include "SigstoreBundleBase.hh"
 #include "TransparencyLogEntry.hh"
 
@@ -53,12 +54,15 @@ namespace unfold::sigstore
     {
       return certificate_;
     }
-    int64_t get_log_index() const override;
-
-    const MessageSignature &get_message_signature() const
+    std::optional<std::string> get_message_digest() const override
     {
-      return message_signature_;
+      return message_signature_.digest;
     }
+    std::optional<std::string> get_algorithm() const override
+    {
+      return message_signature_.algorithm;
+    }
+    int64_t get_log_index() const override;
 
     const std::vector<TransparencyLogEntry> &get_transparency_log_entries() const
     {

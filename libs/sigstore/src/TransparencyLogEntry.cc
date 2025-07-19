@@ -26,6 +26,7 @@
 #include <string>
 #include <iomanip>
 #include <sstream>
+#include <limits>
 
 namespace outcome = boost::outcome_v2;
 
@@ -61,30 +62,14 @@ namespace unfold::sigstore
   {
     if (const auto *it = obj.if_contains("logIndex"))
       {
-        if (it->is_string())
+        auto parsed_value = parse_int64_value(*it);
+        if (parsed_value)
           {
-            try
-              {
-                return std::stoll(std::string(it->as_string()));
-              }
-            catch (const std::exception &)
-              {
-                return SigstoreError::InvalidBundle;
-              }
+            return parsed_value.value();
           }
-        else if (it->is_int64())
-          {
-            return it->as_int64();
-          }
-        else
-          {
-            return SigstoreError::InvalidBundle;
-          }
-      }
-    else
-      {
         return SigstoreError::InvalidBundle;
       }
+    return SigstoreError::InvalidBundle;
   }
 
   void TransparencyLogEntryParser::parse_optional_fields(const boost::json::object &obj, TransparencyLogEntry &entry)
@@ -121,6 +106,7 @@ namespace unfold::sigstore
     if (const auto *it = obj.if_contains("integratedTime"))
       {
         entry.integrated_time = parse_integrated_time(*it);
+        logger_->debug("Parsed integratedTime: {}", entry.integrated_time.has_value() ? std::to_string(entry.integrated_time.value()) : "none");
       }
 
     // Parse optional inclusionPromise
@@ -265,22 +251,7 @@ namespace unfold::sigstore
 
   std::optional<int64_t> TransparencyLogEntryParser::parse_integrated_time(const boost::json::value &json_val)
   {
-    if (json_val.is_string())
-      {
-        try
-          {
-            return std::stoll(std::string(json_val.as_string()));
-          }
-        catch (const std::exception &)
-          {
-            return std::nullopt;
-          }
-      }
-    else if (json_val.is_int64())
-      {
-        return json_val.as_int64();
-      }
-    return std::nullopt;
+    return parse_int64_value(json_val);
   }
 
   outcome::std_result<std::string> TransparencyLogEntryParser::parse_log_id(const boost::json::value &json_val)
@@ -443,6 +414,15 @@ namespace unfold::sigstore
     else if (json_val.is_int64())
       {
         return json_val.as_int64();
+      }
+    else if (json_val.is_uint64())
+      {
+        uint64_t value = json_val.as_uint64();
+        // Check if the uint64 value fits in int64 range
+        if (value <= static_cast<uint64_t>(std::numeric_limits<int64_t>::max()))
+          {
+            return static_cast<int64_t>(value);
+          }
       }
     return std::nullopt;
   }

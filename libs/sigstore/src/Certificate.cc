@@ -33,6 +33,19 @@
 
 namespace unfold::sigstore
 {
+  namespace
+  {
+    // Portable UTC time conversion function
+    std::time_t mktime_utc(struct tm *tm)
+    {
+#ifdef _WIN32
+      return _mkgmtime(tm);
+#else
+      return timegm(tm);
+#endif
+    }
+  }
+
   Certificate::Certificate(std::unique_ptr<X509, decltype(&X509_free)> x509_cert)
     : x509_cert_(std::move(x509_cert))
   {
@@ -225,7 +238,12 @@ namespace unfold::sigstore
         return SigstoreError::InvalidCertificate;
       }
 
-    std::time_t time_t_value = std::mktime(&tm_time);
+    std::time_t time_t_value = mktime_utc(&tm_time);
+    if (time_t_value == -1)
+      {
+        logger_->error("Failed to convert certificate notBefore time to UTC");
+        return SigstoreError::InvalidCertificate;
+      }
     return std::chrono::system_clock::from_time_t(time_t_value);
   }
 
@@ -252,7 +270,12 @@ namespace unfold::sigstore
         return SigstoreError::InvalidCertificate;
       }
 
-    std::time_t time_t_value = std::mktime(&tm_time);
+    std::time_t time_t_value = mktime_utc(&tm_time);
+    if (time_t_value == -1)
+      {
+        logger_->error("Failed to convert certificate notAfter time to UTC");
+        return SigstoreError::InvalidCertificate;
+      }
     return std::chrono::system_clock::from_time_t(time_t_value);
   }
 

@@ -60,7 +60,7 @@ namespace unfold::sigstore
   public:
     explicit Impl(std::shared_ptr<unfold::http::IHttpClient> http_client)
       : http_client_(http_client)
-      , transparency_log_verifier_(std::make_unique<TransparencyLogVerifier>(http_client))
+      , transparency_log_verifier_(std::make_unique<TransparencyLogVerifier>())
       , logger_(unfold::utils::Logging::create("unfold:sigstore"))
       , json_utils_(std::make_unique<JsonUtils>())
       , certificate_store_(std::make_shared<CertificateStore>())
@@ -92,7 +92,7 @@ namespace unfold::sigstore
     {
       auto certificate = bundle.get_certificate();
       const auto &signature = bundle.get_signature();
-      
+
       std::vector<uint8_t> signature_bytes;
       try
         {
@@ -146,13 +146,31 @@ namespace unfold::sigstore
           co_return chain_result.error();
         }
 
-      bool log_result = co_await transparency_log_verifier_->verify_transparency_log(std::string(bundle_json), rekor_public_key_);
-      if (!log_result)
+      if (!chain_result.value())
         {
-          logger_->error("Transparency log verification failed");
+          logger_->warn("Certificate chain verification failed: chain is not valid");
         }
 
-      auto is_valid = verify_result.value() && chain_result.value() && log_result;
+      outcome::std_result<void> log_result = outcome::success();
+
+      // Check if this is a standard bundle with transparency log entries
+      if (auto standard_bundle = std::dynamic_pointer_cast<SigstoreStandardBundle>(bundle))
+        {
+          const auto &tlog_entries = standard_bundle->get_transparency_log_entries();
+          if (!tlog_entries.empty())
+            {
+              // Verify the first transparency log entry using the certificate from the bundle
+              auto cert_ptr = standard_bundle->get_certificate();
+              log_result = transparency_log_verifier_->verify_transparency_log(tlog_entries[0], cert_ptr);
+            }
+        }
+
+      if (!log_result)
+        {
+          logger_->error("Transparency log verification failed: {}", log_result.error().message());
+        }
+
+      auto is_valid = verify_result.value() && chain_result.value() && log_result.has_value() && log_result;
 
       if (is_valid)
         {
@@ -164,16 +182,6 @@ namespace unfold::sigstore
         }
 
       co_return is_valid;
-    }
-
-    outcome::std_result<void> set_rekor_public_key(const std::string &public_key_pem)
-    {
-      // Delegate to the transparency log verifier
-      transparency_log_verifier_->set_rekor_public_key(public_key_pem);
-
-      // Also store locally for backward compatibility (can be removed later)
-      rekor_public_key_ = public_key_pem;
-      return outcome::success();
     }
 
     outcome::std_result<void> load_embedded_fulcio_ca_certificates()
@@ -260,11 +268,6 @@ namespace unfold::sigstore
   boost::asio::awaitable<outcome::std_result<bool>> SigstoreVerifier::verify(std::string_view data, std::string_view bundle_json)
   {
     co_return co_await pimpl->verify(data, bundle_json);
-  }
-
-  outcome::std_result<void> SigstoreVerifier::set_rekor_public_key(const std::string &public_key_pem)
-  {
-    return pimpl->set_rekor_public_key(public_key_pem);
   }
 
   boost::asio::awaitable<outcome::std_result<void>> SigstoreVerifier::download_fulcio_ca_certificates()

@@ -13,6 +13,8 @@ target_sources(unfold-sigstore PRIVATE
   src/Certificate.cc
   src/PublicKey.cc
   src/CryptographicAlgorithms.cc
+  src/RFC6962Hasher.cc
+  src/MerkleTreeValidator.cc
 )
 
 target_link_libraries(unfold-sigstore PRIVATE unfold-utils unfold-http spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto Boost::json)

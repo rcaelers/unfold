@@ -20,6 +20,10 @@
 
 #include "TransparencyLogEntry.hh"
 
+#include <algorithm>
+#include <boost/algorithm/string/replace.hpp>
+#include <boost/algorithm/string.hpp>
+
 #include "sigstore/SigstoreErrors.hh"
 #include "utils/Base64.hh"
 
@@ -106,7 +110,8 @@ namespace unfold::sigstore
     if (const auto *it = obj.if_contains("integratedTime"))
       {
         entry.integrated_time = parse_integrated_time(*it);
-        logger_->debug("Parsed integratedTime: {}", entry.integrated_time.has_value() ? std::to_string(entry.integrated_time.value()) : "none");
+        logger_->debug("Parsed integratedTime: {}",
+                       entry.integrated_time.has_value() ? std::to_string(entry.integrated_time.value()) : "none");
       }
 
     // Parse optional inclusionPromise
@@ -386,16 +391,112 @@ namespace unfold::sigstore
       }
 
     // Parse optional checkpoint
-    if (const auto *it = obj.if_contains("checkpoint"))
+    if (const auto *it = obj.if_contains("checkpoint"); it != nullptr && it->is_object())
       {
-        auto checkpoint_result = parse_checkpoint(*it);
-        if (checkpoint_result)
+        const auto &checkpoint_obj = it->as_object();
+
+        if (const auto *it = checkpoint_obj.if_contains("envelope"); it != nullptr && it->is_string())
           {
-            inclusion_proof.checkpoint = checkpoint_result.value();
+            auto checkpoint_result = parse_checkpoint(std::string(it->as_string()));
+            if (checkpoint_result)
+              {
+                inclusion_proof.checkpoint = checkpoint_result.value();
+              }
+            else
+              {
+                logger_->warn("Failed to parse checkpoint: {}", checkpoint_result.error().message());
+              }
           }
       }
 
     return inclusion_proof;
+  }
+
+  outcome::std_result<Checkpoint> TransparencyLogEntryParser::parse_checkpoint(const std::string &checkpoint)
+  {
+    std::string text = boost::algorithm::replace_all_copy(std::string(checkpoint), "\r\n", "\n");
+
+    const auto sep = text.find("\n\n");
+    if (sep == std::string::npos)
+      {
+        logger_->error("Checkpoint format error: missing blank line between body and signatures");
+        return SigstoreError::InvalidBundle;
+      }
+
+    auto body = std::string_view(text).substr(0, sep);
+    auto sig_block = std::string_view(text).substr(sep + 2);
+
+    logger_->debug("Parsing checkpoint with body:\n{}", body);
+    logger_->debug("Parsing checkpoint signatures:\n{}", sig_block);
+
+    /* ---- body ---- */
+    std::vector<std::string_view> lines;
+    boost::algorithm::split(lines, body, boost::is_any_of("\n"), boost::token_compress_off);
+    if (!lines.empty() && lines.back().empty())
+      {
+        lines.pop_back();
+      }
+
+    if (lines.size() < 3)
+      {
+        logger_->error("Checkpoint body must have at least 3 lines");
+        return SigstoreError::InvalidBundle;
+      }
+
+    Checkpoint ck;
+    ck.body = std::string(body) + "\n";
+    ck.origin = std::string(lines[0]);
+
+    std::string_view size_sv = lines[1];
+    if (!std::ranges::all_of(size_sv, ::isdigit))
+      {
+        logger_->error("Tree size line is not decimal: {}", size_sv);
+        return SigstoreError::InvalidBundle;
+      }
+    ck.tree_size = std::stoull(std::string(size_sv));
+    ck.root_hash = std::string(lines[2]);
+
+    for (std::size_t i = 3; i < lines.size(); ++i)
+      {
+        ck.extensions.emplace_back(lines[i]);
+      }
+
+    /* ---- signatures ---- */
+    std::vector<std::string_view> sig_lines;
+    boost::algorithm::split(sig_lines, sig_block, boost::is_any_of("\n"), boost::token_compress_off);
+    boost::algorithm::trim_right_if(sig_lines, [](const std::string_view &line) { return line.empty(); });
+
+    if (sig_lines.empty())
+      {
+        logger_->error("Checkpoint has no signature lines");
+        return SigstoreError::InvalidBundle;
+      }
+
+    const std::string em_dash = "\u2014"; // UTF-8 em dash
+
+    for (auto ln: sig_lines)
+      {
+        if (!ln.starts_with(em_dash) && !ln.starts_with("-"))
+          {
+            logger_->error("Signature line must start with em dash or hyphen: {}", ln);
+            return SigstoreError::InvalidBundle;
+          }
+
+        ln.remove_prefix(ln.find_first_not_of("-\u2014 "));
+        const auto sp = ln.find(' ');
+        if (sp == std::string_view::npos)
+          {
+            logger_->error("Signature line has no space after signer: {}", ln);
+            return SigstoreError::InvalidBundle;
+          }
+
+        Signature sig;
+        sig.signer = std::string(ln.substr(0, sp));
+        sig.signature = std::string(ln.substr(sp + 1));
+        ck.signatures.emplace_back(std::move(sig));
+      }
+
+    return ck;
   }
 
   std::optional<int64_t> TransparencyLogEntryParser::parse_int64_value(const boost::json::value &json_val)
@@ -425,24 +526,6 @@ namespace unfold::sigstore
           }
       }
     return std::nullopt;
-  }
-
-  outcome::std_result<Checkpoint> TransparencyLogEntryParser::parse_checkpoint(const boost::json::value &json_val)
-  {
-    if (!json_val.is_object())
-      {
-        return SigstoreError::InvalidBundle;
-      }
-
-    const auto &obj = json_val.as_object();
-    Checkpoint checkpoint{};
-
-    if (const auto *it = obj.if_contains("envelope"); it != nullptr && it->is_string())
-      {
-        checkpoint.envelope = std::string(it->as_string());
-      }
-
-    return checkpoint;
   }
 
 } // namespace unfold::sigstore

@@ -5,6 +5,8 @@ add_executable(unfold-test-sigstore
   CertificateTest.cc
   PublicKeyTest.cc
   TransparencyLogEntryTest.cc
+  TransparencyLogVerifierTest.cc
+  RFC6962HasherTest.cc
 )
 
 target_link_libraries(unfold-test-sigstore

@@ -238,7 +238,7 @@ namespace unfold::sigstore
         return false;
       }
 
-    logger_->error("Signature verification failed with error");
+    logger_->error("Signature verification failed with error: {} {}", result, ERR_error_string(ERR_get_error(), nullptr));
     return SigstoreError::SystemError;
   }
 

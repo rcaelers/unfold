@@ -116,25 +116,39 @@ TEST_F(SigstoreTest, VerifyInvalidBundle)
 //   EXPECT_EQ(result.error().value(), static_cast<int>(SigstoreError::InvalidCertificate));
 // }
 
-TEST_F(SigstoreTest, ParseNewBundleFormat)
+TEST_F(SigstoreTest, ParseLegacyBundleFormat)
 {
-  // Test with a valid-looking bundle structure (though verification will fail)
   SigstoreVerifier verifier(mock_http_client_);
 
-  std::string new_bundle_format = R"({
-    "base64Signature": "MEUCID1iKgR4BeZTz+zoHqocEDZ/zWgFD2P3dUZJ0AuQqJxmAiEA9g/4S9fhwuh4VPQ8eRhkO2x8SN2X2J8BjfOSxnFrDzw=",
-    "cert": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUMwekNDQWxxZ0F3SUJBZ0lVWUZQRk11MGNueWZPSHBNNm1SZUdtWVh2MGEwd0NnWUlLb1pJemowRUF3TXcKTnpFVk1CTUdBMVVFQ2hNTWMybG5jM1J2Y21VdVpHVjJNUjR3SEFZRFZRUURFeFZ6YVdkemRHOXlaUzFwYm5SbApjbTFsWkdsaGRHVXdIaGNOTWpVd056QTVNVGd3TWpRMldoY05NalV3TnpBNU1UZ3hNalEyV2pBQU1Ga3dFd1lICktvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRFFnQUVYcXNHWVJaMUo4SHptclhqMVlRZ0ltQ2I5SUQ5U0xPd01QZjQKM1pORXFaOVg3aVMxSFd2WjQ2MThoNVFqSk5qbjcxMHFjWmFRWTVlTXVOamV2cFc5V2FPQ0FYa3dnZ0YxTUE0RwpBMVVkRHdFQi93UUVBd0lIZ0RBVEJnTlZIU1VFRERBS0JnZ3JCZ0VGQlFjREF6QWRCZ05WSFE0RUZnUVV2RnlwClZxbDBrL25CRk1xY3Q4UHFxbFhlT2NFd0h3WURWUjBqQkJnd0ZvQVUzOVBwejFZa0VaYjVxTmpwS0ZXaXhpNFkKWkQ4d0l3WURWUjBSQVFIL0JCa3dGNEVWY205aUxtTmhaV3hsY25OQVoyMWhhV3d1WTI5dE1Dd0dDaXNHQVFRQgpnNzh3QVFFRUhtaDBkSEJ6T2k4dloybDBhSFZpTG1OdmJTOXNiMmRwYmk5dllYVjBhREF1QmdvckJnRUVBWU8vCk1BRUlCQ0FNSG1oMGRIQnpPaTh2WjJsMGFIVmlMbU52YlM5c2IyZHBiaTl2WVhWMGFEQ0JpZ1lLS3dZQkJBSFcKZVFJRUFnUjhCSG9BZUFCMkFOMDlNR3JHeHhFeVl4a2VISmxuTndLaVNsNjQzanl0LzRlS2NvQXZLZTZPQUFBQgpsL0JhdHVFQUFBUURBRWN3UlFJZ0hmVFdxRXROaUtKZElQM0hseDNqZnBUbEU1RUtMcnpRYURyOFhOb2QvbDhDCklRQ080MUxyeTBFMFJnQ2sxMk5qelhMZ0kzZlg5MElNYmpZT0NpN3FwSjFwb2pBS0JnZ3Foa2pPUFFRREF3Tm4KQURCa0FqQkR4dEN6TUJpOXVHYVlmbEZrbGtIYjlnYUkxQWVwU3k5RHhSdUllZ2RzTG52dEhOZDNyTHdiZlBxSgpaT3c0QjRRQ01CNDFvQytPMWhPMTVxaTFMdFFWQm16a1hMdFdJeTZ5b3VIUjFrc0pDTVk5aW1OV1ZlK3BVSlFNCi80bHh2ajcvcWc9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==",
-    "rekorBundle": {
-      "logEntry": {
-        "logIndex": "123456",
-        "logID": "rekor.sigstore.dev",
-        "body": "eyJhcGlWZXJzaW9uIjoiMC4wLjEiLCJraW5kIjoiaGFzaGVkcmVrb3JkIiwic3BlYyI6eyJkYXRhIjp7Imhhc2giOnsiYWxnb3JpdGhtIjoic2hhMjU2IiwidmFsdWUiOiJhYzY1YzIyOWFkYTZjNGUyYjY5YTY4MjI0YzQzYjNhZDMxNzQyZGQxNzMwZTY1YmQ5M2I2ZmU3MTc0Yzk3MjQxIn19LCJzaWduYXR1cmUiOnsiY29udGVudCI6Ik1FVUNJUURGVDBYdHNaYjNuWEhLMjJMaDdGM2NLZGR6Q0FGdTh5YWJEU3ZSUmxrcThBSWdOaWduVVhmZ05XNGt2N3E2RXFTNGJSSkxwUVByWWMxOG9jVW1yaW56ckpFPSIsInB1YmxpY0tleSI6eyJjb250ZW50IjoiTFMwdExTMUNSVWRKVGlCRFJWSlVTVVpKUTBGVVJTMHRMUzB0Q2sxSlNVTXdla05EUVd4eFowRjNTVUpCWjBsVldVWlFSazExTUdOdWVXWlBTSEJOTm0xU1pVZHRXVmgyTUdGd0F3bFVha1pKZW1wd1FWSjNiWGN0TnpGV1RFRDJLMDJUU2pOa1VGTm5KbUJITUZKUkNnWkVUVUJsRUZsemFXZHpkRzl5WlM1cFptNVdwUjR3SEFZRFZRUURFeFZ6YVdkemRHOXlaUzFwYm5SbApjbTFsWkdsaGRHVXdIaGNOTWpVd056QTVNVGd3TWpRMldoY05NalV3TnpBNU1UZ3hNalEyV2pBQU1Ga3dFd1lICktvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRFFnQUVYcXNHWVJaMUo4SHptclhqMVlRZ0ltQ2I5SUQ5U0xPd01QZjQKM1pORXFaOVg3aVMxSFd2WjQ2MThoNVFqSk5qbjcxMHFjWmFRWTVlTXVOamV2cFc5V2FPQ0FYa3dnZ0YxTUE0RwpBMVVkRHdFQi93UUVBd0lIZ0RBVEJnTlZIU1VFRERBS0JnZ3JCZ0VGQlFjREF6QWRCZ05WSFE0RUZnUVV2RnlwClZxbDBrL25CRk1xY3Q4UHFxbFhlT2NFd0h3WURWUjBqQkJnd0ZvQVUzOVBwejFZa0VaYjVxTmpwS0ZXaXhpNFkKWkQ4d0l3WURWUjBSQVFIL0JCa3dGNEVWY205aUxtTmhaV3hsY25OQVoyMWhhV3d1WTI5dE1Dd0dDaXNHQVFRQgpnNzh3QVFFRUhtaDBkSEJ6T2k4dloybDBhSFZpTG1OdmJTOXNiMmRwYmk5dllYVjBhREF1QmdvckJnRUVBWU8vCk1BRUlCQ0FNSG1oMGRIQnpPaTh2WjJsMGFIVmlMbU52YlM5c2IyZHBiaTl2WVhWMGFEQ0JpZ1lLS3dZQkJBSFcKZVFJRUFnUjhCSG9BZUFCMkFOMDlNR3JHeHhFeVl4a2VISmxuTndLaVNsNjQzanl0LzRlS2NvQXZLZTZPQUFBQgpsL0JhdHVFQUFBUURBRWN3UlFJZ0hmVFdxRXROaUtKZElQM0hseDNqZnBUbEU1RUtMcnpRYURyOFhOb2QvbDhDCklRQ080MUxyeTBFMFJnQ2sxMk5qelhMZ0kzZlg5MElNYmpZT0NpN3FwSjFwb2pBS0JnZ3Foa2pPUFFRREF3Tm4KQURCa0FqQkR4dEN6TUJpOXVHYVlmbEZrbGtIYjlnYUkxQWVwU3k5RHhSdUllZ2RzTG52dEhOZDNyTHdiZlBxSgpaT3c0QjRRQ01CNDFvQytPMWhPMTVxaTFMdFFWQm16a1hMdFdJeTZ5b3VIUjFrc0pDTVk5aW1OV1ZlK3BVSlFNCi80bHh2ajcvcWc9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tQ2c9PSJ9fX19"
-      }
-    }
-  })";
+  std::ifstream bundle_file("appcast-sigstore.xml.sigstore.bundle");
+  ASSERT_TRUE(bundle_file.is_open()) << "Failed to open legacy bundle";
+  std::string bundle_json((std::istreambuf_iterator<char>(bundle_file)), std::istreambuf_iterator<char>());
+  bundle_file.close();
 
-  std::string content = "test content";
-  // auto result = run_coro(verifier.verify(content, new_bundle_format));
+  std::ifstream content_file("appcast-sigstore.xml");
+  ASSERT_TRUE(content_file.is_open()) << "Failed to open content file";
+  std::string content((std::istreambuf_iterator<char>(content_file)), std::istreambuf_iterator<char>());
+  content_file.close();
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto result = co_await verifier.verify(content, bundle_json);
+          EXPECT_TRUE(result.has_value()) << "Failed to verify legacy bundle: " << result.error().message();
+          EXPECT_TRUE(result.value());
+
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          EXPECT_TRUE(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
 
   // This will fail because the signature doesn't match the content, but tests parsing
   // EXPECT_TRUE(result.has_error());

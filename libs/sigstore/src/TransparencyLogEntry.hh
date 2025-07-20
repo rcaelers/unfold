@@ -46,9 +46,19 @@ namespace unfold::sigstore
     std::string signed_entry_timestamp;
   };
 
+  struct Signature
+  {
+    std::string signer;
+    std::string signature;
+  };
   struct Checkpoint
   {
-    std::string envelope;
+    std::string origin;
+    std::uint64_t tree_size = 0;
+    std::string root_hash;
+    std::vector<std::string> extensions;
+    std::vector<Signature> signatures;
+    std::string body;
   };
 
   struct InclusionProof
@@ -89,7 +99,7 @@ namespace unfold::sigstore
     outcome::std_result<KindVersion> parse_kind_version(const boost::json::value &json_val);
     outcome::std_result<InclusionPromise> parse_inclusion_promise(const boost::json::value &json_val);
     outcome::std_result<InclusionProof> parse_inclusion_proof(const boost::json::value &json_val);
-    outcome::std_result<Checkpoint> parse_checkpoint(const boost::json::value &json_val);
+    outcome::std_result<Checkpoint> parse_checkpoint(const std::string &checkpoint);
 
     std::shared_ptr<spdlog::logger> logger_{unfold::utils::Logging::create("unfold:sigstore:transparency_log_entry")};
   };

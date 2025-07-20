@@ -22,6 +22,7 @@
 #include <openssl/sha.h>
 #include <iomanip>
 #include <sstream>
+#include <array>
 
 #include "RFC6962Hasher.hh"
 
@@ -43,13 +44,12 @@ namespace unfold::sigstore::test
         }
       return ss.str();
     }
-
     // Helper function to compute expected hash manually for verification
     static std::string compute_expected_sha256(const std::string &data)
     {
-      unsigned char hash[SHA256_DIGEST_LENGTH];
-      SHA256(reinterpret_cast<const unsigned char *>(data.c_str()), data.length(), hash);
-      return std::string(reinterpret_cast<char *>(hash), SHA256_DIGEST_LENGTH);
+      std::array<unsigned char, SHA256_DIGEST_LENGTH> hash{};
+      SHA256(reinterpret_cast<const unsigned char *>(data.c_str()), data.length(), hash.data());
+      return std::string(reinterpret_cast<char *>(hash.data()), SHA256_DIGEST_LENGTH);
     }
   };
 
@@ -67,10 +67,6 @@ namespace unfold::sigstore::test
     std::string expected_hash = compute_expected_sha256(expected_input);
 
     EXPECT_EQ(result, expected_hash);
-
-    // Debug output
-    std::cout << "Leaf hash result: " << to_hex(result) << std::endl;
-    std::cout << "Expected hash:    " << to_hex(expected_hash) << std::endl;
   }
 
   TEST_F(RFC6962HasherTest, TestHashChildren)
@@ -88,10 +84,6 @@ namespace unfold::sigstore::test
     std::string expected_hash = compute_expected_sha256(expected_input);
 
     EXPECT_EQ(result, expected_hash);
-
-    // Debug output
-    std::cout << "Children hash result: " << to_hex(result) << std::endl;
-    std::cout << "Expected hash:        " << to_hex(expected_hash) << std::endl;
   }
 
   TEST_F(RFC6962HasherTest, TestHashLeafEmptyData)
@@ -133,9 +125,6 @@ namespace unfold::sigstore::test
     ASSERT_FALSE(leaf_hash.empty());
     ASSERT_FALSE(children_hash.empty());
     EXPECT_NE(leaf_hash, children_hash);
-
-    std::cout << "Leaf hash:     " << to_hex(leaf_hash) << std::endl;
-    std::cout << "Children hash: " << to_hex(children_hash) << std::endl;
   }
 
 } // namespace unfold::sigstore::test

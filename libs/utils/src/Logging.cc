@@ -22,33 +22,10 @@
 
 #include <spdlog/spdlog.h>
 
-#ifdef _WIN32
-#  include <windows.h>
-#  include <io.h>
-#  include <fcntl.h>
-#endif
-
 using namespace unfold::utils;
 
 std::shared_ptr<spdlog::logger>
 Logging::create(std::string domain)
 {
-#ifdef _WIN32
-  // Set console to UTF-8 for proper Unicode display (only do this once)
-  static bool utf8_initialized = false;
-  if (!utf8_initialized)
-    {
-      // Set console code page to UTF-8
-      SetConsoleOutputCP(CP_UTF8);
-      SetConsoleCP(CP_UTF8);
-
-      // Enable UTF-8 for stdout/stderr
-      _setmode(_fileno(stdout), _O_U8TEXT);
-      _setmode(_fileno(stderr), _O_U8TEXT);
-
-      utf8_initialized = true;
-    }
-#endif
-
   return spdlog::default_logger()->clone(domain);
 }

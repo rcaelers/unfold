@@ -39,6 +39,12 @@
 using namespace unfold::sigstore;
 using namespace testing;
 
+#ifdef _WIN32
+#  include <windows.h>
+#  include <io.h>
+#  include <fcntl.h>
+#endif
+
 struct GlobalSigStoreTest : public ::testing::Environment
 {
   GlobalSigStoreTest() = default;
@@ -51,6 +57,23 @@ struct GlobalSigStoreTest : public ::testing::Environment
 
   void SetUp() override
   {
+    // #ifdef _WIN32
+    //     // Set console to UTF-8 for proper Unicode display (only do this once)
+    //     static bool utf8_initialized = false;
+    //     if (!utf8_initialized)
+    //       {
+    //         // Set console code page to UTF-8
+    //         SetConsoleOutputCP(CP_UTF8);
+    //         SetConsoleCP(CP_UTF8);
+
+    //         // Enable UTF-8 for stdout/stderr
+    //         _setmode(_fileno(stdout), _O_U8TEXT);
+    //         _setmode(_fileno(stderr), _O_U8TEXT);
+
+    //         utf8_initialized = true;
+    //       }
+    // #endif
+
     const auto *log_file = "unfold-test-sigstore.log";
 
     auto file_sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(log_file, false);
@@ -139,7 +162,6 @@ TEST_F(SigstoreTest, ParseLegacyBundleFormat)
           auto result = co_await verifier.verify(content, bundle_json);
           EXPECT_TRUE(result.has_value()) << "Failed to verify legacy bundle: " << result.error().message();
           EXPECT_TRUE(result.value());
-
         }
       catch (std::exception &e)
         {

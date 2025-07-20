@@ -18,9 +18,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#include <boost/json/serializer.hpp>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <memory>
+#include <spdlog/logger.h>
 #include <vector>
 #include <chrono>
 #include <optional>
@@ -150,8 +152,15 @@ protected:
     return mock_bundle;
   }
 
-  outcome::std_result<std::pair<TransparencyLogEntry, std::shared_ptr<SigstoreStandardBundle>>> load_log(std::string file_path)
+  outcome::std_result<std::pair<TransparencyLogEntry, std::shared_ptr<SigstoreStandardBundle>>> load_log(
+    std::string file_path,
+    std::function<void(boost::json::value &json_val)> patch = [](boost::json::value &json_val) {})
   {
+    if (file_path.empty())
+      {
+        return outcome::failure(std::make_error_code(std::errc::invalid_argument));
+      }
+
     std::ifstream bundle_file(file_path);
     if (!bundle_file.is_open())
       {
@@ -171,6 +180,7 @@ protected:
             ADD_FAILURE() << "Failed to parse JSON from bundle file: " << file_path;
             return outcome::failure(std::make_error_code(std::errc::invalid_argument));
           }
+        patch(json_val);
         auto bundle = SigstoreStandardBundle::from_json(json_val);
         if (!bundle)
           {
@@ -223,6 +233,38 @@ TEST_F(TransparencyLogVerifierTest, ValidateValidBundle)
   auto result = verifier_->verify_bundle_consistency(log_entry, bundle);
   ASSERT_TRUE(result.has_value()) << "Failed to verify bundle consistency: " << result.error().message();
   ASSERT_TRUE(result) << "Failed to verify bundle consistency: " << result.error().message();
+}
+
+// =============================================================================
+//
+// =============================================================================
+
+TEST_F(TransparencyLogVerifierTest, ValidateLog_NoInclusionProof)
+{
+  auto log = load_log("appcast-sigstore.xml.sigstore.new.bundle", [](boost::json::value &json_val) {
+    auto &o = json_val.at_pointer("/verificationMaterial/tlogEntries/0").as_object();
+    o.erase(o.find("inclusionProof"));
+  });
+  ASSERT_FALSE(log.has_error());
+  auto [log_entry, bundle] = log.value();
+  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+
+  auto result = verifier_->verify_transparency_log(log_entry, cert);
+  ASSERT_TRUE(result.has_error());
+}
+
+TEST_F(TransparencyLogVerifierTest, ValidateLog_NoInclusionProofCheckPoint)
+{
+  auto log = load_log("appcast-sigstore.xml.sigstore.new.bundle", [](boost::json::value &json_val) {
+    auto &o = json_val.at_pointer("/verificationMaterial/tlogEntries/0/inclusionProof").as_object();
+    o.erase(o.find("checkpoint"));
+  });
+  ASSERT_FALSE(log.has_error());
+  auto [log_entry, bundle] = log.value();
+  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+
+  auto result = verifier_->verify_transparency_log(log_entry, cert);
+  ASSERT_TRUE(result.has_error());
 }
 
 // =============================================================================

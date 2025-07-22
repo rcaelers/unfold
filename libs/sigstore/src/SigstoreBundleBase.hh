@@ -28,7 +28,6 @@
 #include <boost/json.hpp>
 
 #include "Certificate.hh"
-#include "JsonUtils.hh"
 
 namespace outcome = boost::outcome_v2;
 
@@ -46,9 +45,6 @@ namespace unfold::sigstore
     virtual int64_t get_log_index() const = 0;
 
     static outcome::std_result<std::shared_ptr<SigstoreBundleBase>> from_json(const std::string &json_str);
-
-  private:
-    JsonUtils json_utils_;
 
   protected:
     SigstoreBundleBase() = default;

@@ -72,7 +72,6 @@ namespace unfold::sigstore
 
   private:
     std::shared_ptr<spdlog::logger> logger_{unfold::utils::Logging::create("unfold:sigstore:legacy_bundle")};
-    JsonUtils json_utils_;
   };
 
 } // namespace unfold::sigstore

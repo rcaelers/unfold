@@ -22,7 +22,6 @@
 
 #include "TransparencyLogVerifier.hh"
 #include "SigstoreStandardBundle.hh"
-#include "JsonUtils.hh"
 #include "CertificateStore.hh"
 
 #include <memory>
@@ -62,7 +61,6 @@ namespace unfold::sigstore
       : http_client_(http_client)
       , transparency_log_verifier_(std::make_unique<TransparencyLogVerifier>())
       , logger_(unfold::utils::Logging::create("unfold:sigstore"))
-      , json_utils_(std::make_unique<JsonUtils>())
       , certificate_store_(std::make_shared<CertificateStore>())
     {
       auto res = load_embedded_fulcio_ca_certificates();
@@ -251,7 +249,6 @@ namespace unfold::sigstore
     std::shared_ptr<unfold::http::IHttpClient> http_client_;
     std::unique_ptr<TransparencyLogVerifier> transparency_log_verifier_;
     std::shared_ptr<spdlog::logger> logger_;
-    std::unique_ptr<JsonUtils> json_utils_;
     std::shared_ptr<CertificateStore> certificate_store_;
     std::string rekor_public_key_;
   };

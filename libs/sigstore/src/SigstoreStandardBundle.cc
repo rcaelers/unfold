@@ -21,7 +21,6 @@
 #include "SigstoreStandardBundle.hh"
 
 #include "Certificate.hh"
-#include "JsonUtils.hh"
 #include "TransparencyLogEntry.hh"
 #include "sigstore/SigstoreErrors.hh"
 #include "utils/Base64.hh"
@@ -62,22 +61,32 @@ namespace unfold::sigstore
   {
     try
       {
-        JsonUtils json_utils;
-
         if (!json_val.is_object())
           {
             logger_->error("Invalid JSON for Sigstore StandardBundle");
             return SigstoreError::InvalidBundle;
           }
 
-        std::string media_type = json_utils.extract_string(json_val, "mediaType");
+        const auto &obj = json_val.as_object();
+
+        std::string media_type;
+        if (const auto *it = obj.if_contains("mediaType"); it != nullptr && it->is_string())
+          {
+            media_type = std::string(it->as_string());
+          }
+
         if (media_type.empty())
           {
             logger_->error("Missing mediaType in Sigstore StandardBundle");
             return SigstoreError::InvalidBundle;
           }
 
-        auto verification_material = json_utils.extract_object(json_val, "verificationMaterial");
+        boost::json::value verification_material;
+        if (const auto *it = obj.if_contains("verificationMaterial"); it != nullptr)
+          {
+            verification_material = *it;
+          }
+
         if (verification_material.is_null())
           {
             logger_->error("Missing verificationMaterial in Sigstore StandardBundle");
@@ -135,27 +144,56 @@ namespace unfold::sigstore
   }
   outcome::std_result<MessageSignature> SigstoreStandardBundleLoader::parse_message_signature(const boost::json::value &json_val)
   {
-    JsonUtils json_utils;
-    auto message_sig_obj = json_utils.extract_object(json_val, "messageSignature");
+    if (!json_val.is_object())
+      {
+        logger_->error("Missing messageSignature in Sigstore StandardBundle");
+        return outcome::failure(make_error_code(SigstoreError::InvalidBundle));
+      }
+
+    const auto &obj = json_val.as_object();
+    boost::json::value message_sig_obj;
+    if (const auto *it = obj.if_contains("messageSignature"); it != nullptr)
+      {
+        message_sig_obj = *it;
+      }
+
     if (message_sig_obj.is_null())
       {
         logger_->error("Missing messageSignature in Sigstore StandardBundle");
         return outcome::failure(make_error_code(SigstoreError::InvalidBundle));
       }
 
+    if (!message_sig_obj.is_object())
+      {
+        logger_->error("Invalid messageSignature in Sigstore StandardBundle");
+        return outcome::failure(make_error_code(SigstoreError::InvalidBundle));
+      }
+
+    const auto &msg_sig_obj = message_sig_obj.as_object();
     MessageSignature message_sig;
-    message_sig.signature = json_utils.extract_string(message_sig_obj, "signature");
+
+    if (const auto *it = msg_sig_obj.if_contains("signature"); it != nullptr && it->is_string())
+      {
+        message_sig.signature = std::string(it->as_string());
+      }
+
     if (message_sig.signature.empty())
       {
         logger_->error("Missing signature in messageSignature of Sigstore StandardBundle");
         return outcome::failure(make_error_code(SigstoreError::InvalidBundle));
       }
 
-    auto message_digest = json_utils.extract_object(message_sig_obj, "messageDigest");
-    if (!message_digest.is_null())
+    if (const auto *it = msg_sig_obj.if_contains("messageDigest"); it != nullptr && it->is_object())
       {
-        message_sig.algorithm = json_utils.extract_string(message_digest, "algorithm");
-        message_sig.digest = json_utils.extract_string(message_digest, "digest");
+        const auto &digest_obj = it->as_object();
+        if (const auto *alg_it = digest_obj.if_contains("algorithm"); alg_it != nullptr && alg_it->is_string())
+          {
+            message_sig.algorithm = std::string(alg_it->as_string());
+          }
+        if (const auto *dig_it = digest_obj.if_contains("digest"); dig_it != nullptr && dig_it->is_string())
+          {
+            message_sig.digest = std::string(dig_it->as_string());
+          }
       }
 
     return message_sig;
@@ -164,12 +202,19 @@ namespace unfold::sigstore
   std::string SigstoreStandardBundleLoader::extract_certificate_from_verification_material(
     const boost::json::value &verification_material)
   {
-    JsonUtils json_utils;
-
-    auto certificate_obj = json_utils.extract_object(verification_material, "certificate");
-    if (!certificate_obj.is_null())
+    if (!verification_material.is_object())
       {
-        return json_utils.extract_string(certificate_obj, "rawBytes");
+        return "";
+      }
+
+    const auto &obj = verification_material.as_object();
+    if (const auto *it = obj.if_contains("certificate"); it != nullptr && it->is_object())
+      {
+        const auto &cert_obj = it->as_object();
+        if (const auto *raw_it = cert_obj.if_contains("rawBytes"); raw_it != nullptr && raw_it->is_string())
+          {
+            return std::string(raw_it->as_string());
+          }
       }
     return "";
   }

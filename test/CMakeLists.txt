@@ -23,7 +23,7 @@ if (HAVE_TESTS)
   target_include_directories(unfold-test PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
   add_test(NAME unfold-test COMMAND unfold-test)
-  target_code_coverage(unfold-test ALL AUTO OBJECTS unfold EXCLUDE _build test/ libs)
+  target_code_coverage(unfold-test ALL AUTO EXCLUDE _build test/ libs)
 
 
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/data/appcast-canary.xml" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")

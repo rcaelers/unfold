@@ -129,16 +129,6 @@ TEST_F(SigstoreTest, VerifyInvalidBundle)
   // EXPECT_TRUE(verify_result.has_error());
 }
 
-// TEST_F(SigstoreTest, SetInvalidPublicKey)
-// {
-//   SigstoreVerifier verifier(mock_http_client_);
-
-//   std::string invalid_key = "invalid public key";
-//   auto result = verifier.set_rekor_public_key(invalid_key);
-//   EXPECT_TRUE(result.has_error());
-//   EXPECT_EQ(result.error().value(), static_cast<int>(SigstoreError::InvalidCertificate));
-// }
-
 TEST_F(SigstoreTest, ParseLegacyBundleFormat)
 {
   SigstoreVerifier verifier(mock_http_client_);

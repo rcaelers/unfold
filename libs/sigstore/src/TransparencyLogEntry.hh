@@ -35,6 +35,12 @@ namespace outcome = boost::outcome_v2;
 
 namespace unfold::sigstore
 {
+  enum class TransparencyLogFormat
+  {
+    Bundle,     // Parsed from Sigstore bundle (e.g., from cosign command line)
+    ApiResponse // Downloaded via transparency log API
+  };
+
   struct KindVersion
   {
     std::string kind;
@@ -72,6 +78,7 @@ namespace unfold::sigstore
 
   struct TransparencyLogEntry
   {
+    TransparencyLogFormat format = TransparencyLogFormat::Bundle;
     int64_t log_index;
     std::optional<std::string> log_id;
     std::optional<KindVersion> kind_version;
@@ -98,7 +105,8 @@ namespace unfold::sigstore
     outcome::std_result<std::string> parse_log_id(const boost::json::value &json_val);
     outcome::std_result<KindVersion> parse_kind_version(const boost::json::value &json_val);
     outcome::std_result<InclusionPromise> parse_inclusion_promise(const boost::json::value &json_val);
-    outcome::std_result<InclusionProof> parse_inclusion_proof(const boost::json::value &json_val);
+    outcome::std_result<InclusionProof> parse_inclusion_proof(const boost::json::value &json_val,
+                                                              TransparencyLogFormat format = TransparencyLogFormat::Bundle);
     outcome::std_result<Checkpoint> parse_checkpoint(const std::string &checkpoint);
 
     std::shared_ptr<spdlog::logger> logger_{unfold::utils::Logging::create("unfold:sigstore:transparency_log_entry")};

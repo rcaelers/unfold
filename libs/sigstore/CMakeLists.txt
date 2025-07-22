@@ -1,7 +1,6 @@
 add_library(unfold-sigstore OBJECT)
 
 target_sources(unfold-sigstore PRIVATE
-  src/JsonUtils.cc
   src/SigstoreVerifier.cc
   src/SigstoreErrors.cc
   src/SigstoreBundleBase.cc

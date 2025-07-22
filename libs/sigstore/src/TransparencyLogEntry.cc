@@ -30,9 +30,35 @@
 #include <string>
 #include <iomanip>
 #include <sstream>
-#include <limits>
 
 namespace outcome = boost::outcome_v2;
+
+namespace
+{
+  std::string hex_to_base64(const std::string &hex_str)
+  {
+    std::string clean_hex = hex_str;
+    boost::algorithm::trim(clean_hex);
+
+    std::vector<uint8_t> binary_data;
+    binary_data.reserve(clean_hex.size() / 2);
+
+    constexpr int hex_base = 16;
+    for (size_t i = 0; i < clean_hex.size(); i += 2)
+      {
+        if (i + 1 >= clean_hex.size())
+          {
+            break; // Skip incomplete byte
+          }
+
+        std::string byte_str = clean_hex.substr(i, 2);
+        auto byte_val = static_cast<uint8_t>(std::stoul(byte_str, nullptr, hex_base));
+        binary_data.push_back(byte_val);
+      }
+
+    return unfold::utils::Base64::encode(std::string(binary_data.begin(), binary_data.end()));
+  }
+} // namespace
 
 namespace unfold::sigstore
 {
@@ -46,6 +72,7 @@ namespace unfold::sigstore
 
     const auto &obj = json_val.as_object();
     TransparencyLogEntry entry{};
+    entry.format = TransparencyLogFormat::Bundle;
 
     // Parse required logIndex
     auto log_index_result = parse_log_index(obj);
@@ -131,7 +158,7 @@ namespace unfold::sigstore
     // Parse optional inclusionProof
     if (const auto *it = obj.if_contains("inclusionProof"))
       {
-        auto inclusion_proof_result = parse_inclusion_proof(*it);
+        auto inclusion_proof_result = parse_inclusion_proof(*it, TransparencyLogFormat::Bundle);
         if (inclusion_proof_result)
           {
             entry.inclusion_proof = inclusion_proof_result.value();
@@ -182,7 +209,7 @@ namespace unfold::sigstore
             // Map verification.inclusionProof to entry.inclusion_proof
             if (const auto *proof_it = verification_obj.if_contains("inclusionProof"))
               {
-                auto inclusion_proof_result = parse_inclusion_proof(*proof_it);
+                auto inclusion_proof_result = parse_inclusion_proof(*proof_it, TransparencyLogFormat::ApiResponse);
                 if (inclusion_proof_result)
                   {
                     entry.inclusion_proof = inclusion_proof_result.value();
@@ -237,6 +264,7 @@ namespace unfold::sigstore
 
     const auto &obj = entry_data.as_object();
     TransparencyLogEntry entry{};
+    entry.format = TransparencyLogFormat::ApiResponse;
 
     // Parse required logIndex (could be "logIndex" in bundle format)
     auto log_index_result = parse_log_index(obj);
@@ -338,7 +366,8 @@ namespace unfold::sigstore
     return inclusion_promise;
   }
 
-  outcome::std_result<InclusionProof> TransparencyLogEntryParser::parse_inclusion_proof(const boost::json::value &json_val)
+  outcome::std_result<InclusionProof> TransparencyLogEntryParser::parse_inclusion_proof(const boost::json::value &json_val,
+                                                                                        TransparencyLogFormat format)
   {
     if (!json_val.is_object())
       {
@@ -362,7 +391,19 @@ namespace unfold::sigstore
     // Parse rootHash
     if (const auto *it = obj.if_contains("rootHash"); it != nullptr && it->is_string())
       {
-        inclusion_proof.root_hash = std::string(it->as_string());
+        std::string root_hash = std::string(it->as_string());
+
+        if (format == TransparencyLogFormat::ApiResponse)
+          {
+            if (root_hash.size() > 0 && root_hash.size() % 2 == 0 && std::all_of(root_hash.begin(), root_hash.end(), [](char c) {
+                  return std::isxdigit(static_cast<unsigned char>(c));
+                }))
+              {
+                root_hash = hex_to_base64(root_hash);
+              }
+          }
+
+        inclusion_proof.root_hash = root_hash;
       }
 
     // Parse treeSize
@@ -406,6 +447,18 @@ namespace unfold::sigstore
               {
                 logger_->warn("Failed to parse checkpoint: {}", checkpoint_result.error().message());
               }
+          }
+      }
+    else if (const auto *it = obj.if_contains("checkpoint"); it != nullptr && it->is_string())
+      {
+        auto checkpoint_result = parse_checkpoint(std::string(it->as_string()));
+        if (checkpoint_result)
+          {
+            inclusion_proof.checkpoint = checkpoint_result.value();
+          }
+        else
+          {
+            logger_->warn("Failed to parse checkpoint: {}", checkpoint_result.error().message());
           }
       }
 
@@ -516,16 +569,6 @@ namespace unfold::sigstore
       {
         return json_val.as_int64();
       }
-    else if (json_val.is_uint64())
-      {
-        uint64_t value = json_val.as_uint64();
-        // Check if the uint64 value fits in int64 range
-        if (value <= static_cast<uint64_t>(std::numeric_limits<int64_t>::max()))
-          {
-            return static_cast<int64_t>(value);
-          }
-      }
     return std::nullopt;
   }
-
 } // namespace unfold::sigstore

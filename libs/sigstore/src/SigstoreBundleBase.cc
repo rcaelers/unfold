@@ -43,6 +43,7 @@ namespace unfold::sigstore
         if (json_val.is_object() && json_val.as_object().contains("mediaType")
             && json_val.as_object().contains("verificationMaterial"))
           {
+            spdlog::debug("Detected Sigstore StandardBundle format");
             auto result = SigstoreStandardBundle::from_json(json_val);
             if (result)
               {
@@ -54,6 +55,7 @@ namespace unfold::sigstore
         // Check for legacy bundle format with base64Signature
         if (json_val.is_object() && json_val.as_object().contains("base64Signature"))
           {
+            spdlog::debug("Detected Sigstore LegacyBundle format");
             auto result = SigstoreLegacyBundle::from_json(json_val);
             if (result)
               {

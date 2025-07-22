@@ -42,7 +42,9 @@ namespace unfold::sigstore
   class SigstoreStandardBundle : public SigstoreBundleBase
   {
   public:
-    SigstoreStandardBundle(std::shared_ptr<Certificate> certificate, MessageSignature message_sig, std::vector<TransparencyLogEntry> tlog_entries);
+    SigstoreStandardBundle(std::shared_ptr<Certificate> certificate,
+                           MessageSignature message_sig,
+                           std::vector<TransparencyLogEntry> tlog_entries);
 
     static outcome::std_result<std::shared_ptr<SigstoreStandardBundle>> from_json(const boost::json::value &json_val);
 
@@ -88,7 +90,6 @@ namespace unfold::sigstore
 
   private:
     std::shared_ptr<spdlog::logger> logger_{unfold::utils::Logging::create("unfold:sigstore:standard_bundle")};
-    JsonUtils json_utils_;
 
     std::string media_type_;
     MessageSignature message_signature_;

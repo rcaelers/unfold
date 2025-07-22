@@ -63,8 +63,7 @@ namespace unfold::sigstore
 
     boost::asio::awaitable<outcome::std_result<bool>> verify(std::string_view data, std::string_view bundle_json);
 
-    outcome::std_result<void> set_rekor_public_key(const std::string &public_key_pem);
-    boost::asio::awaitable<outcome::std_result<void>> download_fulcio_ca_certificates();
+   boost::asio::awaitable<outcome::std_result<void>> download_fulcio_ca_certificates();
 
   private:
     class Impl;

@@ -807,41 +807,4 @@ namespace unfold::sigstore
     return outcome::success();
   }
 
-  // =============================================================================
-  // Helpers
-  // =============================================================================
-
-  std::string TransparencyLogVerifier::sha256_hash(const std::string &data)
-  {
-    std::array<unsigned char, EVP_MAX_MD_SIZE> hash{};
-    unsigned int hash_len = 0;
-
-    std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)> ctx(EVP_MD_CTX_new(), EVP_MD_CTX_free);
-    if (!ctx)
-      {
-        logger_->error("Failed to create EVP_MD_CTX for SHA256 hashing");
-        return "";
-      }
-
-    if (EVP_DigestInit_ex(ctx.get(), EVP_sha256(), nullptr) != 1)
-      {
-        logger_->error("Failed to initialize SHA256 digest");
-        return "";
-      }
-
-    if (EVP_DigestUpdate(ctx.get(), data.c_str(), data.size()) != 1)
-      {
-        logger_->error("Failed to update SHA256 digest");
-        return "";
-      }
-
-    if (EVP_DigestFinal_ex(ctx.get(), hash.data(), &hash_len) != 1)
-      {
-        logger_->error("Failed to finalize SHA256 digest");
-        return "";
-      }
-
-    return {hash.begin(), hash.begin() + hash_len};
-  }
-
 } // namespace unfold::sigstore

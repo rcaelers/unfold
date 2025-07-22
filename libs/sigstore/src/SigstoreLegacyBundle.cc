@@ -53,27 +53,57 @@ namespace unfold::sigstore
             return SigstoreError::InvalidBundle;
           }
 
-        std::string signature = json_utils_.extract_string(json_val, "base64Signature");
+        const auto &obj = json_val.as_object();
+
+        std::string signature;
+        if (const auto *it = obj.if_contains("base64Signature"); it != nullptr && it->is_string())
+          {
+            signature = std::string(it->as_string());
+          }
+
         if (signature.empty())
           {
             logger_->error("Missing or empty base64Signature");
             return SigstoreError::InvalidBundle;
           }
 
-        std::string certificate = json_utils_.extract_string(json_val, "cert");
+        std::string certificate;
+        if (const auto *it = obj.if_contains("cert"); it != nullptr && it->is_string())
+          {
+            certificate = std::string(it->as_string());
+          }
+
         if (certificate.empty())
           {
             logger_->error("Missing or empty cert");
             return SigstoreError::InvalidBundle;
           }
 
-        auto rekor_bundle = json_utils_.extract_object(json_val, "rekorBundle");
+        boost::json::value rekor_bundle;
+        if (const auto *it = obj.if_contains("rekorBundle"); it != nullptr)
+          {
+            rekor_bundle = *it;
+          }
+
         if (rekor_bundle.is_null())
           {
             logger_->error("rekorBundle is missing");
             return SigstoreError::InvalidBundle;
           }
-        auto payload = json_utils_.extract_object(rekor_bundle, "Payload");
+
+        if (!rekor_bundle.is_object())
+          {
+            logger_->error("rekorBundle is not an object");
+            return SigstoreError::InvalidBundle;
+          }
+
+        const auto &rekor_obj = rekor_bundle.as_object();
+        boost::json::value payload;
+        if (const auto *it = rekor_obj.if_contains("Payload"); it != nullptr)
+          {
+            payload = *it;
+          }
+
         if (payload.is_null())
           {
             logger_->error("Payload is missing");

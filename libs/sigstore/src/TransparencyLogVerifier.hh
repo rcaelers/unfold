@@ -100,13 +100,12 @@ namespace unfold::sigstore
     outcome::std_result<void> verify_hash_consistency(const boost::json::object &spec, const std::string &bundle_message_digest);
 
     std::string compute_leaf_hash(const TransparencyLogEntry &entry);
-    std::string sha256_hash(const std::string &data);
-    outcome::std_result<void> load_embedded_certificates();
+   outcome::std_result<void> load_embedded_certificates();
 
   private:
     VerificationConfig config_;
     RFC6962Hasher hasher_;
-    std::shared_ptr<spdlog::logger> logger_{unfold::utils::Logging::create("unfold:sigstore:transparency")};
+    std::shared_ptr<spdlog::logger> logger_{unfold::utils::Logging::create("unfold:sigstore:transparency_log_verifier")};
     std::unique_ptr<PublicKey> rekor_public_key_;
     std::unique_ptr<MerkleTreeValidator> merkle_validator_;
   };

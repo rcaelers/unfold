@@ -37,6 +37,7 @@
 #include "utils/Logging.hh"
 #include "crypto/SignatureVerifier.hh"
 #include "crypto/SignatureVerifierErrors.hh"
+// #include "crypto/CertificateExtractor.hh"
 
 using namespace unfold::crypto;
 using namespace unfold::utils;
@@ -220,3 +221,26 @@ TEST_F(CryptoTest, signature_verify_without_valid_pubkey)
   result = verifier.verify("junk", signature);
   EXPECT_EQ(result.error(), SignatureVerifierErrc::InvalidPublicKey);
 }
+
+// TEST_F(CryptoTest, signature_verify_authenticode)
+// {
+//   std::string filename = "c:\\mystuff\\workrave-windows-1.11.0-rc.1.exe";
+
+//   CertificateExtractor extractor;
+//   auto cert_info = extractor.extract_windows_authenticode(filename);
+//   EXPECT_TRUE(cert_info.has_value());
+//   if (cert_info.has_value())
+//     {
+//       auto &info = cert_info.value();
+//       EXPECT_EQ(info.signature_algorithm, "RSA");
+//       EXPECT_EQ(info.hash_algorithm, "SHA256");
+//       EXPECT_EQ(info.subject_name, "Rob Caelers");
+//       EXPECT_EQ(info.issuer_name, "Rob Caelers");
+//       EXPECT_EQ(info.thumbprint, "21cb7b51c1d30226fa537c5e117b50cf65bb14eb");
+//       // EXPECT_EQ(info.valid_from, std::chrono::system_clock::from_time_t(1633036800)); // 2021-10-01 00:00:00 UTC
+//       // EXPECT_EQ(info.valid_until, std::chrono::system_clock::from_time_t(1664572800)); // 2022-10-01 00:00:00 UTC
+//       EXPECT_EQ(info.is_valid, true);
+//       EXPECT_EQ(info.certificate_chain.size(), 0);
+//       // EXPECT_EQ(info.certificate_chain[0], "Workrave Project");
+//     }
+// }

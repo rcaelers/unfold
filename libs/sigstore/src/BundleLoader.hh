@@ -18,37 +18,44 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef SIGSTORE_BUNDLE_BASE_HH
-#define SIGSTORE_BUNDLE_BASE_HH
+#ifndef SIGSTORE_BUNDLE_LOADER_HH
+#define SIGSTORE_BUNDLE_LOADER_HH
 
-#include <string>
-#include <memory>
-#include <optional>
 #include <boost/outcome/std_result.hpp>
-#include <boost/json.hpp>
+#include <memory>
+#include <string>
+#include <filesystem>
 
-#include "Certificate.hh"
+#include <spdlog/spdlog.h>
+#include "utils/Logging.hh"
+
+#include "sigstore_bundle.pb.h"
 
 namespace outcome = boost::outcome_v2;
 
 namespace unfold::sigstore
 {
-  class SigstoreBundleBase
+  class SigstoreBundleLoader
   {
   public:
-    virtual ~SigstoreBundleBase() = default;
+    SigstoreBundleLoader() = default;
+    ~SigstoreBundleLoader() = default;
 
-    virtual std::string get_signature() const = 0;
-    virtual std::shared_ptr<Certificate> get_certificate() const = 0;
-    virtual std::optional<std::string> get_message_digest() const = 0;
-    virtual std::optional<std::string> get_algorithm() const = 0;
-    virtual int64_t get_log_index() const = 0;
+    SigstoreBundleLoader(const SigstoreBundleLoader &) = delete;
+    SigstoreBundleLoader &operator=(const SigstoreBundleLoader &) = delete;
+    SigstoreBundleLoader(SigstoreBundleLoader &&) noexcept = default;
+    SigstoreBundleLoader &operator=(SigstoreBundleLoader &&) noexcept = default;
 
-    static outcome::std_result<std::shared_ptr<SigstoreBundleBase>> from_json(const std::string &json_str);
+    outcome::std_result<dev::sigstore::bundle::v1::Bundle> load_from_file(const std::filesystem::path &file_path);
+    outcome::std_result<dev::sigstore::bundle::v1::Bundle> load_from_json(const std::string &json_content);
 
-  protected:
-    SigstoreBundleBase() = default;
+  private:
+    outcome::std_result<dev::sigstore::bundle::v1::Bundle> validate(const dev::sigstore::bundle::v1::Bundle &bundle) const;
+
+  private:
+    std::shared_ptr<spdlog::logger> logger_{unfold::utils::Logging::create("unfold:sigstore:bundle_loader")};
   };
+
 } // namespace unfold::sigstore
 
-#endif // SIGSTORE_BUNDLE_BASE_HH
+#endif // SIGSTORE_BUNDLE_LOADER_HH

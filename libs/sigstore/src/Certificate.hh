@@ -32,6 +32,8 @@
 #include "utils/Logging.hh"
 #include "CryptographicAlgorithms.hh"
 
+#include "sigstore_common.pb.h"
+
 namespace outcome = boost::outcome_v2;
 
 namespace unfold::sigstore
@@ -55,6 +57,7 @@ namespace unfold::sigstore
     static outcome::std_result<Certificate> from_pem(const std::string &cert_pem);
     static outcome::std_result<Certificate> from_der(const std::vector<uint8_t> &cert_der);
     static outcome::std_result<Certificate> from_der(const std::string &cert_der);
+    static outcome::std_result<Certificate> from_cert(const dev::sigstore::common::v1::X509Certificate &x509_cert);
 
     std::string subject_email() const;
     std::string oidc_issuer() const;

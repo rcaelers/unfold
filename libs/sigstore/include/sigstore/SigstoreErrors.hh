@@ -31,8 +31,7 @@ namespace unfold::sigstore
     InvalidSignature,
     InvalidCertificate,
     InvalidPublicKey,
-    FulcioChainInvalid,
-    TransparencyLogInvalid,
+    InvalidTransparencyLog,
     JsonParseError,
     SystemError
   };
@@ -57,9 +56,7 @@ namespace unfold::sigstore
           return "Invalid certificate";
         case SigstoreError::InvalidPublicKey:
           return "Invalid public key";
-        case SigstoreError::FulcioChainInvalid:
-          return "Fulcio certificate chain invalid";
-        case SigstoreError::TransparencyLogInvalid:
+        case SigstoreError::InvalidTransparencyLog:
           return "Transparency log verification failed";
         case SigstoreError::JsonParseError:
           return "JSON parse error";

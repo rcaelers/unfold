@@ -129,12 +129,12 @@ TEST_F(SigstoreTest, VerifyInvalidBundle)
   // EXPECT_TRUE(verify_result.has_error());
 }
 
-TEST_F(SigstoreTest, ParseLegacyBundleFormat)
+TEST_F(SigstoreTest, ParseStandardBundleFormat)
 {
   SigstoreVerifier verifier(mock_http_client_);
 
-  std::ifstream bundle_file("appcast-sigstore.xml.sigstore.bundle");
-  ASSERT_TRUE(bundle_file.is_open()) << "Failed to open legacy bundle";
+  std::ifstream bundle_file("appcast-sigstore.xml.sigstore.new.bundle");
+  ASSERT_TRUE(bundle_file.is_open()) << "Failed to open standard bundle";
   std::string bundle_json((std::istreambuf_iterator<char>(bundle_file)), std::istreambuf_iterator<char>());
   bundle_file.close();
 

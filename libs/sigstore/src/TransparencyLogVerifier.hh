@@ -27,11 +27,17 @@
 #include <chrono>
 #include <openssl/evp.h>
 #include <boost/asio.hpp>
+#include <boost/json.hpp>
 #include <boost/outcome/std_result.hpp>
 #include <spdlog/spdlog.h>
-#include "TransparencyLogEntry.hh"
+
+#include "BundleHelper.hh"
+#include "CanonicalBodyParser.hh"
 #include "RFC6962Hasher.hh"
 #include "utils/Logging.hh"
+
+#include "sigstore_bundle.pb.h"
+#include "sigstore_rekor.pb.h"
 
 namespace outcome = boost::outcome_v2;
 
@@ -39,7 +45,6 @@ namespace unfold::sigstore
 {
   class Certificate;
   class PublicKey;
-  class SigstoreBundleBase;
   class MerkleTreeValidator;
 
   class TransparencyLogVerifier
@@ -77,30 +82,29 @@ namespace unfold::sigstore
     TransparencyLogVerifier(TransparencyLogVerifier &&) noexcept = default;
     TransparencyLogVerifier &operator=(TransparencyLogVerifier &&) noexcept = default;
 
-    outcome::std_result<void> verify_transparency_log(TransparencyLogEntry entry, std::shared_ptr<const Certificate> certificate);
-    outcome::std_result<void> verify_bundle_consistency(const TransparencyLogEntry &entry,
-                                                        std::shared_ptr<SigstoreBundleBase> bundle);
+    outcome::std_result<void> verify_transparency_log(dev::sigstore::rekor::v1::TransparencyLogEntry entry, const Certificate &certificate);
+    outcome::std_result<void> verify_bundle_consistency(const dev::sigstore::rekor::v1::TransparencyLogEntry &entry,
+                                                        const dev::sigstore::bundle::v1::Bundle &bundle);
 
   private:
-    outcome::std_result<void> verify_inclusion_proof(const TransparencyLogEntry &entry);
-    outcome::std_result<void> verify_checkpoint(const Checkpoint &checkpoint,
+    outcome::std_result<void> verify_inclusion_proof(const dev::sigstore::rekor::v1::TransparencyLogEntry &entry);
+    outcome::std_result<void> verify_checkpoint(const dev::sigstore::rekor::v1::Checkpoint &checkpoint,
                                                 const std::string &expected_root_hash,
                                                 int64_t expected_tree_size);
-    outcome::std_result<void> verify_signed_entry_timestamp(const TransparencyLogEntry &entry);
-    outcome::std_result<void> verify_integrated_time(const TransparencyLogEntry &entry, const Certificate &certificate);
+    outcome::std_result<void> verify_signed_entry_timestamp(const dev::sigstore::rekor::v1::TransparencyLogEntry &entry);
+    outcome::std_result<void> verify_integrated_time(const dev::sigstore::rekor::v1::TransparencyLogEntry &entry, const Certificate &certificate);
     outcome::std_result<void> verify_certificate_extensions(const Certificate &certificate,
                                                             const std::string &expected_email = "",
                                                             const std::string &expected_issuer = "");
     outcome::std_result<void> verify_certificate_key_usage(const Certificate &certificate);
     outcome::std_result<void> verify_rekor_log_entry_signature(const std::string &log_entry, const std::string &signature_b64);
 
-    outcome::std_result<void> verify_signature_consistency(const boost::json::object &spec, const std::string &bundle_signature);
-    outcome::std_result<void> verify_certificate_consistency(const boost::json::object &spec,
-                                                             const Certificate &bundle_certificate);
-    outcome::std_result<void> verify_hash_consistency(const boost::json::object &spec, const std::string &bundle_message_digest);
+    outcome::std_result<void> verify_signature_consistency(const HashedRekord &rekord, const BundleHelper &bundle_helper);
+    outcome::std_result<void> verify_certificate_consistency(const HashedRekord &rekord, const Certificate &bundle_certificate);
+    outcome::std_result<void> verify_hash_consistency(const HashedRekord &rekord, const BundleHelper &bundle_helper);
 
-    std::string compute_leaf_hash(const TransparencyLogEntry &entry);
-   outcome::std_result<void> load_embedded_certificates();
+    std::string compute_leaf_hash(const dev::sigstore::rekor::v1::TransparencyLogEntry &entry);
+    outcome::std_result<void> load_embedded_certificates();
 
   private:
     VerificationConfig config_;

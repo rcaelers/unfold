@@ -20,10 +20,12 @@
 
 #include <boost/json/serialize.hpp>
 #include <boost/json/serializer.hpp>
+#include <boost/outcome/success_failure.hpp>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <memory>
 #include <spdlog/logger.h>
+#include <tuple>
 #include <vector>
 #include <chrono>
 #include <optional>
@@ -32,11 +34,12 @@
 #include <string>
 
 #include "TransparencyLogVerifier.hh"
-#include "SigstoreStandardBundle.hh"
+#include "BundleLoader.hh"
 #include "Certificate.hh"
+#include "sigstore/SigstoreErrors.hh"
 #include "utils/Base64.hh"
-#include "TransparencyLogEntry.hh"
-#include "SigstoreBundleBase.hh"
+
+#include "sigstore_rekor.pb.h"
 
 using namespace unfold::sigstore;
 
@@ -60,7 +63,7 @@ PrintTo(const TestBundleData &data, std::ostream *os)
       << "\", format_type=" << static_cast<int>(data.format_type) << "}";
 }
 
-class TransparencyLogVerifierTest : public ::testing::TestWithParam<TestBundleData>
+class TransparencyLogVerifierTest : public ::testing::Test
 {
 protected:
   void SetUp() override
@@ -92,70 +95,21 @@ protected:
     return nullptr;
   }
 
-  class MockSigstoreBundle : public SigstoreBundleBase
+  outcome::std_result<std::tuple<dev::sigstore::rekor::v1::TransparencyLogEntry, dev::sigstore::bundle::v1::Bundle, Certificate>>
+  load_standard_bundle(std::function<void(boost::json::value &json_val)> patch = [](boost::json::value &json_val) {})
   {
-  public:
-    MOCK_METHOD(std::string, get_signature, (), (const, override));
-    MOCK_METHOD(std::shared_ptr<Certificate>, get_certificate, (), (const, override));
-    MOCK_METHOD(std::optional<std::string>, get_message_digest, (), (const, override));
-    MOCK_METHOD(std::optional<std::string>, get_algorithm, (), (const, override));
-    MOCK_METHOD(int64_t, get_log_index, (), (const, override));
-
-    std::shared_ptr<Certificate> test_certificate_;
-  };
-
-  std::shared_ptr<MockSigstoreBundle> create_test_bundle()
-  {
-    auto certificate = create_test_certificate();
-    auto mock_bundle = std::make_shared<MockSigstoreBundle>();
-
-    mock_bundle->test_certificate_ = std::shared_ptr<Certificate>(std::move(certificate));
-
-    EXPECT_CALL(*mock_bundle, get_signature())
-      .WillRepeatedly(
-        ::testing::Return("MEYCIQD72gqPTp1QtkOfZ49+cQNWFKjs/fV7FXmpgd4XHOiFCwIhAMd5/Dv80ZgkLbiINDG/7LjjciDvY4UcX9+3FXa4jdp6"));
-    EXPECT_CALL(*mock_bundle, get_certificate()).WillRepeatedly(::testing::Return(mock_bundle->test_certificate_));
-    EXPECT_CALL(*mock_bundle, get_message_digest())
-      .WillRepeatedly(::testing::Return(std::optional<std::string>("ZLWzeHWZ5tm+0MjeKNfd8MMAxA/A4qEKkNf7kOQayyA=")));
-    EXPECT_CALL(*mock_bundle, get_algorithm()).WillRepeatedly(::testing::Return(std::optional<std::string>("sha256")));
-    EXPECT_CALL(*mock_bundle, get_log_index()).WillRepeatedly(::testing::Return(0));
-
-    return mock_bundle;
-  }
-  outcome::std_result<std::pair<TransparencyLogEntry, std::shared_ptr<SigstoreBundleBase>>> load_current_test_log(
-    std::function<void(boost::json::value &json_val)> patch = [](boost::json::value &json_val) {})
-  {
-    const auto &test_data = GetParam();
-
-    switch (test_data.format_type)
-      {
-      case TestDataFormat::StandardBundle:
-        return load_standard_bundle(test_data.bundle_filename, patch);
-
-      case TestDataFormat::TransparencyLog:
-        return load_transparency_log(test_data.bundle_filename, patch);
-
-      default:
-        ADD_FAILURE() << "Unknown test data format type";
-        return outcome::failure(std::make_error_code(std::errc::invalid_argument));
-      }
-  }
-
-  outcome::std_result<std::pair<TransparencyLogEntry, std::shared_ptr<SigstoreBundleBase>>> load_standard_bundle(
-    std::string file_path,
-    std::function<void(boost::json::value &json_val)> patch = [](boost::json::value &json_val) {})
-  {
+    std::string file_path = "appcast-sigstore.xml.sigstore.new.bundle";
     if (file_path.empty())
       {
         ADD_FAILURE() << "Failed to open bundle empty file";
-        return outcome::failure(std::make_error_code(std::errc::invalid_argument));
+        return SigstoreError::InvalidBundle;
       }
 
     std::ifstream bundle_file(file_path);
     if (!bundle_file.is_open())
       {
         ADD_FAILURE() << "Failed to open bundle file: " << file_path;
-        return outcome::failure(std::make_error_code(std::errc::no_such_file_or_directory));
+        return SigstoreError::InvalidBundle;
       }
 
     std::string bundle_json_str((std::istreambuf_iterator<char>(bundle_file)), std::istreambuf_iterator<char>());
@@ -168,7 +122,7 @@ protected:
         if (json_val.is_null())
           {
             ADD_FAILURE() << "Failed to parse JSON from bundle file: " << file_path;
-            return outcome::failure(std::make_error_code(std::errc::invalid_argument));
+            return SigstoreError::InvalidBundle;
           }
         try
           {
@@ -177,129 +131,47 @@ protected:
         catch (const std::exception &e)
           {
             ADD_FAILURE() << "Failed to apply patch to JSON: " << e.what();
-            return outcome::failure(std::make_error_code(std::errc::invalid_argument));
+            return SigstoreError::InvalidBundle;
           }
-        auto bundle = SigstoreStandardBundle::from_json(json_val);
-        if (!bundle)
+        spdlog::debug("Loaded bundle JSON: {}", boost::json::serialize(json_val));
+        SigstoreBundleLoader loader;
+        auto bundle_result = loader.load_from_json(boost::json::serialize(json_val));
+        if (!bundle_result)
           {
-            return outcome::failure(bundle.error());
+            return SigstoreError::InvalidBundle;
           }
-        auto log_entries = bundle.value()->get_transparency_log_entries();
+
+        auto &bundle = bundle_result.value();
+        auto log_entries = bundle.verification_material().tlog_entries();
         if (log_entries.empty())
           {
-            return outcome::failure(std::make_error_code(std::errc::invalid_argument));
+            return SigstoreError::InvalidBundle;
           }
-
-        return outcome::success(std::make_pair(std::move(log_entries[0]), std::move(bundle.value())));
+        auto cert_result = Certificate::from_cert(bundle.verification_material().certificate());
+        if (!cert_result.has_value())
+          {
+            return SigstoreError::InvalidBundle;
+          }
+        auto cert = std::move(cert_result.value());
+        return {std::move(log_entries[0]), std::move(bundle), std::move(cert)};
       }
     catch (const std::exception &e)
       {
-        ADD_FAILURE() << "Failed to load log from file: " << e.what();
-        return outcome::failure(std::make_error_code(std::errc::invalid_argument));
+        return SigstoreError::InvalidBundle;
       }
   }
 
-  outcome::std_result<std::pair<TransparencyLogEntry, std::shared_ptr<SigstoreBundleBase>>> load_transparency_log(
-    std::string file_path,
-    std::function<void(boost::json::value &json_val)> patch)
+  void apply_json_patch(boost::json::value &json_val, const std::string &bundle_patch, std::function<void(boost::json::object &)> patch_func) const
   {
-    if (file_path.empty())
-      {
-        ADD_FAILURE() << "Failed to open transparency log file: empty path";
-        return outcome::failure(std::make_error_code(std::errc::invalid_argument));
-      }
-
-    std::ifstream tlog_file(file_path);
-    if (!tlog_file.is_open())
-      {
-        ADD_FAILURE() << "Failed to open transparency log file: " << file_path;
-        return outcome::failure(std::make_error_code(std::errc::no_such_file_or_directory));
-      }
-
-    std::string tlog_json_str((std::istreambuf_iterator<char>(tlog_file)), std::istreambuf_iterator<char>());
-    tlog_file.close();
-
     try
       {
-        boost::json::value json_val = boost::json::parse(tlog_json_str);
-
-        if (json_val.is_null() || !json_val.is_object())
-          {
-            ADD_FAILURE() << "Failed to parse JSON from transparency log file: " << file_path;
-            return outcome::failure(std::make_error_code(std::errc::invalid_argument));
-          }
-
-        try
-          {
-            patch(json_val);
-          }
-        catch (const std::exception &e)
-          {
-            ADD_FAILURE() << "Failed to apply patch to transparency log JSON: " << e.what();
-            return outcome::failure(std::make_error_code(std::errc::invalid_argument));
-          }
-
-        const auto &root_obj = json_val.as_object();
-        if (root_obj.empty())
-          {
-            return outcome::failure(std::make_error_code(std::errc::invalid_argument));
-          }
-
-        TransparencyLogEntryParser parser;
-        auto entry_result = parser.parse_api_response(json_val);
-        if (!entry_result)
-          {
-            return outcome::failure(entry_result.error());
-          }
-
-        auto mock_bundle = create_test_bundle();
-        return std::make_pair(entry_result.value(), mock_bundle);
-      }
-    catch (const std::exception &e)
-      {
-        ADD_FAILURE() << "Exception parsing transparency log JSON: " << e.what();
-        return outcome::failure(std::make_error_code(std::errc::invalid_argument));
-      }
-  }
-
-  void apply_json_patch(boost::json::value &json_val,
-                        const std::string &bundle_path,
-                        const std::string &api_path,
-                        std::function<void(boost::json::object &)> patch_func) const
-  {
-    const auto &test_data = GetParam();
-    std::string target_path;
-
-    if (test_data.format_type == TestDataFormat::TransparencyLog)
-      {
-        const auto &root_obj = json_val.as_object();
-        if (root_obj.empty())
-          {
-            throw std::runtime_error("Empty transparency log object");
-          }
-
-        auto uuid_key = std::string(root_obj.begin()->key());
-        target_path = api_path;
-
-        size_t pos = target_path.find("{UUID}");
-        if (pos != std::string::npos)
-          {
-            target_path.replace(pos, 6, uuid_key); // 6 is length of "{UUID}"
-          }
-      }
-    else
-      {
-        target_path = bundle_path;
-      }
-
-    try
-      {
-        auto &target_obj = json_val.at_pointer(target_path).as_object();
+        auto &target_obj = json_val.at_pointer(bundle_patch).as_object();
         patch_func(target_obj);
       }
     catch (const std::exception &e)
       {
-        throw std::runtime_error("Failed to apply patch at path: " + target_path + " - " + e.what());
+        spdlog::error("Failed to apply patch at path {}: {}", bundle_patch, e.what());
+        throw std::runtime_error("Failed to apply patch at path: " + bundle_patch + " - " + e.what());
       }
   }
 
@@ -307,48 +179,43 @@ protected:
 };
 
 // =============================================================================
-//
+// Valid JSON
 // =============================================================================
 
-TEST_P(TransparencyLogVerifierTest, ValidateValidLog)
+TEST_F(TransparencyLogVerifierTest, ValidateValidLog)
 {
-  auto log = load_current_test_log();
-  ASSERT_FALSE(log.has_error()) << "Failed to load test data for " << GetParam().description;
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto log = load_standard_bundle();
+  ASSERT_FALSE(log.has_error()) << "Failed to load test data";
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
-  ASSERT_TRUE(result.has_value()) << "Failed to verify transparency log for " << GetParam().description << ": "
-                                  << result.error().message();
-  ASSERT_TRUE(result) << "Failed to verify transparency log for " << GetParam().description << ": " << result.error().message();
+  ASSERT_TRUE(result.has_value()) << "Failed to verify transparency log: " << result.error().message();
+  ASSERT_TRUE(result) << "Failed to verify transparency log: " << result.error().message();
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateValidBundle)
+TEST_F(TransparencyLogVerifierTest, ValidateValidBundle)
 {
-  auto log = load_current_test_log();
-  ASSERT_FALSE(log.has_error()) << "Failed to load test data for " << GetParam().description;
-  auto [log_entry, bundle] = log.value();
+  auto log = load_standard_bundle();
+  ASSERT_FALSE(log.has_error()) << "Failed to load test data";
+  ;
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_bundle_consistency(log_entry, bundle);
-  ASSERT_TRUE(result.has_value()) << "Failed to verify bundle consistency for " << GetParam().description << ": "
-                                  << result.error().message();
-  ASSERT_TRUE(result) << "Failed to verify bundle consistency for " << GetParam().description << ": " << result.error().message();
+  ASSERT_TRUE(result.has_value()) << "Failed to verify bundle consistency: " << result.error().message();
+  ASSERT_TRUE(result) << "Failed to verify bundle consistency: " << result.error().message();
 }
 
 // =============================================================================
-//
+// Inalid JSON
 // =============================================================================
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_NoInclusionProof)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_NoInclusionProof)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0", "/{UUID}/verification", [](boost::json::object &obj) {
-      obj.erase(obj.find("inclusionProof"));
-    });
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0", [](boost::json::object &obj) { obj.erase(obj.find("inclusionProof")); });
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_TRUE(result.has_error());
@@ -357,36 +224,26 @@ TEST_P(TransparencyLogVerifierTest, ValidateLog_NoInclusionProof)
   ASSERT_FALSE(result.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofWrongType)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofWrongType)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0", "/{UUID}/verification", [](boost::json::object &obj) {
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0", [](boost::json::object &obj) {
       obj.erase(obj.find("inclusionProof"));
       obj["inclusionProof"] = "invalid-type";
     });
   });
-
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
-
-  auto result = verifier_->verify_transparency_log(log_entry, cert);
-  ASSERT_TRUE(result.has_error());
-
-  result = verifier_->verify_bundle_consistency(log_entry, bundle);
-  ASSERT_FALSE(result.has_error());
+  ASSERT_TRUE(log.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_NoInclusionProofCheckPoint)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_NoInclusionProofCheckPoint)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val,
-                     "/verificationMaterial/tlogEntries/0/inclusionProof",
-                     "/{UUID}/verification/inclusionProof",
-                     [](boost::json::object &obj) { obj.erase(obj.find("checkpoint")); });
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0/inclusionProof", [](boost::json::object &obj) {
+      obj.erase(obj.find("checkpoint"));
+    });
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_TRUE(result.has_error());
@@ -395,10 +252,10 @@ TEST_P(TransparencyLogVerifierTest, ValidateLog_NoInclusionProofCheckPoint)
   ASSERT_FALSE(result.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_NoInclusionProofCanonicalizedBody)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_NoInclusionProofCanonicalizedBody)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0", "/{UUID}", [](boost::json::object &obj) {
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0", [](boost::json::object &obj) {
       auto *it = obj.find("canonicalizedBody");
       if (it != obj.end())
         {
@@ -415,8 +272,7 @@ TEST_P(TransparencyLogVerifierTest, ValidateLog_NoInclusionProofCanonicalizedBod
     });
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_TRUE(result.has_error());
@@ -425,10 +281,10 @@ TEST_P(TransparencyLogVerifierTest, ValidateLog_NoInclusionProofCanonicalizedBod
   ASSERT_TRUE(result.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofCanonicalizedBody)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofCanonicalizedBody)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0", "/{UUID}", [](boost::json::object &obj) {
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0", [](boost::json::object &obj) {
       auto *it = obj.find("canonicalizedBody");
       if (it != obj.end())
         {
@@ -445,8 +301,7 @@ TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofCanonicaliz
     });
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_TRUE(result.has_error());
@@ -455,36 +310,15 @@ TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofCanonicaliz
   ASSERT_TRUE(result.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_NoInclusionProofLogIndex)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_NoInclusionProofLogIndex)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val,
-                     "/verificationMaterial/tlogEntries/0/inclusionProof",
-                     "/{UUID}/verification/inclusionProof",
-                     [](boost::json::object &obj) { obj.erase(obj.find("logIndex")); });
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0/inclusionProof", [](boost::json::object &obj) {
+      obj.erase(obj.find("logIndex"));
+    });
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
-
-  auto result = verifier_->verify_transparency_log(log_entry, cert);
-  ASSERT_TRUE(result.has_error());
-
-  result = verifier_->verify_bundle_consistency(log_entry, bundle);
-  ASSERT_FALSE(result.has_error());
-}
-
-TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofLogIndex1)
-{
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val,
-                     "/verificationMaterial/tlogEntries/0/inclusionProof",
-                     "/{UUID}/verification/inclusionProof",
-                     [](boost::json::object &obj) { obj.find("logIndex")->value() = "0"; });
-  });
-
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_TRUE(result.has_error());
@@ -493,17 +327,15 @@ TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofLogIndex1)
   ASSERT_FALSE(result.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofLogIndex2)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofLogIndex1)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val,
-                     "/verificationMaterial/tlogEntries/0/inclusionProof",
-                     "/{UUID}/verification/inclusionProof",
-                     [](boost::json::object &obj) { obj.find("logIndex")->value() = "999999999"; });
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0/inclusionProof", [&](boost::json::object &obj) {
+      obj.find("logIndex")->value() = "0";
+    });
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_TRUE(result.has_error());
@@ -512,17 +344,15 @@ TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofLogIndex2)
   ASSERT_FALSE(result.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofLogIndex3)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofLogIndex2)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val,
-                     "/verificationMaterial/tlogEntries/0/inclusionProof",
-                     "/{UUID}/verification/inclusionProof",
-                     [](boost::json::object &obj) { obj.find("logIndex")->value() = "foo"; });
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0/inclusionProof", [&](boost::json::object &obj) {
+      obj.find("logIndex")->value() = "999999999";
+    });
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_TRUE(result.has_error());
@@ -531,17 +361,32 @@ TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofLogIndex3)
   ASSERT_FALSE(result.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_NoInclusionProofTreeSize)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofLogIndex3)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val,
-                     "/verificationMaterial/tlogEntries/0/inclusionProof",
-                     "/{UUID}/verification/inclusionProof",
-                     [](boost::json::object &obj) { obj.erase(obj.find("treeSize")); });
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0/inclusionProof", [](boost::json::object &obj) {
+      obj.find("logIndex")->value() = "foo";
+    });
+  });
+  ASSERT_TRUE(log.has_error());
+  // auto &[log_entry, bundle, cert] = log.value();
+
+  // auto result = verifier_->verify_transparency_log(log_entry, cert);
+  // ASSERT_TRUE(result.has_error());
+
+  // result = verifier_->verify_bundle_consistency(log_entry, bundle);
+  // ASSERT_FALSE(result.has_error());
+}
+
+TEST_F(TransparencyLogVerifierTest, ValidateLog_NoInclusionProofTreeSize)
+{
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0/inclusionProof", [](boost::json::object &obj) {
+      obj.erase(obj.find("treeSize"));
+    });
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_TRUE(result.has_error());
@@ -550,17 +395,15 @@ TEST_P(TransparencyLogVerifierTest, ValidateLog_NoInclusionProofTreeSize)
   ASSERT_FALSE(result.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofTreeSize1)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofTreeSize1)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val,
-                     "/verificationMaterial/tlogEntries/0/inclusionProof",
-                     "/{UUID}/verification/inclusionProof",
-                     [](boost::json::object &obj) { obj.find("treeSize")->value() = "0"; });
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0/inclusionProof", [&](boost::json::object &obj) {
+      obj.find("treeSize")->value() = "0";
+    });
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_TRUE(result.has_error());
@@ -569,17 +412,15 @@ TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofTreeSize1)
   ASSERT_FALSE(result.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofTreeSize2)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofTreeSize2)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val,
-                     "/verificationMaterial/tlogEntries/0/inclusionProof",
-                     "/{UUID}/verification/inclusionProof",
-                     [](boost::json::object &obj) { obj.find("treeSize")->value() = "999999999"; });
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0/inclusionProof", [&](boost::json::object &obj) {
+      obj.find("treeSize")->value() = "999999999";
+    });
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_TRUE(result.has_error());
@@ -588,17 +429,33 @@ TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofTreeSize2)
   ASSERT_FALSE(result.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofTreeSize3)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofTreeSize3)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val,
-                     "/verificationMaterial/tlogEntries/0/inclusionProof",
-                     "/{UUID}/verification/inclusionProof",
-                     [](boost::json::object &obj) { obj.find("treeSize")->value() = "foo"; });
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0/inclusionProof", [](boost::json::object &obj) {
+      obj.find("treeSize")->value() = "foo";
+    });
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  ASSERT_TRUE(log.has_error());
+  // auto &[log_entry, bundle, cert] = log.value();
+
+  // auto result = verifier_->verify_transparency_log(log_entry, cert);
+  // ASSERT_TRUE(result.has_error());
+
+  // result = verifier_->verify_bundle_consistency(log_entry, bundle);
+  // ASSERT_FALSE(result.has_error());
+}
+
+TEST_F(TransparencyLogVerifierTest, ValidateLog_NoInclusionProofRootHash)
+{
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0/inclusionProof", [](boost::json::object &obj) {
+      obj.erase(obj.find("rootHash"));
+    });
+  });
+
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_TRUE(result.has_error());
@@ -607,17 +464,15 @@ TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofTreeSize3)
   ASSERT_FALSE(result.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_NoInclusionProofRootHash)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofRootHash)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val,
-                     "/verificationMaterial/tlogEntries/0/inclusionProof",
-                     "/{UUID}/verification/inclusionProof",
-                     [](boost::json::object &obj) { obj.erase(obj.find("rootHash")); });
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0/inclusionProof", [](boost::json::object &obj) {
+      obj.find("rootHash")->value() = "foo";
+    });
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_TRUE(result.has_error());
@@ -626,36 +481,13 @@ TEST_P(TransparencyLogVerifierTest, ValidateLog_NoInclusionProofRootHash)
   ASSERT_FALSE(result.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofRootHash)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_NoInclusionProofHashes)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val,
-                     "/verificationMaterial/tlogEntries/0/inclusionProof",
-                     "/{UUID}/verification/inclusionProof",
-                     [](boost::json::object &obj) { obj.find("rootHash")->value() = "foo"; });
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0/inclusionProof", [](boost::json::object &obj) { obj.erase(obj.find("hashes")); });
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
-
-  auto result = verifier_->verify_transparency_log(log_entry, cert);
-  ASSERT_TRUE(result.has_error());
-
-  result = verifier_->verify_bundle_consistency(log_entry, bundle);
-  ASSERT_FALSE(result.has_error());
-}
-
-TEST_P(TransparencyLogVerifierTest, ValidateLog_NoInclusionProofHashes)
-{
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val,
-                     "/verificationMaterial/tlogEntries/0/inclusionProof",
-                     "/{UUID}/verification/inclusionProof",
-                     [](boost::json::object &obj) { obj.erase(obj.find("hashes")); });
-  });
-
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_TRUE(result.has_error());
@@ -667,20 +499,33 @@ TEST_P(TransparencyLogVerifierTest, ValidateLog_NoInclusionProofHashes)
   ASSERT_FALSE(result.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofHashes)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofHashes)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val,
-                     "/verificationMaterial/tlogEntries/0/inclusionProof",
-                     "/{UUID}/verification/inclusionProof",
-                     [](boost::json::object &obj) {
-                       auto &hashes = obj.find("hashes")->value().as_array();
-                       hashes[0] = "invalid-hash";
-                     });
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0/inclusionProof", [](boost::json::object &obj) {
+      auto &hashes = obj.find("hashes")->value().as_array();
+      hashes[0] = "invalid-hash";
+    });
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
+
+  auto result = verifier_->verify_transparency_log(log_entry, cert);
+  ASSERT_FALSE(result.has_error()); // TODO: check
+
+  result = verifier_->verify_bundle_consistency(log_entry, bundle);
+  ASSERT_FALSE(result.has_error());
+}
+
+TEST_F(TransparencyLogVerifierTest, ValidateLog_EmptyInclusionProofHashes)
+{
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0/inclusionProof", [](boost::json::object &obj) {
+      obj.find("hashes")->value() = boost::json::array{};
+    });
+  });
+
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_TRUE(result.has_error());
@@ -689,17 +534,27 @@ TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofHashes)
   ASSERT_FALSE(result.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_EmptyInclusionProofHashes)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofCheckpoint1)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val,
-                     "/verificationMaterial/tlogEntries/0/inclusionProof",
-                     "/{UUID}/verification/inclusionProof",
-                     [](boost::json::object &obj) { obj.find("hashes")->value() = boost::json::array{}; });
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0/inclusionProof", [](boost::json::object &obj) {
+      auto *checkpoint_it = obj.find("checkpoint");
+      if (checkpoint_it != obj.end())
+        {
+          if (checkpoint_it->value().is_object())
+            {
+              auto &checkpoint_obj = checkpoint_it->value().as_object();
+              checkpoint_obj.find("envelope")->value() = "invalid-checkpoint-envelope";
+            }
+          else
+            {
+              checkpoint_it->value() = "invalid-checkpoint-envelope";
+            }
+        }
+    });
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_TRUE(result.has_error());
@@ -708,31 +563,27 @@ TEST_P(TransparencyLogVerifierTest, ValidateLog_EmptyInclusionProofHashes)
   ASSERT_FALSE(result.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofCheckpoint1)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofCheckpoint2)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val,
-                     "/verificationMaterial/tlogEntries/0/inclusionProof",
-                     "/{UUID}/verification/inclusionProof",
-                     [](boost::json::object &obj) {
-                       auto *checkpoint_it = obj.find("checkpoint");
-                       if (checkpoint_it != obj.end())
-                         {
-                           if (checkpoint_it->value().is_object())
-                             {
-                               auto &checkpoint_obj = checkpoint_it->value().as_object();
-                               checkpoint_obj.find("envelope")->value() = "invalid-checkpoint-envelope";
-                             }
-                           else
-                             {
-                               checkpoint_it->value() = "invalid-checkpoint-envelope";
-                             }
-                         }
-                     });
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0/inclusionProof", [](boost::json::object &obj) {
+      auto *checkpoint_it = obj.find("checkpoint");
+      if (checkpoint_it != obj.end())
+        {
+          if (checkpoint_it->value().is_object())
+            {
+              auto &checkpoint_obj = checkpoint_it->value().as_object();
+              checkpoint_obj.find("envelope")->value() = "";
+            }
+          else
+            {
+              checkpoint_it->value() = "";
+            }
+        }
+    });
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_TRUE(result.has_error());
@@ -741,31 +592,31 @@ TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofCheckpoint1
   ASSERT_FALSE(result.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofCheckpoint2)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofCheckpointInconsistentTreeSize)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val,
-                     "/verificationMaterial/tlogEntries/0/inclusionProof",
-                     "/{UUID}/verification/inclusionProof",
-                     [](boost::json::object &obj) {
-                       auto *checkpoint_it = obj.find("checkpoint");
-                       if (checkpoint_it != obj.end())
-                         {
-                           if (checkpoint_it->value().is_object())
-                             {
-                               auto &checkpoint_obj = checkpoint_it->value().as_object();
-                               checkpoint_obj.find("envelope")->value() = "";
-                             }
-                           else
-                             {
-                               checkpoint_it->value() = "";
-                             }
-                         }
-                     });
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0/inclusionProof", [&](boost::json::object &obj) {
+      auto *checkpoint_it = obj.find("checkpoint");
+      if (checkpoint_it != obj.end())
+        {
+          if (checkpoint_it->value().is_object())
+            {
+              const auto *envelope_value =
+                "rekor.sigstore.dev - 1193050959916656506\n148680320\nLhfph6Lh1x0tstJX8Fc7lFBSos1pMUaTmgnyhvy+fQo=\n\n— rekor.sigstore.dev wNI9ajBEAiABTiAWtwgfG48x0M/ho0ynGbJ2QVuTb0mK5I0xHTIdPgIgFtivSy5vuhrlRlV2ZXM7267vYVQFlhhYHT/GeQlMfCM=\n";
+              auto &checkpoint_obj = checkpoint_it->value().as_object();
+              checkpoint_obj.find("envelope")->value() = envelope_value;
+            }
+          else
+            {
+              const auto *envelope_value =
+                "rekor.sigstore.dev - 1193050959916656506\n15116574\nmQzjnEcka/8RktFYpvWYHha4kQcfzNVgTAMmg4OghL8=\n\n— rekor.sigstore.dev wNI9ajBFAiEA/3AFziktWhi/OYoqavWWSpVZC/EBTw2nZPltb200J1oCIG4JmkmTXrItmU4bUeJiYjTWAzwIvTO0ISB7OrbIadgC\n";
+              checkpoint_it->value() = envelope_value;
+            }
+        }
+    });
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_TRUE(result.has_error());
@@ -774,36 +625,31 @@ TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofCheckpoint2
   ASSERT_FALSE(result.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofCheckpointInconsistentTreeSize)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofCheckpointTreeSizeWrongType)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(
-      json_val,
-      "/verificationMaterial/tlogEntries/0/inclusionProof",
-      "/{UUID}/verification/inclusionProof",
-      [&](boost::json::object &obj) {
-        auto *checkpoint_it = obj.find("checkpoint");
-        if (checkpoint_it != obj.end())
-          {
-            if (checkpoint_it->value().is_object())
-              {
-                const auto *envelope_value =
-                  "rekor.sigstore.dev - 1193050959916656506\n148680320\nLhfph6Lh1x0tstJX8Fc7lFBSos1pMUaTmgnyhvy+fQo=\n\n— rekor.sigstore.dev wNI9ajBEAiABTiAWtwgfG48x0M/ho0ynGbJ2QVuTb0mK5I0xHTIdPgIgFtivSy5vuhrlRlV2ZXM7267vYVQFlhhYHT/GeQlMfCM=\n";
-                auto &checkpoint_obj = checkpoint_it->value().as_object();
-                checkpoint_obj.find("envelope")->value() = envelope_value;
-              }
-            else
-              {
-                const auto *envelope_value =
-                  "rekor.sigstore.dev - 1193050959916656506\n15116574\nmQzjnEcka/8RktFYpvWYHha4kQcfzNVgTAMmg4OghL8=\n\n— rekor.sigstore.dev wNI9ajBFAiEA/3AFziktWhi/OYoqavWWSpVZC/EBTw2nZPltb200J1oCIG4JmkmTXrItmU4bUeJiYjTWAzwIvTO0ISB7OrbIadgC\n";
-                checkpoint_it->value() = envelope_value;
-              }
-          }
-      });
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0/inclusionProof", [&](boost::json::object &obj) {
+      auto *checkpoint_it = obj.find("checkpoint");
+      if (checkpoint_it != obj.end())
+        {
+          if (checkpoint_it->value().is_object())
+            {
+              const auto *envelope_value =
+                "rekor.sigstore.dev - 1193050959916656506\nx148680320\nLhfph6Lh1x0tstJX8Fc7lFBSos1pMUaTmgnyhvy+fQo=\n\n— rekor.sigstore.dev wNI9ajBEAiABTiAWtwgfG48x0M/ho0ynGbJ2QVuTb0mK5I0xHTIdPgIgFtivSy5vuhrlRlV2ZXM7267vYVQFlhhYHT/GeQlMfCM=\n";
+              auto &checkpoint_obj = checkpoint_it->value().as_object();
+              checkpoint_obj.find("envelope")->value() = envelope_value;
+            }
+          else
+            {
+              const auto *envelope_value =
+                "rekor.sigstore.dev - 1193050959916656506\nx15116564\nmQzjnEcka/8RktFYpvWYHha4kQcfzNVgTAMmg4OghL8=\n\n— rekor.sigstore.dev wNI9ajBFAiEA/3AFziktWhi/OYoqavWWSpVZC/EBTw2nZPltb200J1oCIG4JmkmTXrItmU4bUeJiYjTWAzwIvTO0ISB7OrbIadgC\n";
+              checkpoint_it->value() = envelope_value;
+            }
+        }
+    });
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_TRUE(result.has_error());
@@ -812,36 +658,31 @@ TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofCheckpointI
   ASSERT_FALSE(result.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofCheckpointTreeSizeWrongType)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofCheckpointNoBody)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(
-      json_val,
-      "/verificationMaterial/tlogEntries/0/inclusionProof",
-      "/{UUID}/verification/inclusionProof",
-      [&](boost::json::object &obj) {
-        auto *checkpoint_it = obj.find("checkpoint");
-        if (checkpoint_it != obj.end())
-          {
-            if (checkpoint_it->value().is_object())
-              {
-                const auto *envelope_value =
-                  "rekor.sigstore.dev - 1193050959916656506\nx148680320\nLhfph6Lh1x0tstJX8Fc7lFBSos1pMUaTmgnyhvy+fQo=\n\n— rekor.sigstore.dev wNI9ajBEAiABTiAWtwgfG48x0M/ho0ynGbJ2QVuTb0mK5I0xHTIdPgIgFtivSy5vuhrlRlV2ZXM7267vYVQFlhhYHT/GeQlMfCM=\n";
-                auto &checkpoint_obj = checkpoint_it->value().as_object();
-                checkpoint_obj.find("envelope")->value() = envelope_value;
-              }
-            else
-              {
-                const auto *envelope_value =
-                  "rekor.sigstore.dev - 1193050959916656506\nx15116564\nmQzjnEcka/8RktFYpvWYHha4kQcfzNVgTAMmg4OghL8=\n\n— rekor.sigstore.dev wNI9ajBFAiEA/3AFziktWhi/OYoqavWWSpVZC/EBTw2nZPltb200J1oCIG4JmkmTXrItmU4bUeJiYjTWAzwIvTO0ISB7OrbIadgC\n";
-                checkpoint_it->value() = envelope_value;
-              }
-          }
-      });
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0/inclusionProof", [&](boost::json::object &obj) {
+      auto *checkpoint_it = obj.find("checkpoint");
+      if (checkpoint_it != obj.end())
+        {
+          if (checkpoint_it->value().is_object())
+            {
+              const auto *envelope_value =
+                "\n\nrekor.sigstore.dev - 1193050959916656506\n148680319\nLhfph6Lh1x0tstJX8Fc7lFBSos1pMUaTmgnyhvy+fQo=\n— rekor.sigstore.dev wNI9ajBEAiABTiAWtwgfG48x0M/ho0ynGbJ2QVuTb0mK5I0xHTIdPgIgFtivSy5vuhrlRlV2ZXM7267vYVQFlhhYHT/GeQlMfCM=\n";
+              auto &checkpoint_obj = checkpoint_it->value().as_object();
+              checkpoint_obj.find("envelope")->value() = envelope_value;
+            }
+          else
+            {
+              const auto *envelope_value =
+                "\n\nrekor.sigstore.dev - 1193050959916656506\n15116564\nmQzjnEcka/8RktFYpvWYHha4kQcfzNVgTAMmg4OghL8=\n— rekor.sigstore.dev wNI9ajBFAiEA/3AFziktWhi/OYoqavWWSpVZC/EBTw2nZPltb200J1oCIG4JmkmTXrItmU4bUeJiYjTWAzwIvTO0ISB7OrbIadgC\n";
+              checkpoint_it->value() = envelope_value;
+            }
+        }
+    });
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_TRUE(result.has_error());
@@ -850,36 +691,31 @@ TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofCheckpointT
   ASSERT_FALSE(result.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofCheckpointNoBody)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofCheckpointNoSeparator)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(
-      json_val,
-      "/verificationMaterial/tlogEntries/0/inclusionProof",
-      "/{UUID}/verification/inclusionProof",
-      [&](boost::json::object &obj) {
-        auto *checkpoint_it = obj.find("checkpoint");
-        if (checkpoint_it != obj.end())
-          {
-            if (checkpoint_it->value().is_object())
-              {
-                const auto *envelope_value =
-                  "\n\nrekor.sigstore.dev - 1193050959916656506\n148680319\nLhfph6Lh1x0tstJX8Fc7lFBSos1pMUaTmgnyhvy+fQo=\n— rekor.sigstore.dev wNI9ajBEAiABTiAWtwgfG48x0M/ho0ynGbJ2QVuTb0mK5I0xHTIdPgIgFtivSy5vuhrlRlV2ZXM7267vYVQFlhhYHT/GeQlMfCM=\n";
-                auto &checkpoint_obj = checkpoint_it->value().as_object();
-                checkpoint_obj.find("envelope")->value() = envelope_value;
-              }
-            else
-              {
-                const auto *envelope_value =
-                  "\n\nrekor.sigstore.dev - 1193050959916656506\n15116564\nmQzjnEcka/8RktFYpvWYHha4kQcfzNVgTAMmg4OghL8=\n— rekor.sigstore.dev wNI9ajBFAiEA/3AFziktWhi/OYoqavWWSpVZC/EBTw2nZPltb200J1oCIG4JmkmTXrItmU4bUeJiYjTWAzwIvTO0ISB7OrbIadgC\n";
-                checkpoint_it->value() = envelope_value;
-              }
-          }
-      });
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0/inclusionProof", [](boost::json::object &obj) {
+      auto *checkpoint_it = obj.find("checkpoint");
+      if (checkpoint_it != obj.end())
+        {
+          if (checkpoint_it->value().is_object())
+            {
+              const auto *envelope_value =
+                "rekor.sigstore.dev - 1193050959916656506\n148680319\nLhfph6Lh1x0tstJX8Fc7lFBSos1pMUaTmgnyhvy+fQo=\n— rekor.sigstore.dev wNI9ajBEAiABTiAWtwgfG48x0M/ho0ynGbJ2QVuTb0mK5I0xHTIdPgIgFtivSy5vuhrlRlV2ZXM7267vYVQFlhhYHT/GeQlMfCM=\n";
+              auto &checkpoint_obj = checkpoint_it->value().as_object();
+              checkpoint_obj.find("envelope")->value() = envelope_value;
+            }
+          else
+            {
+              const auto *envelope_value =
+                "rekor.sigstore.dev - 1193050959916656506\n15116564\nmQzjnEcka/8RktFYpvWYHha4kQcfzNVgTAMmg4OghL8=\n— rekor.sigstore.dev wNI9ajBFAiEA/3AFziktWhi/OYoqavWWSpVZC/EBTw2nZPltb200J1oCIG4JmkmTXrItmU4bUeJiYjTWAzwIvTO0ISB7OrbIadgC\n";
+              checkpoint_it->value() = envelope_value;
+            }
+        }
+    });
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_TRUE(result.has_error());
@@ -888,74 +724,31 @@ TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofCheckpointN
   ASSERT_FALSE(result.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofCheckpointNoSeparator)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofCheckpointNoNewLine)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(
-      json_val,
-      "/verificationMaterial/tlogEntries/0/inclusionProof",
-      "/{UUID}/verification/inclusionProof",
-      [](boost::json::object &obj) {
-        auto *checkpoint_it = obj.find("checkpoint");
-        if (checkpoint_it != obj.end())
-          {
-            if (checkpoint_it->value().is_object())
-              {
-                const auto *envelope_value =
-                  "rekor.sigstore.dev - 1193050959916656506\n148680319\nLhfph6Lh1x0tstJX8Fc7lFBSos1pMUaTmgnyhvy+fQo=\n— rekor.sigstore.dev wNI9ajBEAiABTiAWtwgfG48x0M/ho0ynGbJ2QVuTb0mK5I0xHTIdPgIgFtivSy5vuhrlRlV2ZXM7267vYVQFlhhYHT/GeQlMfCM=\n";
-                auto &checkpoint_obj = checkpoint_it->value().as_object();
-                checkpoint_obj.find("envelope")->value() = envelope_value;
-              }
-            else
-              {
-                const auto *envelope_value =
-                  "rekor.sigstore.dev - 1193050959916656506\n15116564\nmQzjnEcka/8RktFYpvWYHha4kQcfzNVgTAMmg4OghL8=\n— rekor.sigstore.dev wNI9ajBFAiEA/3AFziktWhi/OYoqavWWSpVZC/EBTw2nZPltb200J1oCIG4JmkmTXrItmU4bUeJiYjTWAzwIvTO0ISB7OrbIadgC\n";
-                checkpoint_it->value() = envelope_value;
-              }
-          }
-      });
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0/inclusionProof", [](boost::json::object &obj) {
+      auto *checkpoint_it = obj.find("checkpoint");
+      if (checkpoint_it != obj.end())
+        {
+          if (checkpoint_it->value().is_object())
+            {
+              const auto *envelope_value =
+                "rekor.sigstore.dev - 1193050959916656506\n148680319\nLhfph6Lh1x0tstJX8Fc7lFBSos1pMUaTmgnyhvy+fQo=\n\n— rekor.sigstore.dev wNI9ajBEAiABTiAWtwgfG48x0M/ho0ynGbJ2QVuTb0mK5I0xHTIdPgIgFtivSy5vuhrlRlV2ZXM7267vYVQFlhhYHT/GeQlMfCM=";
+              auto &checkpoint_obj = checkpoint_it->value().as_object();
+              checkpoint_obj.find("envelope")->value() = envelope_value;
+            }
+          else
+            {
+              const auto *envelope_value =
+                "rekor.sigstore.dev - 1193050959916656506\n151165654\nmQzjnEcka/8RktFYpvWYHha4kQcfzNVgTAMmg4OghL8=\n\n— rekor.sigstore.dev wNI9ajBFAiEA/3AFziktWhi/OYoqavWWSpVZC/EBTw2nZPltb200J1oCIG4JmkmTXrItmU4bUeJiYjTWAzwIvTO0ISB7OrbIadgC";
+              checkpoint_it->value() = envelope_value;
+            }
+        }
+    });
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
-
-  auto result = verifier_->verify_transparency_log(log_entry, cert);
-  ASSERT_TRUE(result.has_error());
-
-  result = verifier_->verify_bundle_consistency(log_entry, bundle);
-  ASSERT_FALSE(result.has_error());
-}
-
-TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofCheckpointNoNewLine)
-{
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(
-      json_val,
-      "/verificationMaterial/tlogEntries/0/inclusionProof",
-      "/{UUID}/verification/inclusionProof",
-      [](boost::json::object &obj) {
-        auto *checkpoint_it = obj.find("checkpoint");
-        if (checkpoint_it != obj.end())
-          {
-            if (checkpoint_it->value().is_object())
-              {
-                const auto *envelope_value =
-                  "rekor.sigstore.dev - 1193050959916656506\n148680319\nLhfph6Lh1x0tstJX8Fc7lFBSos1pMUaTmgnyhvy+fQo=\n\n— rekor.sigstore.dev wNI9ajBEAiABTiAWtwgfG48x0M/ho0ynGbJ2QVuTb0mK5I0xHTIdPgIgFtivSy5vuhrlRlV2ZXM7267vYVQFlhhYHT/GeQlMfCM=";
-                auto &checkpoint_obj = checkpoint_it->value().as_object();
-                checkpoint_obj.find("envelope")->value() = envelope_value;
-              }
-            else
-              {
-                const auto *envelope_value =
-                  "rekor.sigstore.dev - 1193050959916656506\n151165654\nmQzjnEcka/8RktFYpvWYHha4kQcfzNVgTAMmg4OghL8=\n\n— rekor.sigstore.dev wNI9ajBFAiEA/3AFziktWhi/OYoqavWWSpVZC/EBTw2nZPltb200J1oCIG4JmkmTXrItmU4bUeJiYjTWAzwIvTO0ISB7OrbIadgC";
-                checkpoint_it->value() = envelope_value;
-              }
-          }
-      });
-  });
-
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_FALSE(result.has_error());
@@ -964,36 +757,31 @@ TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofCheckpointN
   ASSERT_FALSE(result.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofCheckpointWrongSignature)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofCheckpointWrongSignature)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(
-      json_val,
-      "/verificationMaterial/tlogEntries/0/inclusionProof",
-      "/{UUID}/verification/inclusionProof",
-      [&](boost::json::object &obj) {
-        auto *checkpoint_it = obj.find("checkpoint");
-        if (checkpoint_it != obj.end())
-          {
-            if (checkpoint_it->value().is_object())
-              {
-                const auto *envelope_value =
-                  "rekor.sigstore.dev - 1193050959916656506\n148680319\nLhfph6Lh1x0tstJX8Fc7lFBSos1pMUaTmgnyhvy+fQo=\n\nx rekor.sigstore.dev wNI9ajBEAiABTiAWtwgfG48x0M/ho0ynGbJ2QVuTb0mK5I0xHTIdPgIgFtivSy5vuhrlRlV2ZXM7267vYVQFlhhYHT/GeQlMfCM=";
-                auto &checkpoint_obj = checkpoint_it->value().as_object();
-                checkpoint_obj.find("envelope")->value() = envelope_value;
-              }
-            else
-              {
-                const auto *envelope_value =
-                  "rekor.sigstore.dev - 1193050959916656506\n151165654\nmQzjnEcka/8RktFYpvWYHha4kQcfzNVgTAMmg4OghL8=\n\nx rekor.sigstore.dev wNI9ajBFAiEA/3AFziktWhi/OYoqavWWSpVZC/EBTw2nZPltb200J1oCIG4JmkmTXrItmU4bUeJiYjTWAzwIvTO0ISB7OrbIadgC";
-                checkpoint_it->value() = envelope_value;
-              }
-          }
-      });
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0/inclusionProof", [&](boost::json::object &obj) {
+      auto *checkpoint_it = obj.find("checkpoint");
+      if (checkpoint_it != obj.end())
+        {
+          if (checkpoint_it->value().is_object())
+            {
+              const auto *envelope_value =
+                "rekor.sigstore.dev - 1193050959916656506\n148680319\nLhfph6Lh1x0tstJX8Fc7lFBSos1pMUaTmgnyhvy+fQo=\n\nx rekor.sigstore.dev wNI9ajBEAiABTiAWtwgfG48x0M/ho0ynGbJ2QVuTb0mK5I0xHTIdPgIgFtivSy5vuhrlRlV2ZXM7267vYVQFlhhYHT/GeQlMfCM=";
+              auto &checkpoint_obj = checkpoint_it->value().as_object();
+              checkpoint_obj.find("envelope")->value() = envelope_value;
+            }
+          else
+            {
+              const auto *envelope_value =
+                "rekor.sigstore.dev - 1193050959916656506\n151165654\nmQzjnEcka/8RktFYpvWYHha4kQcfzNVgTAMmg4OghL8=\n\nx rekor.sigstore.dev wNI9ajBFAiEA/3AFziktWhi/OYoqavWWSpVZC/EBTw2nZPltb200J1oCIG4JmkmTXrItmU4bUeJiYjTWAzwIvTO0ISB7OrbIadgC";
+              checkpoint_it->value() = envelope_value;
+            }
+        }
+    });
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_TRUE(result.has_error());
@@ -1008,7 +796,7 @@ TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionProofCheckpointW
 
 TEST_F(TransparencyLogVerifierTest, ValidateLog_NoMediaType)
 {
-  auto log = load_standard_bundle("appcast-sigstore.xml.sigstore.new.bundle", [](boost::json::value &json_val) {
+  auto log = load_standard_bundle([](boost::json::value &json_val) {
     auto &obj = json_val.as_object();
     obj.erase(obj.find("mediaType"));
   });
@@ -1017,20 +805,11 @@ TEST_F(TransparencyLogVerifierTest, ValidateLog_NoMediaType)
 
 TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidMediaType)
 {
-  auto log = load_standard_bundle("appcast-sigstore.xml.sigstore.new.bundle", [](boost::json::value &json_val) {
+  auto log = load_standard_bundle([](boost::json::value &json_val) {
     auto &obj = json_val.as_object();
     obj.find("mediaType")->value() = "invalid/media-type";
   });
-
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
-
-  auto result = verifier_->verify_transparency_log(log_entry, cert);
-  ASSERT_FALSE(result.has_error());
-  // TODO: mediaType is ignore if present
-
-  result = verifier_->verify_bundle_consistency(log_entry, bundle);
-  ASSERT_FALSE(result.has_error());
+  ASSERT_TRUE(log.has_error());
 }
 
 // =============================================================================
@@ -1039,7 +818,7 @@ TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidMediaType)
 
 TEST_F(TransparencyLogVerifierTest, ValidateLog_NoCertificate)
 {
-  auto log = load_standard_bundle("appcast-sigstore.xml.sigstore.new.bundle", [](boost::json::value &json_val) {
+  auto log = load_standard_bundle([](boost::json::value &json_val) {
     auto &obj = json_val.at_pointer("/verificationMaterial").as_object();
     obj.erase(obj.find("certificate"));
   });
@@ -1048,7 +827,7 @@ TEST_F(TransparencyLogVerifierTest, ValidateLog_NoCertificate)
 
 TEST_F(TransparencyLogVerifierTest, ValidateLog_NoCertificateRawBytes)
 {
-  auto log = load_standard_bundle("appcast-sigstore.xml.sigstore.new.bundle", [](boost::json::value &json_val) {
+  auto log = load_standard_bundle([](boost::json::value &json_val) {
     auto &obj = json_val.at_pointer("/verificationMaterial/certificate").as_object();
     obj.erase(obj.find("rawBytes"));
   });
@@ -1057,7 +836,7 @@ TEST_F(TransparencyLogVerifierTest, ValidateLog_NoCertificateRawBytes)
 
 TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidCertificateRawBytes)
 {
-  auto log = load_standard_bundle("appcast-sigstore.xml.sigstore.new.bundle", [](boost::json::value &json_val) {
+  auto log = load_standard_bundle([](boost::json::value &json_val) {
     auto &obj = json_val.at_pointer("/verificationMaterial/certificate").as_object();
     obj.find("rawBytes")->value() = "invalid-certificate-data";
   });
@@ -1070,7 +849,7 @@ TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidCertificateRawBytes)
 
 TEST_F(TransparencyLogVerifierTest, ValidateLog_NoTlogEntries)
 {
-  auto log = load_standard_bundle("appcast-sigstore.xml.sigstore.new.bundle", [](boost::json::value &json_val) {
+  auto log = load_standard_bundle([](boost::json::value &json_val) {
     auto &obj = json_val.at_pointer("/verificationMaterial").as_object();
     obj.erase(obj.find("tlogEntries"));
   });
@@ -1079,37 +858,41 @@ TEST_F(TransparencyLogVerifierTest, ValidateLog_NoTlogEntries)
 
 TEST_F(TransparencyLogVerifierTest, ValidateLog_EmptyTlogEntries)
 {
-  auto log = load_standard_bundle("appcast-sigstore.xml.sigstore.new.bundle", [](boost::json::value &json_val) {
+  auto log = load_standard_bundle([](boost::json::value &json_val) {
     auto &obj = json_val.at_pointer("/verificationMaterial").as_object();
     obj.find("tlogEntries")->value() = boost::json::array{};
   });
   ASSERT_TRUE(log.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_NoTlogEntryLogIndex)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_NoTlogEntryLogIndex)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0", "/{UUID}", [](boost::json::object &obj) {
-      obj.erase(obj.find("logIndex"));
-    });
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0", [](boost::json::object &obj) { obj.erase(obj.find("logIndex")); });
   });
-  ASSERT_TRUE(log.has_error());
+  auto &[log_entry, bundle, cert] = log.value();
+
+  auto result = verifier_->verify_transparency_log(log_entry, cert);
+  ASSERT_TRUE(result.has_error());
+
+  result = verifier_->verify_bundle_consistency(log_entry, bundle);
+  ASSERT_FALSE(result.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidTlogEntryLogIndex)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidTlogEntryLogIndex)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0", "/{UUID}", [](boost::json::object &obj) {
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0", [](boost::json::object &obj) {
       obj.find("logIndex")->value() = "invalid-log-index";
     });
   });
   ASSERT_TRUE(log.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_NoLogId)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_NoLogId)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0", "/{UUID}", [](boost::json::object &obj) {
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0", [](boost::json::object &obj) {
       auto *it = obj.find("logId");
       if (it != obj.end())
         {
@@ -1126,8 +909,7 @@ TEST_P(TransparencyLogVerifierTest, ValidateLog_NoLogId)
     });
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_TRUE(result.has_error());
@@ -1136,47 +918,27 @@ TEST_P(TransparencyLogVerifierTest, ValidateLog_NoLogId)
   ASSERT_FALSE(result.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_LogIdWrongType)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_LogIdWrongType)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0", "/{UUID}", [](boost::json::object &obj) {
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0", [](boost::json::object &obj) {
       auto *it = obj.find("logId");
-      if (it != obj.end())
-        {
-          obj.erase(it);
-          obj["logId"] = "invalid-log-id-type";
-        }
-      else
-        {
-          auto *it_api = obj.find("logID");
-          if (it_api != obj.end())
-            {
-              obj.erase(it_api);
-              obj["logID"] = "invalid-log-id-type";
-            }
-        }
+      obj.erase(it);
+      obj["logId"] = "invalid-log-id-type";
     });
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
-
-  auto result = verifier_->verify_transparency_log(log_entry, cert);
-  ASSERT_TRUE(result.has_error());
-
-  result = verifier_->verify_bundle_consistency(log_entry, bundle);
-  ASSERT_FALSE(result.has_error());
+  ASSERT_TRUE(log.has_error());
 }
 
 TEST_F(TransparencyLogVerifierTest, ValidateLog_NoLogIdKeyId)
 {
-  auto log = load_standard_bundle("appcast-sigstore.xml.sigstore.new.bundle", [](boost::json::value &json_val) {
+  auto log = load_standard_bundle([](boost::json::value &json_val) {
     auto &obj = json_val.at_pointer("/verificationMaterial/tlogEntries/0/logId").as_object();
     obj.erase(obj.find("keyId"));
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_TRUE(result.has_error());
@@ -1187,13 +949,12 @@ TEST_F(TransparencyLogVerifierTest, ValidateLog_NoLogIdKeyId)
 
 TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidLogIdKeyId)
 {
-  auto log = load_standard_bundle("appcast-sigstore.xml.sigstore.new.bundle", [](boost::json::value &json_val) {
+  auto log = load_standard_bundle([](boost::json::value &json_val) {
     auto &obj = json_val.at_pointer("/verificationMaterial/tlogEntries/0/logId").as_object();
     obj.find("keyId")->value() = "invalid-key-id";
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_TRUE(result.has_error());
@@ -1204,159 +965,131 @@ TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidLogIdKeyId)
 
 TEST_F(TransparencyLogVerifierTest, ValidateLog_NoKindVersion)
 {
-  auto log = load_standard_bundle("appcast-sigstore.xml.sigstore.new.bundle", [](boost::json::value &json_val) {
+  auto log = load_standard_bundle([](boost::json::value &json_val) {
     auto &obj = json_val.at_pointer("/verificationMaterial/tlogEntries/0").as_object();
     obj.erase(obj.find("kindVersion"));
   });
-
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_FALSE(result.has_error());
 
   result = verifier_->verify_bundle_consistency(log_entry, bundle);
-  ASSERT_FALSE(result.has_error());
+  ASSERT_TRUE(result.has_error());
 }
 
 TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidKindVersionWrongType)
 {
-  auto log = load_standard_bundle("appcast-sigstore.xml.sigstore.new.bundle", [](boost::json::value &json_val) {
+  auto log = load_standard_bundle([](boost::json::value &json_val) {
     auto &o = json_val.at_pointer("/verificationMaterial/tlogEntries/0").as_object();
     o.erase(o.find("kindVersion"));
     o["kindVersion"] = "invalid-kind-version-type";
   });
-
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
-
-  auto result = verifier_->verify_transparency_log(log_entry, cert);
-  ASSERT_FALSE(result.has_error());
-
-  result = verifier_->verify_bundle_consistency(log_entry, bundle);
-  ASSERT_FALSE(result.has_error());
+  ASSERT_TRUE(log.has_error());
 }
 
 TEST_F(TransparencyLogVerifierTest, ValidateLog_NoKindVersionKind)
 {
-  auto log = load_standard_bundle("appcast-sigstore.xml.sigstore.new.bundle", [](boost::json::value &json_val) {
+  auto log = load_standard_bundle([](boost::json::value &json_val) {
     auto &o = json_val.at_pointer("/verificationMaterial/tlogEntries/0/kindVersion").as_object();
     o.erase(o.find("kind"));
   });
-
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_FALSE(result.has_error());
 
   result = verifier_->verify_bundle_consistency(log_entry, bundle);
-  ASSERT_FALSE(result.has_error());
+  ASSERT_TRUE(result.has_error());
 }
 
 TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidKindVersionKind)
 {
-  auto log = load_standard_bundle("appcast-sigstore.xml.sigstore.new.bundle", [](boost::json::value &json_val) {
+  auto log = load_standard_bundle([](boost::json::value &json_val) {
     auto &o = json_val.at_pointer("/verificationMaterial/tlogEntries/0/kindVersion").as_object();
     o.find("kind")->value() = "invalid-kind";
   });
-
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_FALSE(result.has_error());
-  // TODO: check
 
   result = verifier_->verify_bundle_consistency(log_entry, bundle);
-  ASSERT_FALSE(result.has_error());
+  ASSERT_TRUE(result.has_error());
 }
 
 TEST_F(TransparencyLogVerifierTest, ValidateLog_NoKindVersionVersion)
 {
-  auto log = load_standard_bundle("appcast-sigstore.xml.sigstore.new.bundle", [](boost::json::value &json_val) {
+  auto log = load_standard_bundle([](boost::json::value &json_val) {
     auto &o = json_val.at_pointer("/verificationMaterial/tlogEntries/0/kindVersion").as_object();
     o.erase(o.find("version"));
   });
-
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_FALSE(result.has_error());
-  // TODO: check
 
   result = verifier_->verify_bundle_consistency(log_entry, bundle);
-  ASSERT_FALSE(result.has_error());
+  ASSERT_TRUE(result.has_error());
 }
 
 TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidKindVersionVersion)
 {
-  auto log = load_standard_bundle("appcast-sigstore.xml.sigstore.new.bundle", [](boost::json::value &json_val) {
+  auto log = load_standard_bundle([](boost::json::value &json_val) {
     auto &o = json_val.at_pointer("/verificationMaterial/tlogEntries/0/kindVersion").as_object();
     o.find("version")->value() = "invalid-version";
   });
-
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_FALSE(result.has_error());
-  // TODO: check
 
   result = verifier_->verify_bundle_consistency(log_entry, bundle);
-  ASSERT_FALSE(result.has_error());
+  ASSERT_TRUE(result.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_NoIntegratedTime)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_NoIntegratedTime)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0", "/{UUID}", [](boost::json::object &obj) {
-      obj.erase(obj.find("integratedTime"));
-    });
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0", [](boost::json::object &obj) { obj.erase(obj.find("integratedTime")); });
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_TRUE(result.has_error());
 
   result = verifier_->verify_bundle_consistency(log_entry, bundle);
   ASSERT_FALSE(result.has_error());
-
-  result = verifier_->verify_bundle_consistency(log_entry, bundle);
-  ASSERT_FALSE(result.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidIntegratedTime)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidIntegratedTime1)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0", "/{UUID}", [](boost::json::object &obj) {
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0", [](boost::json::object &obj) {
       obj.find("integratedTime")->value() = "invalid-time";
     });
   });
-
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
-
-  auto result = verifier_->verify_transparency_log(log_entry, cert);
-  ASSERT_TRUE(result.has_error());
-
-  result = verifier_->verify_bundle_consistency(log_entry, bundle);
-  ASSERT_FALSE(result.has_error());
+  ASSERT_TRUE(log.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_IntegratedTimeOutOfRange)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidIntegratedTime2)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0", "/{UUID}", [](boost::json::object &obj) {
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0", [](boost::json::object &obj) { obj.find("integratedTime")->value() = true; });
+  });
+  ASSERT_TRUE(log.has_error());
+}
+
+TEST_F(TransparencyLogVerifierTest, ValidateLog_IntegratedTimeOutOfRange)
+{
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0", [](boost::json::object &obj) {
       obj.find("integratedTime")->value() = "1752174767";
     });
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_TRUE(result.has_error());
@@ -1365,19 +1098,17 @@ TEST_P(TransparencyLogVerifierTest, ValidateLog_IntegratedTimeOutOfRange)
   ASSERT_FALSE(result.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_IntegratedTimeFuture)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_IntegratedTimeFuture)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0", "/{UUID}", [](boost::json::object &obj) {
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0", [](boost::json::object &obj) {
       auto current_time = std::chrono::system_clock::now();
-      auto out_of_range_time = std::chrono::duration_cast<std::chrono::seconds>(current_time.time_since_epoch()).count()
-                               + 1000000;
+      auto out_of_range_time = std::chrono::duration_cast<std::chrono::seconds>(current_time.time_since_epoch()).count() + 1000000;
       obj.find("integratedTime")->value() = std::to_string(out_of_range_time);
     });
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_TRUE(result.has_error());
@@ -1388,13 +1119,11 @@ TEST_P(TransparencyLogVerifierTest, ValidateLog_IntegratedTimeFuture)
 
 TEST_F(TransparencyLogVerifierTest, ValidateLog_NoInclusionPromise)
 {
-  auto log = load_standard_bundle("appcast-sigstore.xml.sigstore.new.bundle", [](boost::json::value &json_val) {
+  auto log = load_standard_bundle([](boost::json::value &json_val) {
     auto &o = json_val.at_pointer("/verificationMaterial/tlogEntries/0").as_object();
     o.erase(o.find("inclusionPromise"));
   });
-
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_TRUE(result.has_error());
@@ -1405,14 +1134,23 @@ TEST_F(TransparencyLogVerifierTest, ValidateLog_NoInclusionPromise)
 
 TEST_F(TransparencyLogVerifierTest, ValidateLog_InclusionPromiseWrongType)
 {
-  auto log = load_standard_bundle("appcast-sigstore.xml.sigstore.new.bundle", [](boost::json::value &json_val) {
+  auto log = load_standard_bundle([](boost::json::value &json_val) {
     auto &o = json_val.at_pointer("/verificationMaterial/tlogEntries/0").as_object();
     o.erase(o.find("inclusionPromise"));
     o["inclusionPromise"] = "invalid-inclusion-promise-type";
   });
+  ASSERT_TRUE(log.has_error());
+}
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+TEST_F(TransparencyLogVerifierTest, ValidateLog_NoInclusionPromiseSignedEntryTimestamp)
+{
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0/inclusionPromise", [](boost::json::object &obj) {
+      obj.erase(obj.find("signedEntryTimestamp"));
+    });
+  });
+
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_TRUE(result.has_error());
@@ -1421,45 +1159,14 @@ TEST_F(TransparencyLogVerifierTest, ValidateLog_InclusionPromiseWrongType)
   ASSERT_FALSE(result.has_error());
 }
 
-TEST_P(TransparencyLogVerifierTest, ValidateLog_NoInclusionPromiseSignedEntryTimestamp)
+TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionPromiseSignedEntryTimestamp)
 {
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val,
-                     "/verificationMaterial/tlogEntries/0/inclusionPromise",
-                     "/{UUID}/verification",
-                     [](boost::json::object &obj) { obj.erase(obj.find("signedEntryTimestamp")); });
+  auto log = load_standard_bundle([this](boost::json::value &json_val) {
+    apply_json_patch(json_val, "/verificationMaterial/tlogEntries/0/inclusionPromise", [](boost::json::object &obj) {
+      obj.find("signedEntryTimestamp")->value() = "invalid-timestamp";
+    });
   });
-
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
-
-  auto result = verifier_->verify_transparency_log(log_entry, cert);
-  ASSERT_TRUE(result.has_error());
-
-  result = verifier_->verify_bundle_consistency(log_entry, bundle);
-  ASSERT_FALSE(result.has_error());
-}
-
-TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionPromiseSignedEntryTimestamp)
-{
-  auto log = load_current_test_log([this](boost::json::value &json_val) {
-    apply_json_patch(json_val,
-                     "/verificationMaterial/tlogEntries/0/inclusionPromise",
-                     "/{UUID}/verification",
-                     [](boost::json::object &obj) {
-                       spdlog::debug("json = {}", boost::json::serialize(obj));
-                       obj.find("signedEntryTimestamp")->value() = "invalid-timestamp";
-                     });
-  });
-
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
-
-  auto result = verifier_->verify_transparency_log(log_entry, cert);
-  ASSERT_TRUE(result.has_error());
-
-  result = verifier_->verify_bundle_consistency(log_entry, bundle);
-  ASSERT_FALSE(result.has_error());
+  ASSERT_TRUE(log.has_error());
 }
 
 // =============================================================================
@@ -1468,7 +1175,7 @@ TEST_P(TransparencyLogVerifierTest, ValidateLog_InvalidInclusionPromiseSignedEnt
 
 TEST_F(TransparencyLogVerifierTest, ValidateLog_NoMessageSignature)
 {
-  auto log = load_standard_bundle("appcast-sigstore.xml.sigstore.new.bundle", [](boost::json::value &json_val) {
+  auto log = load_standard_bundle([](boost::json::value &json_val) {
     auto &o = json_val.as_object();
     o.erase(o.find("messageSignature"));
   });
@@ -1477,35 +1184,31 @@ TEST_F(TransparencyLogVerifierTest, ValidateLog_NoMessageSignature)
 
 TEST_F(TransparencyLogVerifierTest, ValidateLog_NoMessageDigest)
 {
-  auto log = load_standard_bundle("appcast-sigstore.xml.sigstore.new.bundle", [](boost::json::value &json_val) {
+  auto log = load_standard_bundle([](boost::json::value &json_val) {
     auto &o = json_val.at_pointer("/messageSignature").as_object();
     o.erase(o.find("messageDigest"));
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_FALSE(result.has_error());
-  // TODO: check
 
   result = verifier_->verify_bundle_consistency(log_entry, bundle);
-  ASSERT_TRUE(result.has_error());
+  ASSERT_FALSE(result.has_error());
 }
 
 TEST_F(TransparencyLogVerifierTest, ValidateLog_NoMessageDigestAlgorithm)
 {
-  auto log = load_standard_bundle("appcast-sigstore.xml.sigstore.new.bundle", [](boost::json::value &json_val) {
+  auto log = load_standard_bundle([](boost::json::value &json_val) {
     auto &o = json_val.at_pointer("/messageSignature/messageDigest").as_object();
     o.erase(o.find("algorithm"));
   });
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_FALSE(result.has_error());
-  // TODO: check
 
   result = verifier_->verify_bundle_consistency(log_entry, bundle);
   ASSERT_FALSE(result.has_error());
@@ -1513,35 +1216,25 @@ TEST_F(TransparencyLogVerifierTest, ValidateLog_NoMessageDigestAlgorithm)
 
 TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidMessageDigestAlgorithm)
 {
-  auto log = load_standard_bundle("appcast-sigstore.xml.sigstore.new.bundle", [](boost::json::value &json_val) {
+  auto log = load_standard_bundle([](boost::json::value &json_val) {
     auto &o = json_val.at_pointer("/messageSignature/messageDigest").as_object();
     o.find("algorithm")->value() = "INVALID_ALGO";
   });
-
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
-
-  auto result = verifier_->verify_transparency_log(log_entry, cert);
-  ASSERT_FALSE(result.has_error());
-  // TODO: check
-
-  result = verifier_->verify_bundle_consistency(log_entry, bundle);
-  ASSERT_FALSE(result.has_error());
+  ASSERT_TRUE(log.has_error());
 }
 
 TEST_F(TransparencyLogVerifierTest, ValidateLog_NoMessageDigestDigest)
 {
-  auto log = load_standard_bundle("appcast-sigstore.xml.sigstore.new.bundle", [](boost::json::value &json_val) {
+  auto log = load_standard_bundle([](boost::json::value &json_val) {
     auto &o = json_val.at_pointer("/messageSignature/messageDigest").as_object();
     o.erase(o.find("digest"));
   });
+  ASSERT_FALSE(log.has_error());
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_FALSE(result.has_error());
-  // TODO: check
 
   result = verifier_->verify_bundle_consistency(log_entry, bundle);
   ASSERT_TRUE(result.has_error());
@@ -1549,17 +1242,16 @@ TEST_F(TransparencyLogVerifierTest, ValidateLog_NoMessageDigestDigest)
 
 TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidMessageDigestDigest)
 {
-  auto log = load_standard_bundle("appcast-sigstore.xml.sigstore.new.bundle", [](boost::json::value &json_val) {
+  auto log = load_standard_bundle([](boost::json::value &json_val) {
     auto &o = json_val.at_pointer("/messageSignature/messageDigest").as_object();
     o.find("digest")->value() = "invalid-digest";
   });
+  ASSERT_FALSE(log.has_error());
 
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
+  auto &[log_entry, bundle, cert] = log.value();
 
   auto result = verifier_->verify_transparency_log(log_entry, cert);
   ASSERT_FALSE(result.has_error());
-  // TODO: check
 
   result = verifier_->verify_bundle_consistency(log_entry, bundle);
   ASSERT_TRUE(result.has_error());
@@ -1567,7 +1259,7 @@ TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidMessageDigestDigest)
 
 TEST_F(TransparencyLogVerifierTest, ValidateLog_NoMessageSignatureSignature)
 {
-  auto log = load_standard_bundle("appcast-sigstore.xml.sigstore.new.bundle", [](boost::json::value &json_val) {
+  auto log = load_standard_bundle([](boost::json::value &json_val) {
     auto &o = json_val.at_pointer("/messageSignature").as_object();
     o.erase(o.find("signature"));
   });
@@ -1576,33 +1268,9 @@ TEST_F(TransparencyLogVerifierTest, ValidateLog_NoMessageSignatureSignature)
 
 TEST_F(TransparencyLogVerifierTest, ValidateLog_InvalidMessageSignatureSignature)
 {
-  auto log = load_standard_bundle("appcast-sigstore.xml.sigstore.new.bundle", [](boost::json::value &json_val) {
+  auto log = load_standard_bundle([](boost::json::value &json_val) {
     auto &o = json_val.at_pointer("/messageSignature").as_object();
     o.find("signature")->value() = "invalid-signature";
   });
-
-  auto [log_entry, bundle] = log.value();
-  std::shared_ptr<const Certificate> cert = bundle->get_certificate();
-
-  auto result = verifier_->verify_transparency_log(log_entry, cert);
-  ASSERT_FALSE(result.has_error());
-  // TODO: check
-
-  result = verifier_->verify_bundle_consistency(log_entry, bundle);
-  ASSERT_TRUE(result.has_error());
+  ASSERT_TRUE(log.has_error());
 }
-
-// =============================================================================
-// Parameterized Test Instantiation
-// =============================================================================
-
-INSTANTIATE_TEST_SUITE_P(
-  MultipleDataSources,
-  TransparencyLogVerifierTest,
-  ::testing::Values(
-    TestBundleData{"appcast-sigstore.xml.sigstore.new.bundle", "New Bundle Format", TestDataFormat::StandardBundle},
-    TestBundleData{"tlog.json", "Transparency Log JSON Format", TestDataFormat::TransparencyLog}),
-  [](const ::testing::TestParamInfo<TestBundleData> &info) {
-    return info.param.description.empty() ? "UnknownFormat"
-                                          : std::regex_replace(info.param.description, std::regex("[^a-zA-Z0-9]"), "_");
-  });

@@ -18,10 +18,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#pragma once
+#ifndef MERKLE_TREE_VALIDATOR_HH
+#define MERKLE_TREE_VALIDATOR_HH
 
 #include <string>
-#include <vector>
 #include <memory>
 #include <cstdint>
 #include <spdlog/logger.h>
@@ -29,6 +29,8 @@
 
 #include "RFC6962Hasher.hh"
 #include "utils/Logging.hh"
+
+#include <google/protobuf/repeated_ptr_field.h>
 
 namespace outcome = boost::outcome_v2;
 
@@ -45,14 +47,14 @@ namespace unfold::sigstore
     MerkleTreeValidator(MerkleTreeValidator &&) = delete;
     MerkleTreeValidator &operator=(MerkleTreeValidator &&) = delete;
 
-    outcome::std_result<bool> verify_inclusion_proof(const std::vector<std::string> &proof,
+    outcome::std_result<bool> verify_inclusion_proof(const ::google::protobuf::RepeatedPtrField<std::string> &proof,
                                                      int64_t leaf_index,
                                                      int64_t tree_size,
                                                      const std::string &leaf_hash,
                                                      const std::string &root_hash);
 
   private:
-    outcome::std_result<std::string> compute_merkle_root(const std::vector<std::string> &proof,
+    outcome::std_result<std::string> compute_merkle_root(const ::google::protobuf::RepeatedPtrField<std::string> &proof,
                                                          int64_t leaf_index,
                                                          int64_t tree_size,
                                                          const std::string &leaf_hash);
@@ -64,3 +66,5 @@ namespace unfold::sigstore
   };
 
 } // namespace unfold::sigstore
+
+#endif // MERKLE_TREE_VALIDATOR_HH

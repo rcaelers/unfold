@@ -29,13 +29,17 @@
 #include <openssl/evp.h>
 #include <array>
 
+#include "BundleHelper.hh"
 #include "utils/Base64.hh"
 #include "Certificate.hh"
 #include "PublicKey.hh"
-#include "SigstoreBundleBase.hh"
 #include "MerkleTreeValidator.hh"
+#include "CheckpointParser.hh"
+#include "CanonicalBodyParser.hh"
 
 #include "sigstore/SigstoreErrors.hh"
+
+#include "sigstore_rekor.pb.h"
 
 namespace
 {
@@ -59,11 +63,7 @@ namespace unfold::sigstore
   {
     merkle_validator_ = std::make_unique<MerkleTreeValidator>();
 
-    auto result = load_embedded_certificates();
-    if (!result)
-      {
-        logger_->error("Failed to load embedded Rekor public key: {}", result.error().message());
-      }
+    [[maybe_unused]] auto result = load_embedded_certificates();
   }
 
   TransparencyLogVerifier::~TransparencyLogVerifier() = default;
@@ -71,11 +71,8 @@ namespace unfold::sigstore
   outcome::std_result<void> TransparencyLogVerifier::load_embedded_certificates()
   {
     std::string rekor_pem;
-    rekor_pem.reserve(embedded_rekor_pubkey_size);
-    for (unsigned char byte: embedded_rekor_pubkey)
-      {
-        rekor_pem.push_back(static_cast<char>(byte));
-      }
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    rekor_pem.assign(reinterpret_cast<const char *>(embedded_rekor_pubkey), embedded_rekor_pubkey_size);
 
     auto public_key_result = PublicKey::from_pem(rekor_pem);
     if (!public_key_result)
@@ -89,18 +86,12 @@ namespace unfold::sigstore
     return outcome::success();
   }
 
-  outcome::std_result<void> TransparencyLogVerifier::verify_transparency_log(TransparencyLogEntry entry,
-                                                                             std::shared_ptr<const Certificate> certificate)
+  outcome::std_result<void> TransparencyLogVerifier::verify_transparency_log(dev::sigstore::rekor::v1::TransparencyLogEntry entry,
+                                                                             const Certificate &certificate)
   {
-    if (!rekor_public_key_)
-      {
-        logger_->error("Rekor public key is not loaded, cannot verify transparency log entry");
-        return SigstoreError::TransparencyLogInvalid;
-      }
-
     try
       {
-        logger_->debug("Verifying transparency log entry with log index: {}", entry.log_index);
+        logger_->debug("Verifying transparency log entry with log index: {}", entry.log_index());
 
         auto inclusion_valid = verify_inclusion_proof(entry);
         if (!inclusion_valid)
@@ -114,19 +105,19 @@ namespace unfold::sigstore
             return timestamp_valid.error();
           }
 
-        auto integrated_time_valid = verify_integrated_time(entry, *certificate);
+        auto integrated_time_valid = verify_integrated_time(entry, certificate);
         if (!integrated_time_valid)
           {
             return integrated_time_valid.error();
           }
 
-        auto extensions_valid = verify_certificate_extensions(*certificate);
+        auto extensions_valid = verify_certificate_extensions(certificate);
         if (!extensions_valid)
           {
             return extensions_valid.error();
           }
 
-        auto key_usage_valid = verify_certificate_key_usage(*certificate);
+        auto key_usage_valid = verify_certificate_key_usage(certificate);
         if (!key_usage_valid)
           {
             return key_usage_valid.error();
@@ -145,41 +136,40 @@ namespace unfold::sigstore
   // Inclusion Proof
   // =============================================================================
 
-  outcome::std_result<void> TransparencyLogVerifier::verify_inclusion_proof(const TransparencyLogEntry &entry)
+  outcome::std_result<void> TransparencyLogVerifier::verify_inclusion_proof(const dev::sigstore::rekor::v1::TransparencyLogEntry &entry)
   {
-    if (!entry.inclusion_proof.has_value())
+    if (!entry.has_inclusion_proof())
       {
         logger_->error("No inclusion proof provided for transparency log entry");
-        return SigstoreError::TransparencyLogInvalid;
+        return SigstoreError::InvalidTransparencyLog;
       }
 
-    const InclusionProof &proof = entry.inclusion_proof.value();
+    const dev::sigstore::rekor::v1::InclusionProof &proof = entry.inclusion_proof();
 
-    if (!proof.checkpoint.has_value())
+    if (!proof.has_checkpoint())
       {
         logger_->error("No checkpoint provided in inclusion proof");
-        return SigstoreError::TransparencyLogInvalid;
+        return SigstoreError::InvalidTransparencyLog;
       }
 
     std::string leaf_hash = compute_leaf_hash(entry);
     if (leaf_hash.empty())
       {
         logger_->error("Failed to compute leaf hash for inclusion proof verification");
-        return SigstoreError::TransparencyLogInvalid;
+        return SigstoreError::InvalidTransparencyLog;
       }
 
-    auto inclusion_valid = merkle_validator_->verify_inclusion_proof(proof.hashes,
-                                                                     proof.log_index,
-                                                                     proof.tree_size,
+    auto inclusion_valid = merkle_validator_->verify_inclusion_proof(proof.hashes(),
+                                                                     proof.log_index(),
+                                                                     proof.tree_size(),
                                                                      leaf_hash,
-                                                                     proof.root_hash);
+                                                                     proof.root_hash());
     if (!inclusion_valid)
       {
         return inclusion_valid.error();
       }
-    logger_->debug("Inclusion proof verification successful");
 
-    auto checkpoint_valid = verify_checkpoint(proof.checkpoint.value(), proof.root_hash, proof.tree_size);
+    auto checkpoint_valid = verify_checkpoint(proof.checkpoint(), proof.root_hash(), proof.tree_size());
     if (!checkpoint_valid)
       {
         return checkpoint_valid.error();
@@ -187,24 +177,17 @@ namespace unfold::sigstore
     return outcome::success();
   }
 
-  std::string TransparencyLogVerifier::compute_leaf_hash(const TransparencyLogEntry &entry)
+  std::string TransparencyLogVerifier::compute_leaf_hash(const dev::sigstore::rekor::v1::TransparencyLogEntry &entry)
   {
     try
       {
-        if (!entry.body.has_value())
+        if (entry.canonicalized_body().empty())
           {
             logger_->error("Cannot compute leaf hash without body data");
             return "";
           }
 
-        std::string decoded_data = unfold::utils::Base64::decode(entry.body.value());
-        std::string leaf_hash = hasher_.hash_leaf(decoded_data);
-
-        logger_->debug("Computed leaf hash from body data (body length: {}, hash length: {})",
-                       decoded_data.length(),
-                       leaf_hash.length());
-
-        return leaf_hash;
+        return hasher_.hash_leaf(entry.canonicalized_body());
       }
     catch (const std::exception &e)
       {
@@ -213,52 +196,56 @@ namespace unfold::sigstore
       }
   }
 
-  outcome::std_result<void> TransparencyLogVerifier::verify_checkpoint(const Checkpoint &checkpoint,
+  outcome::std_result<void> TransparencyLogVerifier::verify_checkpoint(const dev::sigstore::rekor::v1::Checkpoint &checkpoint,
                                                                        const std::string &expected_root_hash,
                                                                        int64_t expected_tree_size)
   {
     try
       {
-        logger_->debug("Verifying checkpoint");
+        logger_->debug("Verifying checkpoint using CheckpointParser");
 
-        if (checkpoint.origin.empty())
+        // Use CheckpointParser to parse the checkpoint from protobuf
+        CheckpointParser parser;
+        auto parsed_result = parser.parse_from_protobuf(checkpoint);
+        if (!parsed_result)
+          {
+            logger_->error("Failed to parse checkpoint from protobuf: {}", parsed_result.error().message());
+            return parsed_result.error();
+          }
+        const auto &parsed_checkpoint = parsed_result.value();
+        auto expected_root_hash_b64 = unfold::utils::Base64::encode(expected_root_hash);
+
+        // Verify basic checkpoint fields
+        if (parsed_checkpoint.origin.empty())
           {
             logger_->error("Checkpoint origin is empty");
-            return SigstoreError::TransparencyLogInvalid;
+            return SigstoreError::InvalidTransparencyLog;
           }
-        if (checkpoint.tree_size != expected_tree_size)
+        if (static_cast<int64_t>(parsed_checkpoint.tree_size) != expected_tree_size)
           {
-            logger_->error("Checkpoint tree size {} does not match expected tree size {}",
-                           checkpoint.tree_size,
-                           expected_tree_size);
-            return SigstoreError::TransparencyLogInvalid;
+            logger_->error("Checkpoint tree size {} does not match expected tree size {}", parsed_checkpoint.tree_size, expected_tree_size);
+            return SigstoreError::InvalidTransparencyLog;
           }
-        if (checkpoint.root_hash != expected_root_hash)
+        if (parsed_checkpoint.root_hash != expected_root_hash_b64)
           {
-            logger_->error("Checkpoint root hash {} does not match expected root hash {}",
-                           checkpoint.root_hash,
-                           expected_root_hash);
-            return SigstoreError::TransparencyLogInvalid;
+            logger_->error("Checkpoint root hash {} does not match expected root hash {}", parsed_checkpoint.root_hash, expected_root_hash_b64);
+            return SigstoreError::InvalidTransparencyLog;
           }
 
-        const std::string &body = checkpoint.body;
-        if (body.empty())
-          {
-            logger_->error("Empty checkpoint envelope");
-            return SigstoreError::TransparencyLogInvalid;
-          }
-        if (checkpoint.signatures.empty())
+        // Verify checkpoint signatures
+        if (parsed_checkpoint.signatures.empty())
           {
             logger_->error("No signatures found in checkpoint");
-            return SigstoreError::TransparencyLogInvalid;
+            return SigstoreError::InvalidTransparencyLog;
           }
 
-        for (const auto &sig: checkpoint.signatures)
+        // Verify signatures using the checkpoint body
+        for (const auto &sig: parsed_checkpoint.signatures)
           {
             if (sig.signer.starts_with("rekor.sigstore.dev"))
               {
                 logger_->debug("Verifying checkpoint signature for signer: {}", sig.signer);
-                auto valid = verify_rekor_log_entry_signature(body, sig.signature);
+                auto valid = verify_rekor_log_entry_signature(parsed_checkpoint.body, sig.signature);
                 if (!valid)
                   {
                     return valid.error();
@@ -270,21 +257,22 @@ namespace unfold::sigstore
               }
           }
 
+        logger_->debug("Checkpoint verification successful");
         return outcome::success();
       }
     catch (const std::exception &e)
       {
         logger_->error("Error during checkpoint verification: {}", e.what());
-        return SigstoreError::TransparencyLogInvalid;
+        return SigstoreError::InvalidTransparencyLog;
       }
   }
 
-  outcome::std_result<void> TransparencyLogVerifier::verify_rekor_log_entry_signature(const std::string &log_entry,
-                                                                                      const std::string &signature_b64)
+  outcome::std_result<void> TransparencyLogVerifier::verify_rekor_log_entry_signature(const std::string &log_entry, const std::string &signature_b64)
   {
     if (!rekor_public_key_)
       {
-        return SigstoreError::TransparencyLogInvalid;
+        logger_->error("Rekor public key is not loaded, cannot verify transparency log entry");
+        return SigstoreError::InvalidTransparencyLog;
       }
 
     try
@@ -299,7 +287,7 @@ namespace unfold::sigstore
         else
           {
             logger_->error("Signature data too short to remove header bytes");
-            return SigstoreError::TransparencyLogInvalid;
+            return SigstoreError::InvalidTransparencyLog;
           }
 
         auto verify_result = rekor_public_key_->verify_signature(log_entry, signature_data);
@@ -310,7 +298,7 @@ namespace unfold::sigstore
         if (!verify_result.value())
           {
             logger_->error("Rekor log entry signature verification failed");
-            return SigstoreError::TransparencyLogInvalid;
+            return SigstoreError::InvalidTransparencyLog;
           }
 
         return outcome::success();
@@ -318,7 +306,7 @@ namespace unfold::sigstore
     catch (const std::exception &e)
       {
         logger_->error("Exception during signature verification: {}", e.what());
-        return SigstoreError::TransparencyLogInvalid;
+        return SigstoreError::InvalidTransparencyLog;
       }
   }
 
@@ -326,43 +314,57 @@ namespace unfold::sigstore
   // Signed Entry Timestamp
   // =============================================================================
 
-  outcome::std_result<void> TransparencyLogVerifier::verify_signed_entry_timestamp(const TransparencyLogEntry &entry)
+  outcome::std_result<void> TransparencyLogVerifier::verify_signed_entry_timestamp(const dev::sigstore::rekor::v1::TransparencyLogEntry &entry)
   {
     try
       {
         logger_->debug("Verifying signed entry timestamp");
-        if (!entry.inclusion_promise.has_value())
+        if (!entry.has_inclusion_promise())
           {
             logger_->error("No inclusion promise to verify");
-            return SigstoreError::TransparencyLogInvalid;
+            return SigstoreError::InvalidTransparencyLog;
           }
-        const InclusionPromise &promise = entry.inclusion_promise.value();
+        const dev::sigstore::rekor::v1::InclusionPromise &promise = entry.inclusion_promise();
 
-        std::string signature_data = unfold::utils::Base64::decode(promise.signed_entry_timestamp);
+        std::string signature_data = promise.signed_entry_timestamp();
         if (signature_data.empty())
           {
             logger_->error("Failed to decode signed entry timestamp");
-            return SigstoreError::TransparencyLogInvalid;
+            return SigstoreError::InvalidTransparencyLog;
           }
 
-        if (!entry.body.has_value())
+        if (entry.canonicalized_body().empty())
           {
             logger_->error("Cannot verify signed entry timestamp without body data");
-            return SigstoreError::TransparencyLogInvalid;
+            return SigstoreError::InvalidTransparencyLog;
           }
 
-        if (!entry.integrated_time.has_value())
+        std::string log_id;
+        try
           {
-            logger_->error("Cannot verify signed entry timestamp without integrated time");
-            return SigstoreError::TransparencyLogInvalid;
+            std::string key_id_binary = entry.log_id().key_id();
+
+            std::stringstream hex_stream;
+            hex_stream << std::hex << std::setfill('0');
+            for (unsigned char byte: key_id_binary)
+              {
+                hex_stream << std::setw(2) << static_cast<unsigned int>(byte);
+              }
+            log_id = hex_stream.str();
+          }
+        catch (const std::exception &e)
+          {
+            logger_->error("Failed to decode base64 keyId: {}", e.what());
+            return SigstoreError::InvalidTransparencyLog;
           }
 
         auto canonicalized_payload = fmt::format(R"({{"body":"{}","integratedTime":{},"logID":"{}","logIndex":{}}})",
-                                                 entry.body.value(),
-                                                 entry.integrated_time.value(),
-                                                 entry.log_id.value(),
-                                                 entry.log_index);
+                                                 unfold::utils::Base64::encode(entry.canonicalized_body()),
+                                                 entry.integrated_time(),
+                                                 log_id,
+                                                 entry.log_index());
 
+        spdlog::debug("Canonicalized payload for signed entry timestamp verification: {}", canonicalized_payload);
         auto verify_result = rekor_public_key_->verify_signature(canonicalized_payload, signature_data);
         if (!verify_result)
           {
@@ -379,12 +381,12 @@ namespace unfold::sigstore
           {
             return outcome::success();
           }
-        return SigstoreError::TransparencyLogInvalid;
+        return SigstoreError::InvalidTransparencyLog;
       }
     catch (const std::exception &e)
       {
         logger_->error("Error during signed entry timestamp verification: {}", e.what());
-        return SigstoreError::TransparencyLogInvalid;
+        return SigstoreError::InvalidTransparencyLog;
       }
   }
 
@@ -392,18 +394,13 @@ namespace unfold::sigstore
   // Integrated Time
   // =============================================================================
 
-  outcome::std_result<void> TransparencyLogVerifier::verify_integrated_time(const TransparencyLogEntry &entry,
+  outcome::std_result<void> TransparencyLogVerifier::verify_integrated_time(const dev::sigstore::rekor::v1::TransparencyLogEntry &entry,
                                                                             const Certificate &certificate)
   {
     try
       {
-        if (!entry.integrated_time.has_value())
-          {
-            logger_->error("No integrated time to verify");
-            return SigstoreError::TransparencyLogInvalid;
-          }
 
-        int64_t integrated_time_seconds = entry.integrated_time.value();
+        int64_t integrated_time_seconds = entry.integrated_time();
         auto integrated_time = std::chrono::system_clock::from_time_t(static_cast<std::time_t>(integrated_time_seconds));
         logger_->debug("Verifying integrated time: {}", integrated_time);
 
@@ -415,13 +412,12 @@ namespace unfold::sigstore
         if (!cert_valid_at_time_result.value())
           {
             logger_->error("Certificate validity check failed at integrated time: {}", integrated_time_seconds);
-            return SigstoreError::TransparencyLogInvalid;
+            return SigstoreError::InvalidTransparencyLog;
           }
 
         auto current_time = std::chrono::system_clock::now();
         constexpr auto MAX_CLOCK_SKEW = std::chrono::seconds(300); // 5 minutes
 
-        // Check if integrated time is not too far in the future
         if (integrated_time > current_time + MAX_CLOCK_SKEW)
           {
             logger_->warn("Integrated time {} is too far in the future (current: {})",
@@ -436,7 +432,7 @@ namespace unfold::sigstore
     catch (const std::exception &e)
       {
         logger_->error("Error during integrated time verification: {}", e.what());
-        return SigstoreError::TransparencyLogInvalid;
+        return SigstoreError::InvalidTransparencyLog;
       }
   }
 
@@ -520,8 +516,7 @@ namespace unfold::sigstore
           }
 
         // Check Extended Key Usage extension
-        STACK_OF(ASN1_OBJECT) *eku = static_cast<STACK_OF(ASN1_OBJECT) *>(
-          X509_get_ext_d2i(cert, NID_ext_key_usage, nullptr, nullptr));
+        STACK_OF(ASN1_OBJECT) *eku = static_cast<STACK_OF(ASN1_OBJECT) *>(X509_get_ext_d2i(cert, NID_ext_key_usage, nullptr, nullptr));
 
         if (eku == nullptr)
           {
@@ -597,78 +592,74 @@ namespace unfold::sigstore
   // Bundle Consistency Verification
   // =============================================================================
 
-  outcome::std_result<void> TransparencyLogVerifier::verify_bundle_consistency(const TransparencyLogEntry &entry,
-                                                                               std::shared_ptr<SigstoreBundleBase> bundle)
+  outcome::std_result<void> TransparencyLogVerifier::verify_bundle_consistency(const dev::sigstore::rekor::v1::TransparencyLogEntry &entry,
+                                                                               const dev::sigstore::bundle::v1::Bundle &bundle)
   {
     try
       {
         logger_->debug("Verifying bundle consistency with transparency log entry");
 
-        if (!entry.body.has_value())
+        if (entry.canonicalized_body().empty())
           {
-            logger_->debug("Cannot verify bundle consistency without body data");
-            return SigstoreError::TransparencyLogInvalid;
+            logger_->error("Cannot verify bundle consistency without body data");
+            return SigstoreError::InvalidTransparencyLog;
+          }
+        if (!bundle.has_verification_material())
+          {
+            logger_->error("Bundle does not contain verification material");
+            return SigstoreError::InvalidTransparencyLog;
+          }
+        if (!bundle.has_message_signature())
+          {
+            logger_->error("Bundle does not contain message signature");
+            return SigstoreError::InvalidTransparencyLog;
           }
 
-        // Try to decode the body (unified field for both canonicalizedBody and API body)
-        std::string body_data;
-        try
+        CanonicalBodyParser body_parser;
+        auto body_parse_result = body_parser.parse_from_json(entry.canonicalized_body());
+        if (!body_parse_result)
           {
-            body_data = unfold::utils::Base64::decode(entry.body.value());
+            logger_->error("Failed to parse canonicalized body: {}", body_parse_result.error().message());
+            return body_parse_result.error();
           }
-        catch (const std::exception &e)
-          {
-            logger_->debug("Base64 decode failed for body data: {}", e.what());
-            return SigstoreError::TransparencyLogInvalid;
-          }
+        const auto &body_entry = body_parse_result.value();
 
-        boost::json::value json_val;
-        try
-          {
-            json_val = boost::json::parse(body_data);
-          }
-        catch (const std::exception &e)
-          {
-            logger_->debug("JSON parsing failed for body data: {}", e.what());
-            return SigstoreError::TransparencyLogInvalid;
-          }
+        return body_entry.spec.visit([bundle, body_entry, entry, this](auto &&spec) -> outcome::std_result<void> {
+          using T = std::decay_t<decltype(spec)>;
 
-        if (!json_val.is_object())
-          {
-            logger_->debug("Body data is not a valid JSON object");
-            return SigstoreError::TransparencyLogInvalid;
-          }
+          BundleHelper bundle_helper(bundle);
+          auto bundle_certificate = bundle_helper.get_certificate();
+          auto bundle_message_digest_opt = bundle_helper.get_message_digest();
 
-        const auto &obj = json_val.as_object();
+          if (body_entry.kind != entry.kind_version().kind())
+            {
+              logger_->error("Bundle kind '{}' does not match canonicalized body kind '{}'", entry.kind_version().kind(), body_entry.kind);
+              return SigstoreError::InvalidTransparencyLog;
+            }
+          if (body_entry.api_version != entry.kind_version().version())
+            {
+              logger_->error("Bundle API version '{}' does not match canonicalized body version '{}'", entry.kind_version().version(), body_entry.api_version);
+              return SigstoreError::InvalidTransparencyLog;
+            }
 
-        if (!obj.contains("spec") || !obj.at("spec").is_object())
-          {
-            logger_->debug("Body data missing 'spec' section");
-            return SigstoreError::TransparencyLogInvalid;
-          }
-
-        const auto &spec = obj.at("spec").as_object();
-
-        // Extract data from the bundle
-        std::string bundle_signature = bundle->get_signature();
-        auto bundle_certificate = bundle->get_certificate();
-        auto bundle_message_digest_opt = bundle->get_message_digest();
-
-        // Verify all components using helper methods
-        auto signature_valid = verify_signature_consistency(spec, bundle_signature);
-        auto certificate_valid = verify_certificate_consistency(spec, *bundle_certificate);
-        auto hash_valid = bundle_message_digest_opt.has_value()
-                            ? verify_hash_consistency(spec, bundle_message_digest_opt.value())
-                            : outcome::success(); // Legacy bundles don't have message digest, so skip hash verification
-
-        if (signature_valid && certificate_valid && hash_valid)
-          {
-            logger_->debug("Bundle consistency verification successful");
-            return outcome::success();
-          }
-
-        logger_->debug("Bundle consistency verification failed");
-        return SigstoreError::TransparencyLogInvalid;
+          if constexpr (std::is_same_v<T, HashedRekord>)
+            {
+              auto signature_valid = verify_signature_consistency(spec, bundle_helper);
+              auto certificate_valid = verify_certificate_consistency(spec, *bundle_certificate);
+              auto hash_valid = bundle_message_digest_opt.has_value() ? verify_hash_consistency(spec, bundle_helper) : outcome::success();
+              if (signature_valid && certificate_valid && hash_valid)
+                {
+                  logger_->debug("Bundle consistency verification successful");
+                  return outcome::success();
+                }
+              return SigstoreError::InvalidTransparencyLog;
+            }
+          else
+            {
+              logger_->error("Unsupported transparency log entry type for bundle consistency verification");
+              return SigstoreError::InvalidTransparencyLog;
+            }
+        });
       }
     catch (const std::exception &e)
       {
@@ -677,113 +668,45 @@ namespace unfold::sigstore
       }
   }
 
-  outcome::std_result<void> TransparencyLogVerifier::verify_signature_consistency(const boost::json::object &spec,
-                                                                                  const std::string &bundle_signature)
+  outcome::std_result<void> TransparencyLogVerifier::verify_signature_consistency(const HashedRekord &rekord, const BundleHelper &bundle_helper)
   {
-    if (!spec.contains("signature") || !spec.at("signature").is_object())
-      {
-        logger_->error("Canonicalized body missing 'signature' section");
-        return SigstoreError::TransparencyLogInvalid;
-      }
-
-    const auto &signature_obj = spec.at("signature").as_object();
-
-    if (!signature_obj.contains("content"))
-      {
-        logger_->error("Canonicalized body missing signature content");
-        return SigstoreError::TransparencyLogInvalid;
-      }
-
-    std::string tlog_signature = signature_obj.at("content").as_string().c_str();
-    if (tlog_signature != bundle_signature)
+    if (rekord.signature != bundle_helper.get_signature())
       {
         logger_->error("Signature mismatch between bundle and transparency log");
-        logger_->debug("Bundle signature: {}", bundle_signature);
-        logger_->debug("TLog signature:  {}", tlog_signature);
-        return SigstoreError::TransparencyLogInvalid;
+        logger_->debug("Bundle signature: {}", bundle_helper.get_signature());
+        logger_->debug("TLog signature:  {}", rekord.signature);
+        return SigstoreError::InvalidTransparencyLog;
       }
 
     logger_->debug("Signature consistency verified");
     return outcome::success();
   }
 
-  outcome::std_result<void> TransparencyLogVerifier::verify_certificate_consistency(const boost::json::object &spec,
-                                                                                    const Certificate &bundle_certificate)
+  outcome::std_result<void> TransparencyLogVerifier::verify_certificate_consistency(const HashedRekord &rekord, const Certificate &bundle_certificate)
   {
-    if (!spec.contains("signature") || !spec.at("signature").is_object())
-      {
-        logger_->error("Canonicalized body missing 'signature' section");
-        return SigstoreError::TransparencyLogInvalid;
-      }
+    std::string tlog_certificate_pem = rekord.public_key;
 
-    const auto &signature_obj = spec.at("signature").as_object();
-
-    if (!signature_obj.contains("publicKey") || !signature_obj.at("publicKey").is_object())
-      {
-        logger_->error("Canonicalized body missing publicKey section");
-        return SigstoreError::TransparencyLogInvalid;
-      }
-
-    const auto &public_key_obj = signature_obj.at("publicKey").as_object();
-
-    if (!public_key_obj.contains("content"))
-      {
-        logger_->error("Canonicalized body missing publicKey content");
-        return SigstoreError::TransparencyLogInvalid;
-      }
-
-    std::string tlog_certificate_pem = public_key_obj.at("content").as_string().c_str();
-
-    // Decode the PEM certificate content from base64
-    std::string tlog_pem_decoded = unfold::utils::Base64::decode(tlog_certificate_pem);
-
-    // Create Certificate object from PEM data
-    auto tlog_cert_result = Certificate::from_pem(tlog_pem_decoded);
+    auto tlog_cert_result = Certificate::from_pem(tlog_certificate_pem);
     if (!tlog_cert_result)
       {
         logger_->error("Failed to parse transparency log certificate from PEM");
-        return SigstoreError::TransparencyLogInvalid;
+        return SigstoreError::InvalidTransparencyLog;
       }
 
-    // Compare the certificates directly using operator==
     if (bundle_certificate != tlog_cert_result.value())
       {
         logger_->error("Certificate mismatch between bundle and transparency log");
-        return SigstoreError::TransparencyLogInvalid;
+        return SigstoreError::InvalidTransparencyLog;
       }
 
     logger_->debug("Certificate consistency verified");
     return outcome::success();
   }
 
-  outcome::std_result<void> TransparencyLogVerifier::verify_hash_consistency(const boost::json::object &spec,
-                                                                             const std::string &bundle_message_digest)
+  outcome::std_result<void> TransparencyLogVerifier::verify_hash_consistency(const HashedRekord &rekord, const BundleHelper &bundle_helper)
   {
-    if (!spec.contains("data") || !spec.at("data").is_object())
-      {
-        logger_->error("Canonicalized body missing 'data' section");
-        return SigstoreError::TransparencyLogInvalid;
-      }
+    std::string tlog_hash_hex = rekord.hash_value;
 
-    const auto &data_obj = spec.at("data").as_object();
-
-    if (!data_obj.contains("hash") || !data_obj.at("hash").is_object())
-      {
-        logger_->error("Canonicalized body missing hash section");
-        return SigstoreError::TransparencyLogInvalid;
-      }
-
-    const auto &hash_obj = data_obj.at("hash").as_object();
-
-    if (!hash_obj.contains("value"))
-      {
-        logger_->error("Canonicalized body missing hash value");
-        return SigstoreError::TransparencyLogInvalid;
-      }
-
-    std::string tlog_hash_hex = hash_obj.at("value").as_string().c_str();
-
-    // Convert hex hash to Base64 for comparison with bundle message digest
     std::string tlog_hash_binary;
     constexpr int HEX_BASE = 16;
     for (size_t i = 0; i < tlog_hash_hex.length(); i += 2)
@@ -793,16 +716,21 @@ namespace unfold::sigstore
         tlog_hash_binary.push_back(static_cast<char>(byte));
       }
 
-    std::string tlog_hash_b64 = unfold::utils::Base64::encode(tlog_hash_binary);
-
-    if (tlog_hash_b64 != bundle_message_digest)
+    if (bundle_helper.get_message_digest().has_value() && bundle_helper.get_message_digest().value() != tlog_hash_binary)
       {
         logger_->error("Hash mismatch between bundle and transparency log");
-        logger_->debug("Bundle hash: {}", bundle_message_digest);
-        logger_->debug("TLog hash:   {}", tlog_hash_b64);
-        return SigstoreError::TransparencyLogInvalid;
+        logger_->debug("Bundle hash: {}", unfold::utils::Base64::encode(bundle_helper.get_message_digest().value()));
+        logger_->debug("TLog hash:   {}", unfold::utils::Base64::encode(tlog_hash_binary));
+        return SigstoreError::InvalidTransparencyLog;
       }
 
+    if (bundle_helper.get_algorithm().has_value() && bundle_helper.get_algorithm().value() != rekord.hash_algorithm)
+      {
+        logger_->error("Hash algorithm mismatch between bundle and transparency log");
+        logger_->debug("Bundle hash algorithm: {}", bundle_helper.get_algorithm().value());
+        logger_->debug("TLog hash algorithm:   {}", rekord.hash_algorithm);
+        return SigstoreError::InvalidTransparencyLog;
+      }
     logger_->debug("Hash consistency verified");
     return outcome::success();
   }

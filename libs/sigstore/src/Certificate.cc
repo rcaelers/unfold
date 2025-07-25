@@ -44,7 +44,7 @@ namespace unfold::sigstore
       return timegm(tm);
 #endif
     }
-  }
+  } // namespace
 
   Certificate::Certificate(std::unique_ptr<X509, decltype(&X509_free)> x509_cert)
     : x509_cert_(std::move(x509_cert))
@@ -104,9 +104,25 @@ namespace unfold::sigstore
     return Certificate(std::unique_ptr<X509, decltype(&X509_free)>(cert, X509_free));
   }
 
+  outcome::std_result<Certificate> Certificate::from_cert(const ::dev::sigstore::common::v1::X509Certificate &x509_cert)
+  {
+    std::string cert_der = x509_cert.raw_bytes();
+    if (cert_der.empty())
+      {
+        return SigstoreError::InvalidCertificate;
+      }
+
+    return from_der(cert_der);
+  }
+
   bool Certificate::is_self_signed() const
   {
     X509 *cert = get();
+
+    if (cert == nullptr)
+      {
+        return false;
+      }
 
     X509_NAME *issuer = X509_get_issuer_name(cert);
     X509_NAME *subject = X509_get_subject_name(cert);
@@ -136,8 +152,12 @@ namespace unfold::sigstore
   {
     X509 *cert = get();
 
-    STACK_OF(GENERAL_NAME) *san_names = static_cast<STACK_OF(GENERAL_NAME) *>(
-      X509_get_ext_d2i(cert, NID_subject_alt_name, nullptr, nullptr));
+    if (cert == nullptr)
+      {
+        return "";
+      }
+
+    STACK_OF(GENERAL_NAME) *san_names = static_cast<STACK_OF(GENERAL_NAME) *>(X509_get_ext_d2i(cert, NID_subject_alt_name, nullptr, nullptr));
 
     if (san_names == nullptr)
       {
@@ -176,6 +196,11 @@ namespace unfold::sigstore
   std::string Certificate::oidc_issuer() const
   {
     X509 *cert = get();
+
+    if (cert == nullptr)
+      {
+        return "";
+      }
 
     ASN1_OBJECT *oid = OBJ_txt2obj("1.3.6.1.4.1.57264.1.1", 1);
     if (oid == nullptr)

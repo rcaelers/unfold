@@ -38,8 +38,7 @@ namespace unfold::sigstore
     size_t bytes_to_show = std::min(max_bytes, binary_data.size());
     for (size_t i = 0; i < bytes_to_show; ++i)
       {
-        ss << std::hex << std::setw(2) << std::setfill('0')
-           << static_cast<unsigned int>(static_cast<unsigned char>(binary_data[i]));
+        ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<unsigned int>(static_cast<unsigned char>(binary_data[i]));
       }
     if (binary_data.size() > bytes_to_show)
       {
@@ -50,7 +49,7 @@ namespace unfold::sigstore
 
   MerkleTreeValidator::MerkleTreeValidator() = default;
 
-  outcome::std_result<bool> MerkleTreeValidator::verify_inclusion_proof(const std::vector<std::string> &proof,
+  outcome::std_result<bool> MerkleTreeValidator::verify_inclusion_proof(const ::google::protobuf::RepeatedPtrField<std::string> &proof,
                                                                         int64_t leaf_index,
                                                                         int64_t tree_size,
                                                                         const std::string &leaf_hash,
@@ -66,7 +65,7 @@ namespace unfold::sigstore
             logger_->error("Failed to compute Merkle root hash: {}", computed_root.error().message());
             return computed_root.error();
           }
-        std::string expected_root = unfold::utils::Base64::decode(root_hash);
+        std::string expected_root = root_hash;
 
         logger_->debug("Merkle tree computation:");
         logger_->debug("  Using proof log index: {}", leaf_index);
@@ -90,11 +89,11 @@ namespace unfold::sigstore
     catch (const std::exception &e)
       {
         logger_->error("Error during inclusion proof verification: {}", e.what());
-        return SigstoreError::TransparencyLogInvalid;
+        return SigstoreError::InvalidTransparencyLog;
       }
   }
 
-  outcome::std_result<std::string> MerkleTreeValidator::compute_merkle_root(const std::vector<std::string> &proof,
+  outcome::std_result<std::string> MerkleTreeValidator::compute_merkle_root(const ::google::protobuf::RepeatedPtrField<std::string> &proof,
                                                                             int64_t leaf_index,
                                                                             int64_t tree_size,
                                                                             const std::string &leaf_hash)
@@ -102,15 +101,15 @@ namespace unfold::sigstore
     if (tree_size == 0 || leaf_index >= tree_size)
       {
         logger_->error("Leaf index {} is >= tree size {}", leaf_index, tree_size);
-        return SigstoreError::TransparencyLogInvalid;
+        return SigstoreError::InvalidTransparencyLog;
       }
 
     auto [inner, border] = split_inclusion_proof(leaf_index, tree_size);
 
-    if (inner + border != static_cast<int>(proof.size()))
+    if (inner + border != proof.size())
       {
         logger_->error("Inclusion proof size mismatch: expected {} hashes, got {}", inner + border, proof.size());
-        return SigstoreError::TransparencyLogInvalid;
+        return SigstoreError::InvalidTransparencyLog;
       }
 
     logger_->debug("Starting merkle computation with leaf_index={}, tree_size={}, leaf_hash={} inner={}, border={}",
@@ -121,9 +120,10 @@ namespace unfold::sigstore
                    border);
 
     std::string current_hash = leaf_hash;
-    for (size_t i = 0; i < proof.size(); ++i)
+    for (int i = 0; i < proof.size(); ++i)
       {
-        std::string sibling_hash = unfold::utils::Base64::decode(proof[i]);
+        logger_->debug("Step {}: proof={}", i, proof[i]);
+        std::string sibling_hash = proof[i]; // unfold::utils::Base64::decode(proof[i]);
         logger_->debug("Step {}: leaf_index={}, sibling_hash={}", i, leaf_index, binary_to_hex_preview(sibling_hash));
 
         if (leaf_index % 2 == 0 && i < inner)

@@ -56,7 +56,8 @@ namespace unfold::crypto
     InvalidKeyInfo,
     VerificationFailed,
     LibraryError,
-    InitializationFailed
+    InitializationFailed,
+    NotSupported
   };
 
   class XMLDSigErrorCategory : public std::error_category
@@ -87,6 +88,8 @@ namespace unfold::crypto
           return "Library error";
         case XMLDSigError::InitializationFailed:
           return "Initialization failed";
+        case XMLDSigError::NotSupported:
+          return "XMLSec support not compiled";
         default:
           return "Unknown error";
         }

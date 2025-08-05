@@ -123,10 +123,18 @@ FetchContent_MakeAvailable(semver)
 find_package(LibXml2 QUIET)
 
 #----------------------------------------------------------------------------------------------------
-# xmlsec
+# XMLSec (optional)
 
-pkg_check_modules(XMLSEC1 REQUIRED IMPORTED_TARGET xmlsec1>=1.3.7)
-pkg_check_modules(XMLSEC1_OPENSSL REQUIRED IMPORTED_TARGET xmlsec1-openssl>=1.3.7)
+option(UNFOLD_WITH_XMLSEC "Enable XMLSec support for XML digital signature verification" ON)
+
+if(UNFOLD_WITH_XMLSEC)
+  pkg_check_modules(XMLSEC1 REQUIRED IMPORTED_TARGET xmlsec1>=1.3.7)
+  pkg_check_modules(XMLSEC1_OPENSSL REQUIRED IMPORTED_TARGET xmlsec1-openssl>=1.3.7)
+  add_compile_definitions(UNFOLD_WITH_XMLSEC)
+  message(STATUS "XMLSec support enabled")
+else()
+  message(STATUS "XMLSec support disabled")
+endif()
 
 #----------------------------------------------------------------------------------------------------
 # Google test/mock

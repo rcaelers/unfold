@@ -489,4 +489,95 @@ namespace unfold::crypto
     return Impl::has_signature(xml_content);
   }
 
+#else // !UNFOLD_WITH_XMLSEC
+
+// Stub implementation when XMLSec is not available
+class XMLDSigVerifier::Impl
+{
+public:
+  Impl() = default;
+
+  outcome::std_result<void> initialize()
+  {
+    return outcome::failure(make_error_code(XMLDSigError::NotSupported));
+  }
+
+  outcome::std_result<void> add_trusted_public_key(const std::string &, const std::string &)
+  {
+    return outcome::failure(make_error_code(XMLDSigError::NotSupported));
+  }
+
+  outcome::std_result<void> clear_trusted_keys()
+  {
+    return outcome::failure(make_error_code(XMLDSigError::NotSupported));
+  }
+
+  outcome::std_result<XMLDSigInfo> verify(const std::string &)
+  {
+    return outcome::failure(make_error_code(XMLDSigError::NotSupported));
+  }
+
+  outcome::std_result<XMLDSigInfo> get_signature_info(const std::string &)
+  {
+    return outcome::failure(make_error_code(XMLDSigError::NotSupported));
+  }
+
+  static bool has_signature(const std::string &xml_content)
+  {
+    // Basic check for signature element without XMLSec
+    return xml_content.find("Signature") != std::string::npos && xml_content.find("http://www.w3.org/2000/09/xmldsig#") != std::string::npos;
+  }
+
+private:
+  std::shared_ptr<spdlog::logger> logger_{unfold::utils::Logging::create("unfold:xmldsig")};
+};
+
+outcome::std_result<XMLDSigVerifier>
+XMLDSigVerifier::create()
+{
+  return outcome::failure(make_error_code(XMLDSigError::NotSupported));
+}
+
+XMLDSigVerifier::XMLDSigVerifier()
+  : pimpl(std::make_unique<Impl>())
+{
+}
+
+XMLDSigVerifier::~XMLDSigVerifier() = default;
+
+XMLDSigVerifier::XMLDSigVerifier(XMLDSigVerifier &&) noexcept = default;
+XMLDSigVerifier &XMLDSigVerifier::operator=(XMLDSigVerifier &&) noexcept = default;
+
+outcome::std_result<void>
+XMLDSigVerifier::add_trusted_public_key(const std::string &, const std::string &)
+{
+  return outcome::failure(make_error_code(XMLDSigError::NotSupported));
+}
+
+outcome::std_result<void>
+XMLDSigVerifier::clear_trusted_keys()
+{
+  return outcome::failure(make_error_code(XMLDSigError::NotSupported));
+}
+
+outcome::std_result<XMLDSigInfo>
+XMLDSigVerifier::verify(const std::string &)
+{
+  return outcome::failure(make_error_code(XMLDSigError::NotSupported));
+}
+
+outcome::std_result<XMLDSigInfo>
+XMLDSigVerifier::get_signature_info(const std::string &)
+{
+  return outcome::failure(make_error_code(XMLDSigError::NotSupported));
+}
+
+bool
+XMLDSigVerifier::has_signature(const std::string &xml_content)
+{
+  return Impl::has_signature(xml_content);
+}
+
+#endif // UNFOLD_WITH_XMLSEC
+
 } // namespace unfold::crypto

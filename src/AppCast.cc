@@ -28,8 +28,10 @@
 
 #include "semver.hpp"
 #include "utils/Base64.hh"
-#include "crypto/XMLDSigVerifier.hh"
 
+#ifdef UNFOLD_WITH_XMLSEC
+#  include "crypto/XMLDSigVerifier.hh"
+#endif
 namespace
 {
   constexpr size_t MAX_FILENAME_LENGTH = 4096;
@@ -56,6 +58,7 @@ namespace
 AppcastReader::AppcastReader(AppcastReader::filter_func_t filter)
   : filter(filter)
 {
+#ifdef UNFOLD_WITH_XMLSEC
   auto verifier_result = unfold::crypto::XMLDSigVerifier::create();
   if (verifier_result)
     {
@@ -65,7 +68,10 @@ AppcastReader::AppcastReader(AppcastReader::filter_func_t filter)
     {
       logger->error("Failed to create XMLDSig verifier: {}", verifier_result.error().message());
     }
+#endif
 }
+
+#ifdef UNFOLD_WITH_XMLSEC
 
 outcome::std_result<void>
 AppcastReader::add_xmldsig_public_key(const std::string &key_name, const std::string &public_key_pem)
@@ -108,6 +114,7 @@ AppcastReader::set_xmldsig_verification_enabled(bool enabled)
   xmldsig_verification_enabled = enabled;
   logger->info("XMLDSig verification {}", enabled ? "enabled" : "disabled");
 }
+#endif
 
 std::shared_ptr<Appcast>
 AppcastReader::load_from_string(const std::string &str)
@@ -567,8 +574,7 @@ AppcastReader::validate_individual_intervals(CanaryRolloutIntervals &intervals, 
 
       if (!is_valid_days(static_cast<int>(days)))
         {
-          throw std::runtime_error("invalid days value in " + std::string(is_canary ? "canary " : "")
-                                   + "rollout interval: " + std::to_string(days));
+          throw std::runtime_error("invalid days value in " + std::string(is_canary ? "canary " : "") + "rollout interval: " + std::to_string(days));
         }
 
       if (!is_valid_percentage(percentage))
@@ -830,6 +836,7 @@ AppcastReader::sanitize_string(std::string &str, size_t max_length)
 void
 AppcastReader::verify_xml_signature(const std::string &xml_content)
 {
+#ifdef UNFOLD_WITH_XMLSEC
   if (!xmldsig_verifier)
     {
       throw std::runtime_error("XMLDSig verifier not available - cannot verify signature");
@@ -859,4 +866,5 @@ AppcastReader::verify_xml_signature(const std::string &xml_content)
     {
       logger->info("Signature contains X.509 certificate");
     }
+#endif
 }

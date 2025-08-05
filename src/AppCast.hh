@@ -31,7 +31,10 @@
 #include <boost/outcome/std_result.hpp>
 
 #include "utils/Logging.hh"
-#include "crypto/XMLDSigVerifier.hh"
+
+#ifdef UNFOLD_WITH_XMLSEC
+#  include "crypto/XMLDSigVerifier.hh"
+#endif
 
 namespace outcome = boost::outcome_v2;
 
@@ -82,9 +85,11 @@ public:
   using filter_func_t = std::function<bool(std::shared_ptr<AppcastItem>)>;
   explicit AppcastReader(filter_func_t filter);
 
+#ifdef UNFOLD_WITH_XMLSEC
   outcome::std_result<void> add_xmldsig_public_key(const std::string &key_name, const std::string &public_key_pem);
   void clear_xmldsig_trusted_keys();
   void set_xmldsig_verification_enabled(bool enabled);
+#endif
 
   std::shared_ptr<Appcast> load_from_file(const std::string &filename);
   std::shared_ptr<Appcast> load_from_string(const std::string &str);
@@ -125,7 +130,9 @@ private:
 private:
   std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:appcast")};
   filter_func_t filter;
+#ifdef UNFOLD_WITH_XMLSEC
   std::unique_ptr<unfold::crypto::XMLDSigVerifier> xmldsig_verifier;
+#endif
   bool xmldsig_verification_enabled = false;
 };
 

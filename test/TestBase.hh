@@ -21,9 +21,6 @@
 #ifndef TESTBASE_HH
 #define TESTBASE_HH
 
-#include <memory>
-
-#include "utils/Logging.hh"
 #include "utils/Enum.hh"
 #include "unfold/Unfold.hh"
 
@@ -34,10 +31,9 @@ struct unfold::utils::enum_traits<unfold::UpdateStage>
   static constexpr auto max = unfold::UpdateStage::RunInstaller;
   static constexpr auto linear = true;
 
-  static constexpr std::array<std::pair<std::string_view, unfold::UpdateStage>, 3> names{
-    {{"Download", unfold::UpdateStage::DownloadInstaller},
-     {"Run", unfold::UpdateStage::RunInstaller},
-     {"Verify", unfold::UpdateStage::VerifyInstaller}}};
+  static constexpr std::array<std::pair<std::string_view, unfold::UpdateStage>, 3> names{{{"Download", unfold::UpdateStage::DownloadInstaller},
+                                                                                          {"Run", unfold::UpdateStage::RunInstaller},
+                                                                                          {"Verify", unfold::UpdateStage::VerifyInstaller}}};
 };
 
 namespace unfold

@@ -25,13 +25,13 @@
 
 #include <libxml/parser.h>
 #include <libxml/tree.h>
+
 #include <xmlsec/xmlsec.h>
 #include <xmlsec/xmltree.h>
 #include <xmlsec/xmldsig.h>
 #include <xmlsec/errors.h>
 #include <xmlsec/openssl/app.h>
 #include <xmlsec/openssl/crypto.h>
-
 namespace
 {
   constexpr size_t MAX_CERTIFICATE_SIZE = 10 * 1024; // 10KB max for certificate
@@ -315,8 +315,7 @@ namespace unfold::crypto
     static bool has_signature(const std::string &xml_content)
     {
       // Look for any Signature element with XMLDSig namespace declaration in the same element
-      std::regex signature_regex(R"(<[^:]*:?Signature[^>]*xmlns[^>]*http://www\.w3\.org/2000/09/xmldsig)",
-                                 std::regex_constants::icase);
+      std::regex signature_regex(R"(<[^:]*:?Signature[^>]*xmlns[^>]*http://www\.w3\.org/2000/09/xmldsig)", std::regex_constants::icase);
       if (std::regex_search(xml_content, signature_regex))
         {
           return true;
@@ -465,8 +464,7 @@ namespace unfold::crypto
   XMLDSigVerifier::XMLDSigVerifier(XMLDSigVerifier &&) noexcept = default;
   XMLDSigVerifier &XMLDSigVerifier::operator=(XMLDSigVerifier &&) noexcept = default;
 
-  outcome::std_result<void> XMLDSigVerifier::add_trusted_public_key(const std::string &key_name,
-                                                                    const std::string &public_key_pem)
+  outcome::std_result<void> XMLDSigVerifier::add_trusted_public_key(const std::string &key_name, const std::string &public_key_pem)
   {
     return pimpl->add_trusted_public_key(key_name, public_key_pem);
   }

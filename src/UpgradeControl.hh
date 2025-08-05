@@ -24,34 +24,28 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <filesystem>
 #include <chrono>
 
-#include "AppCast.hh"
-#include "SettingsStorage.hh"
 #include "unfold/Unfold.hh"
 
 #include "http/HttpClient.hh"
-#include "utils/DateUtils.hh"
 #include "utils/Logging.hh"
 #include "unfold/coro/IOContext.hh"
 #include "utils/OneShotTimer.hh"
 #include "utils/TimeSource.hh"
+#include "crypto/SignatureVerifier.hh"
 
 #include "Platform.hh"
-#include "UpgradeInstaller.hh"
-#include "UpgradeChecker.hh"
 #include "Settings.hh"
+#include "SettingsStorage.hh"
 #include "Hooks.hh"
-
-#include "semver.hpp"
+#include "Installer.hh"
+#include "Checker.hh"
 
 class UpgradeControl : public unfold::Unfold
 {
 public:
-  UpgradeControl(std::shared_ptr<Platform> platform,
-                 std::shared_ptr<unfold::utils::TimeSource> time_source,
-                 unfold::coro::IOContext &io_context);
+  UpgradeControl(std::shared_ptr<Platform> platform, std::shared_ptr<unfold::utils::TimeSource> time_source, unfold::coro::IOContext &io_context);
 
   UpgradeControl(std::shared_ptr<Platform> platform,
                  std::shared_ptr<unfold::http::HttpClient> http,
@@ -66,9 +60,11 @@ public:
   outcome::std_result<void> set_current_version(const std::string &version) override;
   outcome::std_result<void> set_allowed_channels(const std::vector<std::string> &channels) override;
   outcome::std_result<void> set_signature_verification_key(const std::string &key) override;
+#ifdef UNFOLD_WITH_XMLSEC
   outcome::std_result<void> add_xmldsig_public_key(const std::string &key_name, const std::string &public_key_pem) override;
   void clear_xmldsig_trusted_keys() override;
   void set_xmldsig_verification_enabled(bool enabled) override;
+#endif
   outcome::std_result<void> set_priority(int prio) override;
   void unset_priority() override;
   void set_certificate(const std::string &cert) override;

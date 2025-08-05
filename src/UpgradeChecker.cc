@@ -291,6 +291,8 @@ UpgradeChecker::build_update_info(std::shared_ptr<Appcast> appcast)
     }
 }
 
+#ifdef UNFOLD_WITH_XMLSEC
+
 outcome::std_result<void>
 UpgradeChecker::add_xmldsig_public_key(const std::string &key_name, const std::string &public_key_pem)
 {
@@ -308,3 +310,5 @@ UpgradeChecker::set_xmldsig_verification_enabled(bool enabled)
 {
   appcast_reader->set_xmldsig_verification_enabled(enabled);
 }
+
+#endif

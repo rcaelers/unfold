@@ -135,6 +135,8 @@ UpgradeControl::set_signature_verification_key(const std::string &key)
   return outcome::success();
 }
 
+#ifdef UNFOLD_WITH_XMLSEC
+
 outcome::std_result<void>
 UpgradeControl::add_xmldsig_public_key(const std::string &key_name, const std::string &public_key_pem)
 {
@@ -152,6 +154,8 @@ UpgradeControl::set_xmldsig_verification_enabled(bool enabled)
 {
   checker->set_xmldsig_verification_enabled(enabled);
 }
+
+#endif
 
 void
 UpgradeControl::set_certificate(const std::string &cert)

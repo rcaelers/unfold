@@ -21,14 +21,16 @@
 #ifndef XMLDSIG_VERIFIER_HH
 #define XMLDSIG_VERIFIER_HH
 
-#include <string>
-#include <memory>
-#include <vector>
-#include <system_error>
+#ifdef UNFOLD_WITH_XMLSEC
 
-#include <boost/outcome/std_result.hpp>
+#  include <string>
+#  include <memory>
+#  include <vector>
+#  include <system_error>
 
-#include "utils/Logging.hh"
+#  include <boost/outcome/std_result.hpp>
+
+#  include "utils/Logging.hh"
 
 namespace outcome = boost::outcome_v2;
 
@@ -56,7 +58,8 @@ namespace unfold::crypto
     InvalidKeyInfo,
     VerificationFailed,
     LibraryError,
-    InitializationFailed
+    InitializationFailed,
+    NotSupported
   };
 
   class XMLDSigErrorCategory : public std::error_category
@@ -87,6 +90,8 @@ namespace unfold::crypto
           return "Library error";
         case XMLDSigError::InitializationFailed:
           return "Initialization failed";
+        case XMLDSigError::NotSupported:
+          return "XMLSec support not compiled";
         default:
           return "Unknown error";
         }
@@ -134,4 +139,6 @@ namespace std
   };
 } // namespace std
 
+#endif // UNFOLD_WITH_XMLSEC
+       //
 #endif // XMLDSIG_VERIFIER_HH

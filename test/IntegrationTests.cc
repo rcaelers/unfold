@@ -18,12 +18,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <cmath>
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 
 #include <fstream>
 #include <memory>
+#include <filesystem>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/outcome/success_failure.hpp>
@@ -36,7 +36,7 @@
 #include "http/HttpServer.hh"
 #include "utils/Base64.hh"
 
-#include "TestBase.hh"
+#include "TestBase.hh" // IWYU pragma: keep
 #include "TestPlatform.hh"
 #include "UpgradeControl.hh"
 #include "TimeSourceMock.hh"
@@ -132,20 +132,14 @@ namespace
       }
 
     std::size_t signature_len{0};
-    if (EVP_DigestSign(ctx.get(), nullptr, &signature_len, reinterpret_cast<const unsigned char *>(msg.data()), msg.length())
-        != 1)
+    if (EVP_DigestSign(ctx.get(), nullptr, &signature_len, reinterpret_cast<const unsigned char *>(msg.data()), msg.length()) != 1)
       {
         spdlog::error("Failed to get signature length");
         return "";
       }
 
     std::vector<unsigned char> signature_buffer(signature_len);
-    if (EVP_DigestSign(ctx.get(),
-                       signature_buffer.data(),
-                       &signature_len,
-                       reinterpret_cast<const unsigned char *>(msg.data()),
-                       msg.length())
-        != 1)
+    if (EVP_DigestSign(ctx.get(), signature_buffer.data(), &signature_len, reinterpret_cast<const unsigned char *>(msg.data()), msg.length()) != 1)
       {
         spdlog::error("Failed to sign message");
         return "";
@@ -1411,9 +1405,7 @@ TEST_F(IntegrationTest, PeriodicCheckCanaryLowPrio)
   for (auto days = 0; days < 10; days++)
     {
       RecordProperty("days", days);
-      EXPECT_CALL(*time_source, now())
-        .Times(3)
-        .WillRepeatedly(Return(pub_date + (days + 2) * std::chrono::days{1} - std::chrono::hours{1}));
+      EXPECT_CALL(*time_source, now()).Times(3).WillRepeatedly(Return(pub_date + (days + 2) * std::chrono::days{1} - std::chrono::hours{1}));
 
       boost::asio::io_context ioc;
       boost::asio::co_spawn(
@@ -1487,9 +1479,7 @@ TEST_F(IntegrationTest, PeriodicCheckCanaryHighPrio)
   for (auto days = 0; days < 10; days++)
     {
       RecordProperty("days", days);
-      EXPECT_CALL(*time_source, now())
-        .Times(3)
-        .WillRepeatedly(Return(pub_date + (days - 1) * std::chrono::days{1} - std::chrono::hours{1}));
+      EXPECT_CALL(*time_source, now()).Times(3).WillRepeatedly(Return(pub_date + (days - 1) * std::chrono::days{1} - std::chrono::hours{1}));
 
       boost::asio::io_context ioc;
       boost::asio::co_spawn(

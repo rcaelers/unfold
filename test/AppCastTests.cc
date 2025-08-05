@@ -20,7 +20,10 @@
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
-#include <fstream>
+
+#ifdef UNFOLD_WITH_XMLSEC
+#  include <fstream>
+#endif
 
 #include <spdlog/spdlog.h>
 
@@ -252,8 +255,7 @@ TEST(AppCastTest, SignatureValidation)
   EXPECT_NE(appcast, nullptr);
   EXPECT_EQ(appcast->items.size(), 1);
   EXPECT_NE(appcast->items[0]->enclosure, nullptr);
-  EXPECT_EQ(appcast->items[0]->enclosure->signature,
-            "aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==");
+  EXPECT_EQ(appcast->items[0]->enclosure->signature, "aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==");
 
   // Test 2: Invalid short signature should fail
   std::string invalid_short_signature =
@@ -1228,6 +1230,8 @@ TEST(AppCastTest, MissingEnclosureForItem)
   EXPECT_EQ(appcast->items.size(), 0); // Item is filtered out due to missing enclosure
 }
 
+#ifdef UNFOLD_WITH_XMLSEC
+
 TEST(AppCastTest, XMLDSigVerificationDisabledByDefault)
 {
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
@@ -1604,3 +1608,5 @@ TEST(AppCastTest, XMLDSigRealSignedFileInfo)
         }
     }
 }
+
+#endif

@@ -371,6 +371,8 @@ TEST(Installer, FailedToInstall)
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
     .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+  EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::filesystem::path>()))
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
 
   EXPECT_CALL(*signature_verifier, set_key(_, _)).Times(0);
 
@@ -423,7 +425,8 @@ TEST(Installer, SigstoreVerificationFailed)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return unfold::UnfoldErrc::InstallerVerificationFailed; }));
+    .WillRepeatedly(
+      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return unfold::UnfoldErrc::InstallerVerificationFailed; }));
 
   EXPECT_CALL(*signature_verifier, set_key(_, _)).Times(0);
 
@@ -533,6 +536,8 @@ TEST_P(InstallerTest, InstallerStartedInstaller)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+  EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::filesystem::path>()))
     .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
 
   std::filesystem::remove("installer.log");
@@ -649,6 +654,8 @@ TEST(Installer, StartedInstallerWithArgs)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+  EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::filesystem::path>()))
     .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
 
   std::filesystem::remove("installer.log");
@@ -858,4 +865,3 @@ TEST(Installer, ValidationCallbackReject)
     boost::asio::detached);
   ioc.run();
 }
-

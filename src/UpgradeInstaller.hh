@@ -25,6 +25,7 @@
 #include <string>
 #include <filesystem>
 
+#include "SigstoreVerifier.hh"
 #include "http/HttpClient.hh"
 #include "crypto/SignatureVerifier.hh"
 #include "utils/Logging.hh"
@@ -40,7 +41,8 @@ class UpgradeInstaller : public Installer
 public:
   explicit UpgradeInstaller(std::shared_ptr<Platform> platform,
                             std::shared_ptr<unfold::http::HttpClient> http,
-                            std::shared_ptr<unfold::crypto::SignatureVerifier> verifier,
+                            std::shared_ptr<unfold::crypto::SignatureVerifier> signature_verifier,
+                            std::shared_ptr<SigstoreVerifier> sigstore_verifier,
                             std::shared_ptr<Hooks> hooks);
 
   void set_download_progress_callback(unfold::Unfold::download_progress_callback_t callback) override;
@@ -59,7 +61,8 @@ private:
 private:
   std::shared_ptr<Platform> platform;
   std::shared_ptr<unfold::http::HttpClient> http;
-  std::shared_ptr<unfold::crypto::SignatureVerifier> verifier;
+  std::shared_ptr<unfold::crypto::SignatureVerifier> signature_verifier;
+  std::shared_ptr<SigstoreVerifier> sigstore_verifier;
   std::shared_ptr<Hooks> hooks;
 
   std::shared_ptr<AppcastItem> item;

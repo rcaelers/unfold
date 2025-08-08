@@ -25,21 +25,23 @@
 #include <string>
 #include <vector>
 
-#include "unfold/Unfold.hh"
-#include "http/HttpClient.hh"
-#include "utils/Logging.hh"
-
-#include "semver.hpp"
-
 #include "AppCast.hh"
-#include "Platform.hh"
-#include "Hooks.hh"
 #include "Checker.hh"
+#include "Hooks.hh"
+#include "Platform.hh"
+#include "SigstoreVerifier.hh"
+#include "http/HttpClient.hh"
+#include "semver.hpp"
+#include "unfold/Unfold.hh"
+#include "utils/Logging.hh"
 
 class UpgradeChecker : public Checker
 {
 public:
-  explicit UpgradeChecker(std::shared_ptr<Platform> platform, std::shared_ptr<unfold::http::HttpClient> http, std::shared_ptr<Hooks> hooks);
+  explicit UpgradeChecker(std::shared_ptr<Platform> platform,
+                          std::shared_ptr<unfold::http::HttpClient> http,
+                          std::shared_ptr<SigstoreVerifier> sigstore_verifier,
+                          std::shared_ptr<Hooks> hooks);
 
   boost::asio::awaitable<outcome::std_result<bool>> check_for_update() override;
 
@@ -66,9 +68,11 @@ private:
 private:
   std::shared_ptr<Platform> platform;
   std::shared_ptr<unfold::http::HttpClient> http;
+  std::shared_ptr<SigstoreVerifier> sigstore_verifier;
   std::shared_ptr<Hooks> hooks;
 
   std::string appcast_url;
+  std::string sigstore_url;
   std::vector<std::string> allowed_channels;
   std::string current_version_str;
   semver::version current_version;

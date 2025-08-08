@@ -14,7 +14,15 @@ if (HAVE_TESTS)
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/data/junk" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
   file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/data/morejunk" DESTINATION "${CMAKE_CURRENT_BINARY_DIR}")
 
+  target_compile_definitions(unfold-test-crypto PRIVATE TEST_DATA_DIR="${CMAKE_CURRENT_BINARY_DIR}")
+
   if(WIN32)
-    set_tests_properties(unfold-test-crypto PROPERTIES ENVIRONMENT "PATH=${TEST_PATH_ENV}")
+    set_tests_properties(unfold-test-crypto PROPERTIES
+      ENVIRONMENT "PATH=${TEST_PATH_ENV}"
+      WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
+  else()
+    set_tests_properties(unfold-test-crypto PROPERTIES
+      WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
   endif()
+
 endif()

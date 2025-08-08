@@ -79,18 +79,21 @@ ForEachMacros:
   - BOOST_FOREACH
 IfMacros:
   - KJ_IF_MAYBE
-IncludeBlocks: Preserve
+IncludeBlocks: Regroup
 IncludeCategories:
-  - Regex: '^"(llvm|llvm-c|clang|clang-c)/'
+  # System headers without path components (priority 2, sort first) - standard library
+  - Regex: "^<[^/>]+>$"
     Priority: 2
-    SortPriority: 0
+    SortPriority: 1
     CaseSensitive: false
-  - Regex: '^(<|"(gtest|gmock|isl|json)/)'
-    Priority: 3
-    SortPriority: 0
+  # System headers with path components (priority 2, sort second) - third-party libraries
+  - Regex: "^<[^/>]+/"
+    Priority: 2
+    SortPriority: 2
     CaseSensitive: false
-  - Regex: ".*"
-    Priority: 1
+  # Project headers (priority 4) - local headers and generated files
+  - Regex: '^".*"$'
+    Priority: 4
     SortPriority: 0
     CaseSensitive: false
 IncludeIsMainRegex: "(Test)?$"
@@ -135,7 +138,7 @@ ReflowComments: true
 RemoveBracesLLVM: false
 SeparateDefinitionBlocks: Leave
 ShortNamespaceLines: 1
-SortIncludes: Never
+SortIncludes: CaseSensitive
 SortJavaStaticImport: Before
 SortUsingDeclarations: true
 SpaceAfterCStyleCast: false

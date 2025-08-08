@@ -20,6 +20,7 @@
 
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
+#include "utils/TestUtils.hh"
 
 #ifdef UNFOLD_WITH_XMLSEC
 #  include <fstream>
@@ -83,7 +84,7 @@ TEST(AppCastTest, LoadFromFile)
 {
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
 
-  auto appcast = reader->load_from_file("okappcast.xml");
+  auto appcast = reader->load_from_file(find_test_data_file("okappcast.xml"));
 
   EXPECT_EQ(appcast->title, "Workrave Test Appcast");
   EXPECT_EQ(appcast->description, "Most recent updates to Workrave Test");
@@ -137,7 +138,7 @@ TEST(AppCastTest, LoadInvalidFromFile)
 {
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
 
-  auto appcast = reader->load_from_file("invalidappcast.xml");
+  auto appcast = reader->load_from_file(find_test_data_file("invalidappcast.xml"));
   EXPECT_EQ(appcast.get(), nullptr);
 }
 
@@ -145,7 +146,7 @@ TEST(AppCastTest, Canary)
 {
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
 
-  auto appcast = reader->load_from_file("appcast-canary.xml");
+  auto appcast = reader->load_from_file(find_test_data_file("appcast-canary.xml"));
 
   EXPECT_EQ(appcast->title, "Workrave Test Appcast");
   EXPECT_EQ(appcast->description, "Most recent updates to Workrave Test");
@@ -199,7 +200,7 @@ TEST(AppCastTest, CanaryError)
 {
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
 
-  auto appcast = reader->load_from_file("appcast-canary-error.xml");
+  auto appcast = reader->load_from_file(find_test_data_file("appcast-canary-error.xml"));
 
   EXPECT_EQ(appcast->items[0]->canary_rollout_intervals.size(), 3);
 }
@@ -208,7 +209,7 @@ TEST(AppCastTest, CanarySparkle)
 {
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
 
-  auto appcast = reader->load_from_file("appcast-canary-sparkle.xml");
+  auto appcast = reader->load_from_file(find_test_data_file("appcast-canary-sparkle.xml"));
 
   EXPECT_EQ(appcast->items[0]->canary_rollout_intervals.size(), 7);
   EXPECT_EQ(appcast->items[0]->canary_rollout_intervals[0].first, std::chrono::days(2));
@@ -1483,7 +1484,7 @@ TEST(AppCastTest, XMLDSigVerificationWithECDSASignedFile)
     }
 
   // Load the signed XML file
-  auto appcast = reader->load_from_file("appcast-signed.xml");
+  auto appcast = reader->load_from_file(find_test_data_file("appcast-signed.xml"));
 
   if (!appcast)
     {

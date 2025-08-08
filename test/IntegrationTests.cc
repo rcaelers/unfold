@@ -18,29 +18,28 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <gtest/gtest.h>
-#include <gmock/gmock.h>
-
+#include <filesystem>
 #include <fstream>
 #include <memory>
-#include <filesystem>
-
 #include <boost/algorithm/string.hpp>
 #include <boost/outcome/success_failure.hpp>
-#include <spdlog/spdlog.h>
-#include <openssl/pem.h>
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
 #include <openssl/err.h>
-
-#include "unfold/Unfold.hh"
-#include "unfold/UnfoldErrors.hh"
-#include "http/HttpServer.hh"
-#include "utils/Base64.hh"
+#include <openssl/pem.h>
+#include <spdlog/spdlog.h>
 
 #include "TestBase.hh" // IWYU pragma: keep
 #include "TestPlatform.hh"
-#include "UpgradeControl.hh"
 #include "TimeSourceMock.hh"
+#include "UpgradeControl.hh"
+#include "http/HttpServer.hh"
+#include "sigstore/Bundle.hh"
+#include "unfold/Unfold.hh"
+#include "unfold/UnfoldErrors.hh"
+#include "utils/Base64.hh"
 #include "utils/DateUtils.hh"
+#include "utils/TestUtils.hh"
 
 using ::testing::_;
 using ::testing::AtLeast;
@@ -176,10 +175,10 @@ struct IntegrationTest : public ::testing::Test
 
   void init_appcast()
   {
-    std::ifstream finstaller("test-installer.exe", std::ios::binary);
+    std::ifstream finstaller(find_test_bin_file("test-installer.exe"), std::ios::binary);
     std::string content((std::istreambuf_iterator<char>(finstaller)), std::istreambuf_iterator<char>());
 
-    std::ifstream fappcast("appcast-tmpl.xml");
+    std::ifstream fappcast(find_test_data_file("appcast-tmpl.xml"));
     std::string appcast((std::istreambuf_iterator<char>(fappcast)), std::istreambuf_iterator<char>());
 
     const auto *key =
@@ -219,7 +218,7 @@ TEST_F(IntegrationTest, InvalidSignature)
 
   init_appcast();
 
-  std::ifstream finstaller("test-installer.exe", std::ios::binary);
+  std::ifstream finstaller(find_test_bin_file("test-installer.exe"), std::ios::binary);
   std::string content((std::istreambuf_iterator<char>(finstaller)), std::istreambuf_iterator<char>());
 
   content[0] = 'X'; // corrupt the first byte to make the signature invalid
@@ -1561,4 +1560,510 @@ TEST_F(IntegrationTest, PeriodicCheckInstallNow)
     }
   while (tries > 0 && !found && !status.has_value());
   EXPECT_TRUE(found);
+}
+
+TEST_F(IntegrationTest, CheckReleaseValidSigstore)
+{
+  unfold::coro::IOContext io_context;
+  UpgradeControl control(platform, time_source, io_context);
+
+  server.add_file("/appcast.xml", find_test_data_file("appcast-sigstore.xml"));
+  server.add_file("/appcast.xml.sigstore", find_test_data_file("appcast-sigstore.xml.sigstore"));
+  server.add_file("/installer.exe", find_test_data_file("test-signed-installer.exe"));
+  server.add_file("/installer.exe.sigstore", find_test_data_file("test-signed-installer.exe.sigstore"));
+  server.run();
+
+  control.set_configuration_prefix("Software\\Unfold\\Test");
+
+  auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  EXPECT_EQ(rc.has_error(), false);
+
+  control.set_certificate(cert);
+
+  rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_current_version("1.10.45");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_allowed_channels({"release"});
+  EXPECT_EQ(rc.has_error(), false);
+
+  control.set_sigstore_verification_enabled(true);
+
+  control.set_sigstore_validation_callback([](std::shared_ptr<sigstore::Bundle> bundle) -> outcome::std_result<bool> {
+    spdlog::info("Validating sigstore at {}", bundle->get_certificate_info()->subject_email());
+    return true;
+  });
+
+  double last_progress = 0.0;
+  std::optional<unfold::UpdateStage> last_stage;
+  control.set_download_progress_callback([&last_stage, &last_progress](unfold::UpdateStage stage, auto progress) {
+    if (stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        EXPECT_GE(progress, last_progress);
+        last_progress = progress;
+      }
+
+    if (!last_stage)
+      {
+        EXPECT_EQ(stage, unfold::UpdateStage::DownloadInstaller);
+      }
+    else if (*last_stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        EXPECT_TRUE(stage == unfold::UpdateStage::DownloadInstaller || stage == unfold::UpdateStage::VerifyInstaller);
+      }
+    else
+      {
+        EXPECT_EQ(stage, *last_stage + 1);
+      }
+    last_stage = stage;
+  });
+
+  std::optional<outcome::std_result<void>> status;
+  control.set_update_status_callback([&](outcome::std_result<void> rc) {
+    if (rc.has_error())
+      {
+        spdlog::info("Update status {}", rc.error().message());
+      }
+    status = rc;
+  });
+
+  control.get_hooks()->hook_terminate() = []() { return false; };
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await control.check_for_update();
+          EXPECT_EQ(rc.has_error(), false);
+
+          auto update_info = control.get_update_info();
+          EXPECT_EQ(update_info->title, "Workrave");
+          EXPECT_EQ(update_info->current_version, "1.10.45");
+          EXPECT_EQ(update_info->version, "1.10.49");
+          EXPECT_EQ(update_info->release_notes.size(), 3);
+          EXPECT_EQ(update_info->release_notes.front().version, "1.10.49");
+
+          std::filesystem::remove("installer.log");
+
+          auto ri = co_await control.install_update();
+          EXPECT_EQ(ri.has_error(), false);
+          int tries = 100;
+          bool found = false;
+          if (!ri.has_error())
+            {
+              do
+                {
+                  found = std::filesystem::exists("installer.log");
+                  std::this_thread::sleep_for(std::chrono::milliseconds(50));
+                  tries--;
+                }
+              while (tries > 0 && !found);
+            }
+          EXPECT_TRUE(found);
+          EXPECT_GE(100, last_progress);
+          EXPECT_EQ(platform->is_terminated(), false);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          EXPECT_TRUE(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+  EXPECT_EQ(status.has_value(), false);
+  EXPECT_EQ(*last_stage, unfold::UpdateStage::RunInstaller);
+}
+
+TEST_F(IntegrationTest, CheckReleaseInvalidAppcastSigstore)
+{
+  unfold::coro::IOContext io_context;
+  UpgradeControl control(platform, time_source, io_context);
+
+  server.add_file("/appcast.xml", find_test_data_file("appcast.xml"));
+  server.add_file("/appcast.xml.sigstore", find_test_data_file("appcast-sigstore.xml.sigstore"));
+  server.add_file("/installer.exe", find_test_data_file("test-signed-installer.exe"));
+  server.add_file("/installer.exe.sigstore", find_test_data_file("test-signed-installer.exe.sigstore"));
+  server.run();
+
+  control.set_configuration_prefix("Software\\Unfold\\Test");
+
+  auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  EXPECT_EQ(rc.has_error(), false);
+
+  control.set_certificate(cert);
+
+  rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_current_version("1.10.45");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_allowed_channels({"release"});
+  EXPECT_EQ(rc.has_error(), false);
+
+  control.set_sigstore_verification_enabled(true);
+
+  control.set_sigstore_validation_callback([](std::shared_ptr<sigstore::Bundle> bundle) -> outcome::std_result<bool> {
+    spdlog::info("Validating sigstore at {}", bundle->get_certificate_info()->subject_email());
+    return true;
+  });
+
+  double last_progress = 0.0;
+  std::optional<unfold::UpdateStage> last_stage;
+  control.set_download_progress_callback([&last_stage, &last_progress](unfold::UpdateStage stage, auto progress) {
+    if (stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        EXPECT_GE(progress, last_progress);
+        last_progress = progress;
+      }
+
+    if (!last_stage)
+      {
+        EXPECT_EQ(stage, unfold::UpdateStage::DownloadInstaller);
+      }
+    else if (*last_stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        EXPECT_TRUE(stage == unfold::UpdateStage::DownloadInstaller || stage == unfold::UpdateStage::VerifyInstaller);
+      }
+    else
+      {
+        EXPECT_EQ(stage, *last_stage + 1);
+      }
+    last_stage = stage;
+  });
+
+  std::optional<outcome::std_result<void>> status;
+  control.set_update_status_callback([&](outcome::std_result<void> rc) {
+    if (rc.has_error())
+      {
+        spdlog::info("Update status {}", rc.error().message());
+      }
+    status = rc;
+  });
+
+  control.get_hooks()->hook_terminate() = []() { return false; };
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await control.check_for_update();
+          EXPECT_EQ(rc.has_error(), true);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          EXPECT_TRUE(false);
+          EXPECT_EQ(rc.error(), unfold::UnfoldErrc::InstallerVerificationFailed);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+  EXPECT_EQ(status.has_value(), false);
+  EXPECT_EQ(*last_stage, unfold::UpdateStage::DownloadInstaller);
+}
+
+TEST_F(IntegrationTest, CheckReleaseInvalidInstallerSigstore)
+{
+  unfold::coro::IOContext io_context;
+  UpgradeControl control(platform, time_source, io_context);
+
+  server.add_file("/appcast.xml", find_test_data_file("appcast-sigstore.xml"));
+  server.add_file("/appcast.xml.sigstore", find_test_data_file("appcast-sigstore.xml.sigstore"));
+  server.add_file("/installer.exe", find_test_bin_file("test-installer.exe"));
+  server.add_file("/installer.exe.sigstore", find_test_data_file("test-signed-installer.exe.sigstore"));
+  server.run();
+
+  control.set_configuration_prefix("Software\\Unfold\\Test");
+
+  auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  EXPECT_EQ(rc.has_error(), false);
+
+  control.set_certificate(cert);
+
+  rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_current_version("1.10.45");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_allowed_channels({"release"});
+  EXPECT_EQ(rc.has_error(), false);
+
+  control.set_sigstore_verification_enabled(true);
+
+  control.set_sigstore_validation_callback([](std::shared_ptr<sigstore::Bundle> bundle) -> outcome::std_result<bool> {
+    spdlog::info("Validating sigstore at {}", bundle->get_certificate_info()->subject_email());
+    return true;
+  });
+
+  double last_progress = 0.0;
+  std::optional<unfold::UpdateStage> last_stage;
+  control.set_download_progress_callback([&last_stage, &last_progress](unfold::UpdateStage stage, auto progress) {
+    if (stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        EXPECT_GE(progress, last_progress);
+        last_progress = progress;
+      }
+
+    if (!last_stage)
+      {
+        EXPECT_EQ(stage, unfold::UpdateStage::DownloadInstaller);
+      }
+    else if (*last_stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        EXPECT_TRUE(stage == unfold::UpdateStage::DownloadInstaller || stage == unfold::UpdateStage::VerifyInstaller);
+      }
+    else
+      {
+        EXPECT_EQ(stage, *last_stage + 1);
+      }
+    last_stage = stage;
+  });
+
+  std::optional<outcome::std_result<void>> status;
+  control.set_update_status_callback([&](outcome::std_result<void> rc) {
+    if (rc.has_error())
+      {
+        spdlog::info("Update status {}", rc.error().message());
+      }
+    status = rc;
+  });
+
+  control.get_hooks()->hook_terminate() = []() { return false; };
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await control.check_for_update();
+          EXPECT_EQ(rc.has_error(), false);
+
+          auto update_info = control.get_update_info();
+          EXPECT_EQ(update_info->title, "Workrave");
+          EXPECT_EQ(update_info->current_version, "1.10.45");
+          EXPECT_EQ(update_info->version, "1.10.49");
+          EXPECT_EQ(update_info->release_notes.size(), 3);
+          EXPECT_EQ(update_info->release_notes.front().version, "1.10.49");
+
+          std::filesystem::remove("installer.log");
+
+          auto ri = co_await control.install_update();
+          EXPECT_EQ(ri.has_error(), true);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          EXPECT_TRUE(false);
+          EXPECT_EQ(rc.error(), unfold::UnfoldErrc::InstallerVerificationFailed);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+  EXPECT_EQ(status.has_value(), false);
+  EXPECT_EQ(*last_stage, unfold::UpdateStage::VerifyInstaller);
+}
+
+TEST_F(IntegrationTest, CheckReleaseRejectAppcastSigstore)
+{
+  unfold::coro::IOContext io_context;
+  UpgradeControl control(platform, time_source, io_context);
+
+  server.add_file("/appcast.xml", find_test_data_file("appcast-sigstore.xml"));
+  server.add_file("/appcast.xml.sigstore", find_test_data_file("appcast-sigstore.xml.sigstore"));
+  server.add_file("/installer.exe", find_test_data_file("test-signed-installer.exe"));
+  server.add_file("/installer.exe.sigstore", find_test_data_file("test-signed-installer.exe.sigstore"));
+  server.run();
+
+  control.set_configuration_prefix("Software\\Unfold\\Test");
+
+  auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  EXPECT_EQ(rc.has_error(), false);
+
+  control.set_certificate(cert);
+
+  rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_current_version("1.10.45");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_allowed_channels({"release"});
+  EXPECT_EQ(rc.has_error(), false);
+
+  control.set_sigstore_verification_enabled(true);
+
+  control.set_sigstore_validation_callback([](std::shared_ptr<sigstore::Bundle> bundle) -> outcome::std_result<bool> {
+    spdlog::info("Validating sigstore at {}", bundle->get_certificate_info()->subject_email());
+    return false;
+  });
+
+  double last_progress = 0.0;
+  std::optional<unfold::UpdateStage> last_stage;
+  control.set_download_progress_callback([&last_stage, &last_progress](unfold::UpdateStage stage, auto progress) {
+    if (stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        EXPECT_GE(progress, last_progress);
+        last_progress = progress;
+      }
+
+    if (!last_stage)
+      {
+        EXPECT_EQ(stage, unfold::UpdateStage::DownloadInstaller);
+      }
+    else if (*last_stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        EXPECT_TRUE(stage == unfold::UpdateStage::DownloadInstaller || stage == unfold::UpdateStage::VerifyInstaller);
+      }
+    else
+      {
+        EXPECT_EQ(stage, *last_stage + 1);
+      }
+    last_stage = stage;
+  });
+
+  std::optional<outcome::std_result<void>> status;
+  control.set_update_status_callback([&](outcome::std_result<void> rc) {
+    if (rc.has_error())
+      {
+        spdlog::info("Update status {}", rc.error().message());
+      }
+    status = rc;
+  });
+
+  control.get_hooks()->hook_terminate() = []() { return false; };
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await control.check_for_update();
+          EXPECT_EQ(rc.has_error(), true);
+          EXPECT_EQ(rc.error(), unfold::UnfoldErrc::SigstoreVerificationFailed);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          EXPECT_TRUE(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+  EXPECT_EQ(status.has_value(), false);
+  EXPECT_EQ(last_stage.has_value(), false);
+}
+
+TEST_F(IntegrationTest, CheckReleaseRejectInstallerSigstore)
+{
+  unfold::coro::IOContext io_context;
+  UpgradeControl control(platform, time_source, io_context);
+
+  server.add_file("/appcast.xml", find_test_data_file("appcast-sigstore.xml"));
+  server.add_file("/appcast.xml.sigstore", find_test_data_file("appcast-sigstore.xml.sigstore"));
+  server.add_file("/installer.exe", find_test_data_file("test-signed-installer.exe"));
+  server.add_file("/installer.exe.sigstore", find_test_data_file("test-signed-installer.exe.sigstore"));
+  server.run();
+
+  control.set_configuration_prefix("Software\\Unfold\\Test");
+
+  auto rc = control.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  EXPECT_EQ(rc.has_error(), false);
+
+  control.set_certificate(cert);
+
+  rc = control.set_signature_verification_key("MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM=");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_current_version("1.10.45");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = control.set_allowed_channels({"release"});
+  EXPECT_EQ(rc.has_error(), false);
+
+  control.set_sigstore_verification_enabled(true);
+
+  int sigstore_count = 0;
+  control.set_sigstore_validation_callback([&sigstore_count](std::shared_ptr<sigstore::Bundle> bundle) -> outcome::std_result<bool> {
+    spdlog::info("Validating sigstore at {}", bundle->get_certificate_info()->subject_email());
+    sigstore_count++;
+    return sigstore_count == 1;
+  });
+
+  double last_progress = 0.0;
+  std::optional<unfold::UpdateStage> last_stage;
+  control.set_download_progress_callback([&last_stage, &last_progress](unfold::UpdateStage stage, auto progress) {
+    if (stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        EXPECT_GE(progress, last_progress);
+        last_progress = progress;
+      }
+
+    if (!last_stage)
+      {
+        EXPECT_EQ(stage, unfold::UpdateStage::DownloadInstaller);
+      }
+    else if (*last_stage == unfold::UpdateStage::DownloadInstaller)
+      {
+        EXPECT_TRUE(stage == unfold::UpdateStage::DownloadInstaller || stage == unfold::UpdateStage::VerifyInstaller);
+      }
+    else
+      {
+        EXPECT_EQ(stage, *last_stage + 1);
+      }
+    last_stage = stage;
+  });
+
+  std::optional<outcome::std_result<void>> status;
+  control.set_update_status_callback([&](outcome::std_result<void> rc) {
+    if (rc.has_error())
+      {
+        spdlog::info("Update status {}", rc.error().message());
+      }
+    status = rc;
+  });
+
+  control.get_hooks()->hook_terminate() = []() { return false; };
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await control.check_for_update();
+          EXPECT_EQ(rc.has_error(), false);
+
+          auto update_info = control.get_update_info();
+          EXPECT_EQ(update_info->title, "Workrave");
+          EXPECT_EQ(update_info->current_version, "1.10.45");
+          EXPECT_EQ(update_info->version, "1.10.49");
+          EXPECT_EQ(update_info->release_notes.size(), 3);
+          EXPECT_EQ(update_info->release_notes.front().version, "1.10.49");
+
+          std::filesystem::remove("installer.log");
+
+          auto ri = co_await control.install_update();
+          EXPECT_EQ(ri.has_error(), true);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          EXPECT_TRUE(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+  EXPECT_EQ(status.has_value(), false);
+  EXPECT_EQ(*last_stage, unfold::UpdateStage::VerifyInstaller);
 }

@@ -1,4 +1,4 @@
-// Copyright (C) 2022 Rob Caelers <rob.caelers@gmail.com>
+// Copyright (C) 2025 Rob Caelers <rob.caelers@gmail.com>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -18,26 +18,31 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#ifndef UNFOLD_INTERNAL_ERRORS_HH
-#define UNFOLD_INTERNAL_ERRORS_HH
+#pragma once
 
-#include <system_error>
+#include <string>
+#include <filesystem>
 
-enum class UnfoldInternalErrc
+inline std::string
+find_test_data_file(const std::string &filename)
 {
-  Success = 0,
-  InvalidSetting,
-  InternalError,
-};
+#ifdef TEST_DATA_DIR
+  std::string test_data_dir = TEST_DATA_DIR;
+  std::filesystem::path test_data_path = std::filesystem::path(test_data_dir) / filename;
+#else
+  std::filesystem::path test_data_path = std::filesystem::current_path() / filename;
+#endif
+  return test_data_path.string();
+}
 
-std::error_code make_error_code(UnfoldInternalErrc ec);
-
-namespace std
+inline std::string
+find_test_bin_file(const std::string &filename)
 {
-  template<>
-  struct is_error_code_enum<UnfoldInternalErrc> : true_type
-  {
-  };
-} // namespace std
-
-#endif // UNFOLD_INTERNAL_ERRORS_HH
+#ifdef TEST_BIN_DIR
+  std::string test_bin_dir = TEST_BIN_DIR;
+  std::filesystem::path test_bin_path = std::filesystem::path(test_bin_dir) / filename;
+#else
+  std::filesystem::path test_bin_path = std::filesystem::current_path() / filename;
+#endif
+  return test_bin_path.string();
+}

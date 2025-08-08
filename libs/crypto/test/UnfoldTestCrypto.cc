@@ -18,14 +18,13 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <gtest/gtest.h>
-#include <gmock/gmock.h>
-
+#include <filesystem>
 #include <memory>
-
-#include <spdlog/spdlog.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
 #include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
 #if SPDLOG_VERSION >= 10600
 #  include <spdlog/pattern_formatter.h>
 #endif
@@ -34,9 +33,10 @@
 #endif
 #include <spdlog/fmt/ostr.h>
 
-#include "utils/Logging.hh"
 #include "crypto/SignatureVerifier.hh"
 #include "crypto/SignatureVerifierErrors.hh"
+#include "utils/Logging.hh"
+#include "utils/TestUtils.hh"
 // #include "crypto/CertificateExtractor.hh"
 
 using namespace unfold::crypto;
@@ -110,7 +110,7 @@ TEST_F(CryptoTest, signature_verify_file_ok_pem)
   SignatureVerifier verifier;
   auto result = verifier.set_key(SignatureAlgorithmType::ECDSA, pub_key);
   EXPECT_EQ(result.has_error(), false);
-  result = verifier.verify("junk", signature);
+  result = verifier.verify(find_test_data_file("junk"), signature);
   EXPECT_EQ(result.has_error(), false);
 }
 
@@ -142,7 +142,7 @@ TEST_F(CryptoTest, signature_verify_file_ok_der)
   SignatureVerifier verifier;
   auto result = verifier.set_key(SignatureAlgorithmType::ECDSA, pub_key);
   EXPECT_EQ(result.has_error(), false);
-  result = verifier.verify("junk", signature);
+  result = verifier.verify(find_test_data_file("junk"), signature);
   EXPECT_EQ(result.has_error(), false);
 }
 
@@ -164,7 +164,7 @@ TEST_F(CryptoTest, signature_verify_invalid_signature)
   SignatureVerifier verifier;
   auto result = verifier.set_key(SignatureAlgorithmType::ECDSA, pub_key);
   EXPECT_EQ(result.has_error(), false);
-  result = verifier.verify("junk", signature);
+  result = verifier.verify(find_test_data_file("junk"), signature);
   EXPECT_EQ(result.error(), SignatureVerifierErrc::InvalidSignature);
 }
 
@@ -179,7 +179,7 @@ TEST_F(CryptoTest, signature_verify_file_nok)
   SignatureVerifier verifier;
   auto result = verifier.set_key(SignatureAlgorithmType::ECDSA, pub_key);
   EXPECT_EQ(result.has_error(), false);
-  result = verifier.verify("morejunk", signature);
+  result = verifier.verify(find_test_data_file("morejunk"), signature);
   EXPECT_EQ(result.error(), SignatureVerifierErrc::Mismatch);
 }
 
@@ -203,7 +203,7 @@ TEST_F(CryptoTest, signature_verify_without_algorithm)
   std::string signature = "aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==";
 
   SignatureVerifier verifier;
-  auto result = verifier.verify("junk", signature);
+  auto result = verifier.verify(find_test_data_file("junk"), signature);
   EXPECT_EQ(result.error(), SignatureVerifierErrc::InvalidPublicKey);
 }
 
@@ -218,7 +218,7 @@ TEST_F(CryptoTest, signature_verify_without_valid_pubkey)
   EXPECT_EQ(result.has_error(), true);
   EXPECT_EQ(result.error(), SignatureVerifierErrc::InvalidPublicKey);
 
-  result = verifier.verify("junk", signature);
+  result = verifier.verify(find_test_data_file("junk"), signature);
   EXPECT_EQ(result.error(), SignatureVerifierErrc::InvalidPublicKey);
 }
 

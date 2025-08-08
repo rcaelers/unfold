@@ -42,8 +42,12 @@ namespace
           return "invalid argument";
         case UnfoldErrc::InvalidAppcast:
           return "invalid appcast";
+        case UnfoldErrc::InvalidSigstoreBundle:
+          return "invalid sigstore bundle";
         case UnfoldErrc::AppcastDownloadFailed:
           return "failed to download appcast";
+        case UnfoldErrc::SigstoreDownloadFailed:
+          return "failed to download sigstore";
         case UnfoldErrc::InstallerDownloadFailed:
           return "failed to download installer";
         case UnfoldErrc::InstallerVerificationFailed:
@@ -52,6 +56,9 @@ namespace
           return "failed to execute installer";
         case UnfoldErrc::InternalError:
           return "internal error";
+        case UnfoldErrc::SigstoreVerificationFailed:
+          return "sigstore verification failed";
+          break;
         }
       return "(unknown)";
     }

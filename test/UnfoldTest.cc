@@ -18,12 +18,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <gtest/gtest.h>
 #include <gmock/gmock.h>
-
-#include <spdlog/spdlog.h>
-#include <spdlog/sinks/stdout_color_sinks.h>
+#include <gtest/gtest.h>
 #include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
+#include <spdlog/spdlog.h>
 #if SPDLOG_VERSION >= 10600
 #  include <spdlog/pattern_formatter.h>
 #endif
@@ -32,8 +31,8 @@
 #endif
 #include <spdlog/fmt/ostr.h>
 
-#include "unfold/UnfoldErrors.hh"
 #include "UnfoldInternalErrors.hh"
+#include "unfold/UnfoldErrors.hh"
 
 class GlobalFixture : public ::testing::Environment
 {

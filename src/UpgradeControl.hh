@@ -21,26 +21,25 @@
 #ifndef UPGRADE_CONTROL_HH
 #define UPGRADE_CONTROL_HH
 
+#include <chrono>
 #include <memory>
 #include <optional>
 #include <string>
-#include <chrono>
 
-#include "unfold/Unfold.hh"
-
-#include "http/HttpClient.hh"
-#include "utils/Logging.hh"
-#include "unfold/coro/IOContext.hh"
-#include "utils/OneShotTimer.hh"
-#include "utils/TimeSource.hh"
-#include "crypto/SignatureVerifier.hh"
-
+#include "Checker.hh"
+#include "Hooks.hh"
+#include "Installer.hh"
 #include "Platform.hh"
 #include "Settings.hh"
 #include "SettingsStorage.hh"
-#include "Hooks.hh"
-#include "Installer.hh"
-#include "Checker.hh"
+#include "SigstoreVerifier.hh"
+#include "crypto/SignatureVerifier.hh"
+#include "http/HttpClient.hh"
+#include "unfold/Unfold.hh"
+#include "unfold/coro/IOContext.hh"
+#include "utils/Logging.hh"
+#include "utils/OneShotTimer.hh"
+#include "utils/TimeSource.hh"
 
 class UpgradeControl : public unfold::Unfold
 {
@@ -49,7 +48,8 @@ public:
 
   UpgradeControl(std::shared_ptr<Platform> platform,
                  std::shared_ptr<unfold::http::HttpClient> http,
-                 std::shared_ptr<unfold::crypto::SignatureVerifier> verifier,
+                 std::shared_ptr<unfold::crypto::SignatureVerifier> signature_verifier,
+                 std::shared_ptr<SigstoreVerifier> sigstore_verifier,
                  std::shared_ptr<SettingsStorage> storage,
                  std::shared_ptr<Installer> installer,
                  std::shared_ptr<Checker> checker,
@@ -76,6 +76,8 @@ public:
   void set_update_status_callback(update_status_callback_t callback) override;
   void set_update_validation_callback(update_validation_callback_t callback) override;
   void set_installer_validation_callback(installer_validation_callback_t callback) override;
+  void set_sigstore_verification_enabled(bool enabled) override;
+  void set_sigstore_validation_callback(sigstore_validation_callback_t callback) override;
   std::optional<std::chrono::system_clock::time_point> get_last_update_check_time() override;
   int get_active_priority() const override;
 
@@ -103,7 +105,8 @@ private:
 private:
   std::shared_ptr<Platform> platform;
   std::shared_ptr<unfold::http::HttpClient> http;
-  std::shared_ptr<unfold::crypto::SignatureVerifier> verifier;
+  std::shared_ptr<unfold::crypto::SignatureVerifier> signature_verifier;
+  std::shared_ptr<SigstoreVerifier> sigstore_verifier;
   std::shared_ptr<Hooks> hooks;
   std::shared_ptr<SettingsStorage> storage;
   std::shared_ptr<Settings> state;

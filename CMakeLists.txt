@@ -22,6 +22,13 @@ include(FetchContent)
 include(GNUInstallDirs)
 include(CheckCXXCompilerFlag)
 
+# On Windows, put all DLLs and executables in the same directory
+if(WIN32)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+endif()
+
 #----------------------------------------------------------------------------------------------------
 # Compiler
 
@@ -106,6 +113,16 @@ if(NOT ${spdlog_FOUND})
   install(TARGETS spdlog)
 endif()
 add_definitions(-DSPDLOG_WCHAR_TO_UTF8_SUPPORT)
+
+#----------------------------------------------------------------------------------------------------
+# Sigstore
+
+FetchContent_Declare(
+  sigstore
+  GIT_REPOSITORY https://github.com/rcaelers/sigstore-verifier-cpp
+  GIT_TAG 808b75171d060fd51cc31ba0c958a017dc4eee05
+)
+FetchContent_MakeAvailable(sigstore)
 
 #----------------------------------------------------------------------------------------------------
 # Semver

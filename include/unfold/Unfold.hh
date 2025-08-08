@@ -21,18 +21,21 @@
 #ifndef UNFOLD_UNFOLD_HH
 #define UNFOLD_UNFOLD_HH
 
-#include <memory>
-#include <string>
 #include <chrono>
 #include <list>
+#include <memory>
 #include <optional>
-
-#include <boost/outcome/std_result.hpp>
+#include <string>
 #include <boost/asio.hpp>
-
-#include "unfold/coro/IOContext.hh"
+#include <boost/outcome/std_result.hpp>
 
 #include "UnfoldHooks.hh"
+#include "unfold/coro/IOContext.hh"
+
+namespace sigstore
+{
+  class Bundle;
+}
 
 namespace unfold
 {
@@ -85,8 +88,9 @@ namespace unfold
     using update_available_callback_t = std::function<boost::asio::awaitable<UpdateResponse>()>;
     using update_status_callback_t = std::function<void(outcome::std_result<void>)>;
     using download_progress_callback_t = std::function<void(UpdateStage stage, double progress)>;
-    using update_validation_callback_t = std::function<outcome::std_result<bool>(const UpdateInfo& update_info)>;
-    using installer_validation_callback_t = std::function<outcome::std_result<bool>(const std::string& installer_path)>;
+    using update_validation_callback_t = std::function<outcome::std_result<bool>(const UpdateInfo &update_info)>;
+    using installer_validation_callback_t = std::function<outcome::std_result<bool>(const std::string &installer_path)>;
+    using sigstore_validation_callback_t = std::function<outcome::std_result<bool>(std::shared_ptr<sigstore::Bundle>)>;
 
     static std::shared_ptr<Unfold> create(unfold::coro::IOContext &io_context);
 
@@ -94,6 +98,7 @@ namespace unfold
     virtual outcome::std_result<void> set_current_version(const std::string &version) = 0;
     virtual outcome::std_result<void> set_allowed_channels(const std::vector<std::string> &channels) = 0;
     virtual outcome::std_result<void> set_signature_verification_key(const std::string &key) = 0;
+
 #ifdef UNFOLD_WITH_XMLSEC
     virtual outcome::std_result<void> add_xmldsig_public_key(const std::string &key_name, const std::string &public_key_pem) = 0;
     virtual void clear_xmldsig_trusted_keys() = 0;
@@ -110,6 +115,9 @@ namespace unfold
     virtual void set_update_status_callback(update_status_callback_t callback) = 0;
     virtual void set_update_validation_callback(update_validation_callback_t callback) = 0;
     virtual void set_installer_validation_callback(installer_validation_callback_t callback) = 0;
+    virtual void set_sigstore_verification_enabled(bool enabled) = 0;
+    virtual void set_sigstore_validation_callback(sigstore_validation_callback_t callback) = 0;
+
     virtual void set_proxy(ProxyType proxy) = 0;
     virtual void set_custom_proxy(const std::string &proxy) = 0;
 

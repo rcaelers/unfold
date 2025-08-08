@@ -23,24 +23,24 @@
 #include <exception>
 #include <memory>
 #include <utility>
-#include <spdlog/fmt/ostr.h>
+#include <boost/outcome/try.hpp>
+#include <boost/process.hpp>
+#include <boost/url/url.hpp>
 #include <fmt/os.h>
 #include <fmt/std.h>
+#include <spdlog/fmt/ostr.h>
 
-#include <boost/outcome/try.hpp>
-#include <boost/url/url.hpp>
-#include <boost/process.hpp>
-
-#include "utils/DateUtils.hh"
-
-#include "UnfoldErrors.hh"
 #include "Platform.hh"
+#include "UnfoldErrors.hh"
+#include "utils/DateUtils.hh"
 
 UpgradeChecker::UpgradeChecker(std::shared_ptr<Platform> platform,
                                std::shared_ptr<unfold::http::HttpClient> http,
+                               std::shared_ptr<SigstoreVerifier> sigstore_verifier,
                                std::shared_ptr<Hooks> hooks)
   : platform(std::move(platform))
   , http(std::move(http))
+  , sigstore_verifier(std::move(sigstore_verifier))
   , hooks(hooks)
   , appcast_reader(std::make_shared<AppcastReader>([this](auto item) { return is_applicable(item); }))
 {
@@ -50,6 +50,7 @@ outcome::std_result<void>
 UpgradeChecker::set_appcast(const std::string &url)
 {
   appcast_url = url;
+  sigstore_url = url + ".sigstore";
   return outcome::success();
 }
 
@@ -138,6 +139,12 @@ UpgradeChecker::check_for_update()
   if (!content)
     {
       co_return content.as_failure();
+    }
+
+  auto sigstore_content = co_await sigstore_verifier->verify(sigstore_url, content.value());
+  if (!sigstore_content)
+    {
+      co_return sigstore_content.as_failure();
     }
 
   auto appcast = parse_appcast(content.value());

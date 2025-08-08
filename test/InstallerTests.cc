@@ -18,26 +18,28 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <gtest/gtest.h>
-#include <gmock/gmock.h>
-
 #include <boost/outcome/success_failure.hpp>
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 
-#include "crypto/SignatureVerifierErrors.hh"
-#include "http/HttpServer.hh"
-#include "http/HttpClient.hh"
-#include "unfold/UnfoldErrors.hh"
-
 #include "AppCast.hh"
-#include "TestBase.hh"
 #include "Hooks.hh"
-#include "UpgradeInstaller.hh"
 #include "SignatureVerifierMock.hh"
+#include "SigstoreVerifierMock.hh"
+#include "TestBase.hh"
 #include "TestPlatform.hh"
+#include "UpgradeInstaller.hh"
+#include "crypto/SignatureVerifierErrors.hh"
+#include "http/HttpClient.hh"
+#include "http/HttpServer.hh"
+#include "unfold/UnfoldErrors.hh"
+#include "utils/TestUtils.hh"
 
 using ::testing::_;
+using ::testing::An;
 using ::testing::AtLeast;
+using ::testing::InvokeWithoutArgs;
 using ::testing::Return;
 
 namespace
@@ -93,7 +95,7 @@ TEST(Installer, MissingUrl)
 TEST(Installer, MissingLength)
 {
   unfold::http::HttpServer server;
-  server.add_file("/workrave-1.11.0-alpha.1.exe", "junk");
+  server.add_file("/workrave-1.11.0-alpha.1.exe", find_test_data_file("junk"));
   server.run();
 
   std::string appcast_str =
@@ -125,9 +127,13 @@ TEST(Installer, MissingLength)
 
   auto hooks = std::make_shared<Hooks>();
 
-  auto verifier = std::make_shared<SignatureVerifierMock>();
+  auto signature_verifier = std::make_shared<SignatureVerifierMock>();
+  auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
-  UpgradeInstaller installer(std::make_shared<TestPlatform>(), http, verifier, hooks);
+  EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+
+  UpgradeInstaller installer(std::make_shared<TestPlatform>(), http, signature_verifier, sigstore_verifier, hooks);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -184,7 +190,7 @@ TEST(Installer, NotFound)
   server.run();
 
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
-  auto appcast = reader->load_from_file("appcast.xml");
+  auto appcast = reader->load_from_file(find_test_data_file("appcast.xml"));
 
   auto http = std::make_shared<unfold::http::HttpClient>();
   auto &options = http->options();
@@ -192,9 +198,13 @@ TEST(Installer, NotFound)
 
   auto hooks = std::make_shared<Hooks>();
 
-  auto verifier = std::make_shared<SignatureVerifierMock>();
+  auto signature_verifier = std::make_shared<SignatureVerifierMock>();
+  auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
-  UpgradeInstaller installer(std::make_shared<TestPlatform>(), http, verifier, hooks);
+  EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+
+  UpgradeInstaller installer(std::make_shared<TestPlatform>(), http, signature_verifier, sigstore_verifier, hooks);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -252,9 +262,13 @@ TEST(Installer, InvalidHost)
 
   auto hooks = std::make_shared<Hooks>();
 
-  auto verifier = std::make_shared<SignatureVerifierMock>();
+  auto signature_verifier = std::make_shared<SignatureVerifierMock>();
+  auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
-  UpgradeInstaller installer(std::make_shared<TestPlatform>(), http, verifier, hooks);
+  EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+
+  UpgradeInstaller installer(std::make_shared<TestPlatform>(), http, signature_verifier, sigstore_verifier, hooks);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -281,14 +295,14 @@ TEST(Installer, InvalidHost)
 TEST(Installer, InvalidSignature)
 {
   unfold::http::HttpServer server;
-  server.add_file("/dummy.exe", "test-installer.exe");
+  server.add_file("/dummy.exe", find_test_bin_file("test-installer.exe"));
   server.run();
 
   std::error_code ec;
-  std::uintmax_t size = std::filesystem::file_size("test-installer.exe", ec);
+  std::uintmax_t size = std::filesystem::file_size(find_test_bin_file("test-installer.exe"), ec);
 
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
-  auto appcast = reader->load_from_file("appcast.xml");
+  auto appcast = reader->load_from_file(find_test_data_file("appcast.xml"));
   appcast->items.front()->enclosure->length = size;
 
   auto http = std::make_shared<unfold::http::HttpClient>();
@@ -297,15 +311,19 @@ TEST(Installer, InvalidSignature)
 
   auto hooks = std::make_shared<Hooks>();
 
-  auto verifier = std::make_shared<SignatureVerifierMock>();
+  auto signature_verifier = std::make_shared<SignatureVerifierMock>();
+  auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
-  EXPECT_CALL(*verifier, set_key(_, _)).Times(0);
+  EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
 
-  EXPECT_CALL(*verifier, verify(_, _))
+  EXPECT_CALL(*signature_verifier, set_key(_, _)).Times(0);
+
+  EXPECT_CALL(*signature_verifier, verify(_, _))
     .Times(AtLeast(1))
     .WillRepeatedly(Return(outcome::failure(unfold::crypto::SignatureVerifierErrc::Mismatch)));
 
-  UpgradeInstaller installer(std::make_shared<TestPlatform>(), http, verifier, hooks);
+  UpgradeInstaller installer(std::make_shared<TestPlatform>(), http, signature_verifier, sigstore_verifier, hooks);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -332,14 +350,14 @@ TEST(Installer, InvalidSignature)
 TEST(Installer, FailedToInstall)
 {
   unfold::http::HttpServer server;
-  server.add_file("/dummy.exe", "junk");
+  server.add_file("/dummy.exe", find_test_data_file("junk"));
   server.run();
 
   std::error_code ec;
-  std::uintmax_t size = std::filesystem::file_size("junk", ec);
+  std::uintmax_t size = std::filesystem::file_size(find_test_data_file("junk"), ec);
 
   auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
-  auto appcast = reader->load_from_file("appcast.xml");
+  auto appcast = reader->load_from_file(find_test_data_file("appcast.xml"));
   appcast->items.front()->enclosure->length = size;
 
   auto http = std::make_shared<unfold::http::HttpClient>();
@@ -348,13 +366,17 @@ TEST(Installer, FailedToInstall)
 
   auto hooks = std::make_shared<Hooks>();
 
-  auto verifier = std::make_shared<SignatureVerifierMock>();
+  auto signature_verifier = std::make_shared<SignatureVerifierMock>();
+  auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
-  EXPECT_CALL(*verifier, set_key(_, _)).Times(0);
+  EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
 
-  EXPECT_CALL(*verifier, verify(_, _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
+  EXPECT_CALL(*signature_verifier, set_key(_, _)).Times(0);
 
-  UpgradeInstaller installer(std::make_shared<TestPlatform>(), http, verifier, hooks);
+  EXPECT_CALL(*signature_verifier, verify(_, _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
+
+  UpgradeInstaller installer(std::make_shared<TestPlatform>(), http, signature_verifier, sigstore_verifier, hooks);
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -365,6 +387,59 @@ TEST(Installer, FailedToInstall)
           auto rc = co_await installer.install(appcast->items.front());
           EXPECT_EQ(rc.has_error(), true);
           EXPECT_EQ(rc.error(), unfold::UnfoldErrc::InstallerExecutionFailed);
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          EXPECT_TRUE(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+
+  server.stop();
+}
+
+TEST(Installer, SigstoreVerificationFailed)
+{
+  unfold::http::HttpServer server;
+  server.add_file("/dummy.exe", find_test_bin_file("test-installer.exe"));
+  server.run();
+
+  std::error_code ec;
+  std::uintmax_t size = std::filesystem::file_size(find_test_data_file("test-installer.exe"), ec);
+
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+  auto appcast = reader->load_from_file(find_test_data_file("appcast.xml"));
+  appcast->items.front()->enclosure->length = size;
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
+  options.add_ca_cert(cert);
+
+  auto hooks = std::make_shared<Hooks>();
+
+  auto signature_verifier = std::make_shared<SignatureVerifierMock>();
+  auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
+
+  EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return unfold::UnfoldErrc::InstallerVerificationFailed; }));
+
+  EXPECT_CALL(*signature_verifier, set_key(_, _)).Times(0);
+
+  EXPECT_CALL(*signature_verifier, verify(_, _)).Times(0);
+
+  UpgradeInstaller installer(std::make_shared<TestPlatform>(), http, signature_verifier, sigstore_verifier, hooks);
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto rc = co_await installer.install(appcast->items.front());
+          EXPECT_EQ(rc.has_error(), true);
+          EXPECT_EQ(rc.error(), unfold::UnfoldErrc::InstallerVerificationFailed);
         }
       catch (std::exception &e)
         {
@@ -412,11 +487,11 @@ TEST_P(InstallerTest, InstallerStartedInstaller)
   TerminateHookType do_terminate = GetParam();
 
   unfold::http::HttpServer server;
-  server.add_file("/dummy.exe", "test-installer.exe");
+  server.add_file("/dummy.exe", find_test_bin_file("test-installer.exe"));
   server.run();
 
   std::error_code ec;
-  std::uintmax_t size = std::filesystem::file_size("test-installer.exe", ec);
+  std::uintmax_t size = std::filesystem::file_size(find_test_bin_file("test-installer.exe"), ec);
 
   std::string appcast_str =
     "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
@@ -451,15 +526,20 @@ TEST_P(InstallerTest, InstallerStartedInstaller)
       hooks->hook_terminate() = [do_terminate]() { return do_terminate == TerminateHookType::Terminate; };
     }
 
-  auto verifier = std::make_shared<SignatureVerifierMock>();
-  EXPECT_CALL(*verifier, set_key(_, _)).Times(0);
-  EXPECT_CALL(*verifier, verify(_, _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
+  auto signature_verifier = std::make_shared<SignatureVerifierMock>();
+  EXPECT_CALL(*signature_verifier, set_key(_, _)).Times(0);
+  EXPECT_CALL(*signature_verifier, verify(_, _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
+
+  auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
+
+  EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
 
   std::filesystem::remove("installer.log");
 
   auto platform = std::make_shared<TestPlatform>();
 
-  UpgradeInstaller installer(platform, http, verifier, hooks);
+  UpgradeInstaller installer(platform, http, signature_verifier, sigstore_verifier, hooks);
 
   double last_progress = 0.0;
   std::optional<unfold::UpdateStage> last_stage;
@@ -522,18 +602,16 @@ TEST_P(InstallerTest, InstallerStartedInstaller)
 
 INSTANTIATE_TEST_SUITE_P(TerminateHookTypes,
                          InstallerTest,
-                         ::testing::Values(TerminateHookType::NoTerminateHook,
-                                           TerminateHookType::NoTerminate,
-                                           TerminateHookType::Terminate));
+                         ::testing::Values(TerminateHookType::NoTerminateHook, TerminateHookType::NoTerminate, TerminateHookType::Terminate));
 
 TEST(Installer, StartedInstallerWithArgs)
 {
   unfold::http::HttpServer server;
-  server.add_file("/dummy.exe", "test-installer.exe");
+  server.add_file("/dummy.exe", find_test_bin_file("test-installer.exe"));
   server.run();
 
   std::error_code ec;
-  std::uintmax_t size = std::filesystem::file_size("test-installer.exe", ec);
+  std::uintmax_t size = std::filesystem::file_size(find_test_bin_file("test-installer.exe"), ec);
 
   std::string appcast_str =
     "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
@@ -564,15 +642,20 @@ TEST(Installer, StartedInstallerWithArgs)
 
   auto hooks = std::make_shared<Hooks>();
 
-  auto verifier = std::make_shared<SignatureVerifierMock>();
-  EXPECT_CALL(*verifier, set_key(_, _)).Times(0);
-  EXPECT_CALL(*verifier, verify(_, _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
+  auto signature_verifier = std::make_shared<SignatureVerifierMock>();
+  EXPECT_CALL(*signature_verifier, set_key(_, _)).Times(0);
+  EXPECT_CALL(*signature_verifier, verify(_, _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
+
+  auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
+
+  EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
 
   std::filesystem::remove("installer.log");
 
   auto platform = std::make_shared<TestPlatform>();
 
-  UpgradeInstaller installer(platform, http, verifier, hooks);
+  UpgradeInstaller installer(platform, http, signature_verifier, sigstore_verifier, hooks);
 
   double last_progress = 0.0;
   std::optional<unfold::UpdateStage> last_stage;
@@ -675,9 +758,13 @@ TEST(Installer, ValidationCallbackAccept)
   options.add_ca_cert(cert);
 
   auto hooks = std::make_shared<Hooks>();
-  auto verifier = std::make_shared<SignatureVerifierMock>();
+  auto signature_verifier = std::make_shared<SignatureVerifierMock>();
+  auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
-  UpgradeInstaller installer(std::make_shared<TestPlatform>(), http, verifier, hooks);
+  EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+
+  UpgradeInstaller installer(std::make_shared<TestPlatform>(), http, signature_verifier, sigstore_verifier, hooks);
 
   bool validation_called = false;
   installer.set_installer_validation_callback([&](const std::string &installer_path) -> outcome::std_result<bool> {
@@ -737,9 +824,13 @@ TEST(Installer, ValidationCallbackReject)
   options.add_ca_cert(cert);
 
   auto hooks = std::make_shared<Hooks>();
-  auto verifier = std::make_shared<SignatureVerifierMock>();
+  auto signature_verifier = std::make_shared<SignatureVerifierMock>();
+  auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
-  UpgradeInstaller installer(std::make_shared<TestPlatform>(), http, verifier, hooks);
+  EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+
+  UpgradeInstaller installer(std::make_shared<TestPlatform>(), http, signature_verifier, sigstore_verifier, hooks);
 
   bool validation_called = false;
   installer.set_installer_validation_callback([&](const std::string &installer_path) -> outcome::std_result<bool> {
@@ -767,3 +858,4 @@ TEST(Installer, ValidationCallbackReject)
     boost::asio::detached);
   ioc.run();
 }
+

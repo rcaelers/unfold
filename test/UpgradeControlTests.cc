@@ -18,29 +18,29 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#include <gtest/gtest.h>
-#include <gmock/gmock.h>
-
-#include <boost/algorithm/string.hpp>
-#include <boost/outcome/success_failure.hpp>
 #include <chrono>
 #include <memory>
 #include <optional>
+#include <boost/algorithm/string.hpp>
+#include <boost/outcome/success_failure.hpp>
+#include <gmock/gmock.h>
+#include <gtest/gtest.h>
 #include <spdlog/spdlog.h>
 
+#include "CheckerMock.hh"
+#include "InstallerMock.hh"
+#include "SettingsStorageMock.hh"
+#include "SignatureVerifierMock.hh"
+#include "SigstoreVerifierMock.hh"
+#include "TestPlatform.hh"
 #include "TimeSourceMock.hh"
 #include "UnfoldInternalErrors.hh"
+#include "UpgradeControl.hh"
 #include "unfold/Unfold.hh"
 #include "unfold/UnfoldErrors.hh"
 
-#include "TestPlatform.hh"
-#include "UpgradeControl.hh"
-#include "SettingsStorageMock.hh"
-#include "SignatureVerifierMock.hh"
-#include "CheckerMock.hh"
-#include "InstallerMock.hh"
-
 using ::testing::_;
+using ::testing::An;
 using ::testing::AtLeast;
 using ::testing::InvokeWithoutArgs;
 using ::testing::Return;
@@ -88,6 +88,7 @@ struct UpgradeControlTest : public ::testing::Test
     checker = std::make_shared<StrictMock<CheckerMock>>();
     time_source = std::make_shared<TimeSourceMock>();
     installer = std::make_shared<InstallerMock>();
+    sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
     EXPECT_CALL(*storage, get_value(::testing::_, ::testing::_)).WillRepeatedly(::testing::DoDefault());
     ON_CALL(*storage, get_value("Priority", SettingType::Int32)).WillByDefault(Return(outcome::success(0)));
@@ -95,12 +96,19 @@ struct UpgradeControlTest : public ::testing::Test
     EXPECT_CALL(*time_source, now()).WillRepeatedly(Return(std::chrono::system_clock::now()));
     ON_CALL(*time_source, now()).WillByDefault(Return(std::chrono::system_clock::now()));
 
-    control = std::make_shared<UpgradeControl>(platform, http, verifier, storage, installer, checker, time_source, io_context);
+    EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
+      .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+
+    EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::filesystem::path>()))
+      .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+
+    control = std::make_shared<UpgradeControl>(platform, http, verifier, sigstore_verifier, storage, installer, checker, time_source, io_context);
   }
 
   unfold::coro::IOContext io_context;
   std::shared_ptr<unfold::http::HttpClient> http;
   std::shared_ptr<SignatureVerifierMock> verifier;
+  std::shared_ptr<SigstoreVerifierMock> sigstore_verifier;
   std::shared_ptr<SettingsStorageMock> storage;
   std::shared_ptr<InstallerMock> installer;
   std::shared_ptr<StrictMock<CheckerMock>> checker;
@@ -117,10 +125,9 @@ struct unfold::utils::enum_traits<unfold::UpdateStage>
   static constexpr auto max = unfold::UpdateStage::RunInstaller;
   static constexpr auto linear = true;
 
-  static constexpr std::array<std::pair<std::string_view, unfold::UpdateStage>, 3> names{
-    {{"Download", unfold::UpdateStage::DownloadInstaller},
-     {"Run", unfold::UpdateStage::RunInstaller},
-     {"Verify", unfold::UpdateStage::VerifyInstaller}}};
+  static constexpr std::array<std::pair<std::string_view, unfold::UpdateStage>, 3> names{{{"Download", unfold::UpdateStage::DownloadInstaller},
+                                                                                          {"Run", unfold::UpdateStage::RunInstaller},
+                                                                                          {"Verify", unfold::UpdateStage::VerifyInstaller}}};
 };
 
 namespace unfold
@@ -141,9 +148,7 @@ TEST_F(UpgradeControlTest, PeriodicCheckLater)
 
   control->set_certificate(cert);
 
-  EXPECT_CALL(*verifier,
-              set_key(unfold::crypto::SignatureAlgorithmType::ECDSA,
-                      "MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM="))
+  EXPECT_CALL(*verifier, set_key(unfold::crypto::SignatureAlgorithmType::ECDSA, "MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM="))
     .Times(1)
     .WillOnce(Return(outcome::success()));
 
@@ -164,14 +169,10 @@ TEST_F(UpgradeControlTest, PeriodicCheckLater)
 
   EXPECT_CALL(*storage, set_value("Priority", _)).Times(1).WillRepeatedly(Return(outcome::success()));
 
-  EXPECT_CALL(*storage, get_value("LastUpdateCheckTime", SettingType::Int64))
-    .Times(AtLeast(1))
-    .WillRepeatedly(Return(outcome::success(32LL)));
+  EXPECT_CALL(*storage, get_value("LastUpdateCheckTime", SettingType::Int64)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success(32LL)));
 
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(*storage, get_value("SkipVersion", SettingType::String))
-    .Times(AtLeast(1))
-    .WillRepeatedly(Return(outcome::success("")));
+  EXPECT_CALL(*storage, get_value("SkipVersion", SettingType::String)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success("")));
   EXPECT_CALL(*storage, set_value("SkipVersion", SettingValue{""})).Times(2).WillRepeatedly(Return(outcome::success()));
 
   control->reset_skip_version();
@@ -184,20 +185,17 @@ TEST_F(UpgradeControlTest, PeriodicCheckLater)
 
   EXPECT_CALL(*checker, check_for_update())
     .Times(AtLeast(1))
-    .WillRepeatedly(
-      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
 
-  EXPECT_CALL(*checker, get_update_info())
-    .Times(AtLeast(1))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
-      auto info = std::make_shared<unfold::UpdateInfo>();
-      info->current_version = "1.10.45";
-      info->version = "1.11.0-alpha.1";
-      info->title = "Workrave";
-      auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
-      info->release_notes.push_back(r);
-      return info;
-    }));
+  EXPECT_CALL(*checker, get_update_info()).Times(AtLeast(1)).WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
+    auto info = std::make_shared<unfold::UpdateInfo>();
+    info->current_version = "1.10.45";
+    info->version = "1.11.0-alpha.1";
+    info->title = "Workrave";
+    auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
+    info->release_notes.push_back(r);
+    return info;
+  }));
 
   EXPECT_CALL(*checker, get_earliest_rollout_time_for_priority(_))
     .Times(AtLeast(1))
@@ -217,9 +215,7 @@ TEST_F(UpgradeControlTest, PeriodicCheckLaterLastCheckInFuture)
 
   control->set_certificate(cert);
 
-  EXPECT_CALL(*verifier,
-              set_key(unfold::crypto::SignatureAlgorithmType::ECDSA,
-                      "MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM="))
+  EXPECT_CALL(*verifier, set_key(unfold::crypto::SignatureAlgorithmType::ECDSA, "MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM="))
     .Times(1)
     .WillOnce(Return(outcome::success()));
 
@@ -241,14 +237,12 @@ TEST_F(UpgradeControlTest, PeriodicCheckLaterLastCheckInFuture)
   auto now = time_source->now();
   EXPECT_CALL(*storage, get_value("LastUpdateCheckTime", SettingType::Int64))
     .Times(AtLeast(1))
-    .WillRepeatedly(Return(outcome::success(
-      static_cast<int64_t>(std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count() + 3600))));
+    .WillRepeatedly(
+      Return(outcome::success(static_cast<int64_t>(std::chrono::duration_cast<std::chrono::microseconds>(now.time_since_epoch()).count() + 3600))));
 
   EXPECT_CALL(*storage, set_value("Priority", _)).Times(1).WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
-  EXPECT_CALL(*storage, get_value("SkipVersion", SettingType::String))
-    .Times(AtLeast(1))
-    .WillRepeatedly(Return(outcome::success("")));
+  EXPECT_CALL(*storage, get_value("SkipVersion", SettingType::String)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success("")));
   EXPECT_CALL(*storage, set_value("SkipVersion", SettingValue{""})).Times(2).WillRepeatedly(Return(outcome::success()));
 
   control->reset_skip_version();
@@ -261,20 +255,17 @@ TEST_F(UpgradeControlTest, PeriodicCheckLaterLastCheckInFuture)
 
   EXPECT_CALL(*checker, check_for_update())
     .Times(AtLeast(1))
-    .WillRepeatedly(
-      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
 
-  EXPECT_CALL(*checker, get_update_info())
-    .Times(AtLeast(1))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
-      auto info = std::make_shared<unfold::UpdateInfo>();
-      info->current_version = "1.10.45";
-      info->version = "1.11.0-alpha.1";
-      info->title = "Workrave";
-      auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
-      info->release_notes.push_back(r);
-      return info;
-    }));
+  EXPECT_CALL(*checker, get_update_info()).Times(AtLeast(1)).WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
+    auto info = std::make_shared<unfold::UpdateInfo>();
+    info->current_version = "1.10.45";
+    info->version = "1.11.0-alpha.1";
+    info->title = "Workrave";
+    auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
+    info->release_notes.push_back(r);
+    return info;
+  }));
 
   EXPECT_CALL(*checker, get_earliest_rollout_time_for_priority(_))
     .Times(AtLeast(1))
@@ -294,9 +285,7 @@ TEST_F(UpgradeControlTest, PeriodicCheckError)
 
   control->set_certificate(cert);
 
-  EXPECT_CALL(*verifier,
-              set_key(unfold::crypto::SignatureAlgorithmType::ECDSA,
-                      "MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM="))
+  EXPECT_CALL(*verifier, set_key(unfold::crypto::SignatureAlgorithmType::ECDSA, "MCowBQYDK2VwAyEA0vkFT/GcU/NEM9xoDqhiYK3/EaTXVAI95MOt+SnjCpM="))
     .Times(1)
     .WillOnce(Return(outcome::success()));
 
@@ -315,9 +304,7 @@ TEST_F(UpgradeControlTest, PeriodicCheckError)
   control->set_configuration_prefix("some\\prefix");
   control->set_configuration_prefix("some\\wrong\\prefix");
 
-  EXPECT_CALL(*storage, get_value("LastUpdateCheckTime", SettingType::Int64))
-    .Times(AtLeast(1))
-    .WillRepeatedly(Return(outcome::success(32LL)));
+  EXPECT_CALL(*storage, get_value("LastUpdateCheckTime", SettingType::Int64)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success(32LL)));
 
   EXPECT_CALL(*storage, set_value("Priority", _)).Times(1).WillRepeatedly(Return(outcome::success()));
   EXPECT_CALL(*storage, set_value("LastUpdateCheckTime", _)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success()));
@@ -335,9 +322,8 @@ TEST_F(UpgradeControlTest, PeriodicCheckError)
 
   EXPECT_CALL(*checker, check_for_update())
     .Times(AtLeast(1))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> {
-      co_return outcome::failure(UnfoldInternalErrc::InternalError);
-    }));
+    .WillRepeatedly(InvokeWithoutArgs(
+      []() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::failure(UnfoldInternalErrc::InternalError); }));
 
   control->set_periodic_update_check_enabled(true);
 
@@ -366,9 +352,8 @@ TEST_F(UpgradeControlTest, CheckerFailed)
 
   EXPECT_CALL(*checker, check_for_update())
     .Times(AtLeast(1))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> {
-      co_return outcome::failure(unfold::UnfoldErrc::AppcastDownloadFailed);
-    }));
+    .WillRepeatedly(InvokeWithoutArgs(
+      []() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::failure(unfold::UnfoldErrc::AppcastDownloadFailed); }));
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -416,8 +401,7 @@ TEST_F(UpgradeControlTest, NoUpgradeAvailable)
 
   EXPECT_CALL(*checker, check_for_update())
     .Times(AtLeast(1))
-    .WillRepeatedly(
-      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(false); }));
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(false); }));
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -463,8 +447,7 @@ TEST_F(UpgradeControlTest, NoUpgradeInfo)
 
   EXPECT_CALL(*checker, check_for_update())
     .Times(AtLeast(1))
-    .WillRepeatedly(
-      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
 
   EXPECT_CALL(*checker, get_update_info()).Times(1).WillRepeatedly(Return(std::shared_ptr<unfold::UpdateInfo>{}));
 
@@ -514,24 +497,19 @@ TEST_F(UpgradeControlTest, SkipVersion)
 
   EXPECT_CALL(*checker, check_for_update())
     .Times(AtLeast(1))
-    .WillRepeatedly(
-      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
 
-  EXPECT_CALL(*storage, get_value("SkipVersion", SettingType::String))
-    .Times(AtLeast(1))
-    .WillRepeatedly(Return(outcome::success("1.11.0-alpha.1")));
+  EXPECT_CALL(*storage, get_value("SkipVersion", SettingType::String)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success("1.11.0-alpha.1")));
 
-  EXPECT_CALL(*checker, get_update_info())
-    .Times(AtLeast(1))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
-      auto info = std::make_shared<unfold::UpdateInfo>();
-      info->current_version = "1.10.45";
-      info->version = "1.11.0-alpha.1";
-      info->title = "Workrave";
-      auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
-      info->release_notes.push_back(r);
-      return info;
-    }));
+  EXPECT_CALL(*checker, get_update_info()).Times(AtLeast(1)).WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
+    auto info = std::make_shared<unfold::UpdateInfo>();
+    info->current_version = "1.10.45";
+    info->version = "1.11.0-alpha.1";
+    info->title = "Workrave";
+    auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
+    info->release_notes.push_back(r);
+    return info;
+  }));
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -579,20 +557,17 @@ TEST_F(UpgradeControlTest, SkipVersionIgnore)
 
   EXPECT_CALL(*checker, check_for_update())
     .Times(AtLeast(1))
-    .WillRepeatedly(
-      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
 
-  EXPECT_CALL(*checker, get_update_info())
-    .Times(AtLeast(1))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
-      auto info = std::make_shared<unfold::UpdateInfo>();
-      info->current_version = "1.10.45";
-      info->version = "1.11.0-alpha.1";
-      info->title = "Workrave";
-      auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
-      info->release_notes.push_back(r);
-      return info;
-    }));
+  EXPECT_CALL(*checker, get_update_info()).Times(AtLeast(1)).WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
+    auto info = std::make_shared<unfold::UpdateInfo>();
+    info->current_version = "1.10.45";
+    info->version = "1.11.0-alpha.1";
+    info->title = "Workrave";
+    auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
+    info->release_notes.push_back(r);
+    return info;
+  }));
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -638,24 +613,19 @@ TEST_F(UpgradeControlTest, NotReadyYet)
 
   EXPECT_CALL(*checker, check_for_update())
     .Times(AtLeast(1))
-    .WillRepeatedly(
-      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
 
-  EXPECT_CALL(*storage, get_value("SkipVersion", SettingType::String))
-    .Times(AtLeast(1))
-    .WillRepeatedly(Return(outcome::success("")));
+  EXPECT_CALL(*storage, get_value("SkipVersion", SettingType::String)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success("")));
 
-  EXPECT_CALL(*checker, get_update_info())
-    .Times(AtLeast(1))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
-      auto info = std::make_shared<unfold::UpdateInfo>();
-      info->current_version = "1.10.45";
-      info->version = "1.11.0-alpha.1";
-      info->title = "Workrave";
-      auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
-      info->release_notes.push_back(r);
-      return info;
-    }));
+  EXPECT_CALL(*checker, get_update_info()).Times(AtLeast(1)).WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
+    auto info = std::make_shared<unfold::UpdateInfo>();
+    info->current_version = "1.10.45";
+    info->version = "1.11.0-alpha.1";
+    info->title = "Workrave";
+    auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
+    info->release_notes.push_back(r);
+    return info;
+  }));
 
   EXPECT_CALL(*storage, get_value("Priority", SettingType::Int32)).WillRepeatedly(Return(100));
 
@@ -699,20 +669,17 @@ TEST_F(UpgradeControlTest, NoCallback)
 
   EXPECT_CALL(*checker, check_for_update())
     .Times(AtLeast(1))
-    .WillRepeatedly(
-      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
 
-  EXPECT_CALL(*checker, get_update_info())
-    .Times(AtLeast(1))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
-      auto info = std::make_shared<unfold::UpdateInfo>();
-      info->current_version = "1.10.45";
-      info->version = "1.11.0-alpha.1";
-      info->title = "Workrave";
-      auto r = unfold::UpdateReleaseNotes{.version = "1.11.0-alpha.1", .date = "x", .markdown = "x"};
-      info->release_notes.push_back(r);
-      return info;
-    }));
+  EXPECT_CALL(*checker, get_update_info()).Times(AtLeast(1)).WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
+    auto info = std::make_shared<unfold::UpdateInfo>();
+    info->current_version = "1.10.45";
+    info->version = "1.11.0-alpha.1";
+    info->title = "Workrave";
+    auto r = unfold::UpdateReleaseNotes{.version = "1.11.0-alpha.1", .date = "x", .markdown = "x"};
+    info->release_notes.push_back(r);
+    return info;
+  }));
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -760,20 +727,17 @@ TEST_F(UpgradeControlTest, CallbackLater)
 
   EXPECT_CALL(*checker, check_for_update())
     .Times(AtLeast(1))
-    .WillRepeatedly(
-      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
 
-  EXPECT_CALL(*checker, get_update_info())
-    .Times(AtLeast(1))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
-      auto info = std::make_shared<unfold::UpdateInfo>();
-      info->current_version = "1.10.45";
-      info->version = "1.11.0-alpha.1";
-      info->title = "Workrave";
-      auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
-      info->release_notes.push_back(r);
-      return info;
-    }));
+  EXPECT_CALL(*checker, get_update_info()).Times(AtLeast(1)).WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
+    auto info = std::make_shared<unfold::UpdateInfo>();
+    info->current_version = "1.10.45";
+    info->version = "1.11.0-alpha.1";
+    info->title = "Workrave";
+    auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
+    info->release_notes.push_back(r);
+    return info;
+  }));
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -818,26 +782,21 @@ TEST_F(UpgradeControlTest, CallbackSkip)
 
   EXPECT_CALL(*checker, check_for_update())
     .Times(AtLeast(1))
-    .WillRepeatedly(
-      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
 
-  EXPECT_CALL(*storage, get_value("SkipVersion", SettingType::String))
-    .Times(AtLeast(1))
-    .WillRepeatedly(Return(outcome::success("1.11.0-alpha.0")));
+  EXPECT_CALL(*storage, get_value("SkipVersion", SettingType::String)).Times(AtLeast(1)).WillRepeatedly(Return(outcome::success("1.11.0-alpha.0")));
 
   EXPECT_CALL(*storage, set_value("SkipVersion", SettingValue{"1.11.0-alpha.1"})).Times(1).WillOnce(Return(outcome::success()));
 
-  EXPECT_CALL(*checker, get_update_info())
-    .Times(AtLeast(1))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
-      auto info = std::make_shared<unfold::UpdateInfo>();
-      info->current_version = "1.10.45";
-      info->version = "1.11.0-alpha.1";
-      info->title = "Workrave";
-      auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
-      info->release_notes.push_back(r);
-      return info;
-    }));
+  EXPECT_CALL(*checker, get_update_info()).Times(AtLeast(1)).WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
+    auto info = std::make_shared<unfold::UpdateInfo>();
+    info->current_version = "1.10.45";
+    info->version = "1.11.0-alpha.1";
+    info->title = "Workrave";
+    auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
+    info->release_notes.push_back(r);
+    return info;
+  }));
 
   EXPECT_CALL(*storage, get_value("Priority", SettingType::Int32)).WillRepeatedly(Return(80));
 
@@ -889,38 +848,32 @@ TEST_F(UpgradeControlTest, CallbackInstall)
 
   EXPECT_CALL(*installer, set_installer_validation_callback(_))
     .Times(AtLeast(1))
-    .WillRepeatedly(
-      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
 
-  control->set_installer_validation_callback(
-    [&](const std::string &installer_path) -> outcome::std_result<bool> { return outcome::success(true); });
+  control->set_installer_validation_callback([&](const std::string &installer_path) -> outcome::std_result<bool> { return outcome::success(true); });
 
   EXPECT_CALL(*checker, check_for_update())
     .Times(AtLeast(1))
-    .WillRepeatedly(
-      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
 
-  EXPECT_CALL(*checker, get_update_info())
-    .Times(AtLeast(1))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
-      auto info = std::make_shared<unfold::UpdateInfo>();
-      info->current_version = "1.10.45";
-      info->version = "1.11.0-alpha.1";
-      info->title = "Workrave";
-      auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
-      info->release_notes.push_back(r);
-      return info;
-    }));
+  EXPECT_CALL(*checker, get_update_info()).Times(AtLeast(1)).WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
+    auto info = std::make_shared<unfold::UpdateInfo>();
+    info->current_version = "1.10.45";
+    info->version = "1.11.0-alpha.1";
+    info->title = "Workrave";
+    auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
+    info->release_notes.push_back(r);
+    return info;
+  }));
 
   auto item = std::make_shared<AppcastItem>();
-  EXPECT_CALL(*checker, get_selected_update())
-    .Times(AtLeast(1))
-    .WillRepeatedly(InvokeWithoutArgs([item]() -> std::shared_ptr<AppcastItem> { return item; }));
+  EXPECT_CALL(*checker, get_selected_update()).Times(AtLeast(1)).WillRepeatedly(InvokeWithoutArgs([item]() -> std::shared_ptr<AppcastItem> {
+    return item;
+  }));
 
   EXPECT_CALL(*installer, install(item))
     .Times(AtLeast(1))
-    .WillRepeatedly(
-      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(
@@ -966,31 +919,27 @@ TEST_F(UpgradeControlTest, CallbackInstallFailed)
 
   EXPECT_CALL(*checker, check_for_update())
     .Times(AtLeast(1))
-    .WillRepeatedly(
-      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
 
-  EXPECT_CALL(*checker, get_update_info())
-    .Times(AtLeast(1))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
-      auto info = std::make_shared<unfold::UpdateInfo>();
-      info->current_version = "1.10.45";
-      info->version = "1.11.0-alpha.1";
-      info->title = "Workrave";
-      auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
-      info->release_notes.push_back(r);
-      return info;
-    }));
+  EXPECT_CALL(*checker, get_update_info()).Times(AtLeast(1)).WillRepeatedly(InvokeWithoutArgs([]() -> std::shared_ptr<unfold::UpdateInfo> {
+    auto info = std::make_shared<unfold::UpdateInfo>();
+    info->current_version = "1.10.45";
+    info->version = "1.11.0-alpha.1";
+    info->title = "Workrave";
+    auto r = unfold::UpdateReleaseNotes{"1.11.0-alpha.1", "x", "x"};
+    info->release_notes.push_back(r);
+    return info;
+  }));
 
   auto item = std::make_shared<AppcastItem>();
-  EXPECT_CALL(*checker, get_selected_update())
-    .Times(AtLeast(1))
-    .WillRepeatedly(InvokeWithoutArgs([item]() -> std::shared_ptr<AppcastItem> { return item; }));
+  EXPECT_CALL(*checker, get_selected_update()).Times(AtLeast(1)).WillRepeatedly(InvokeWithoutArgs([item]() -> std::shared_ptr<AppcastItem> {
+    return item;
+  }));
 
   EXPECT_CALL(*installer, install(item))
     .Times(AtLeast(1))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> {
-      co_return outcome::failure(unfold::UnfoldErrc::InternalError);
-    }));
+    .WillRepeatedly(InvokeWithoutArgs(
+      []() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::failure(unfold::UnfoldErrc::InternalError); }));
 
   boost::asio::io_context ioc;
   boost::asio::co_spawn(

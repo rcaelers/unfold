@@ -24,22 +24,19 @@
 #include <memory>
 #include <random>
 #include <utility>
-
 #include <boost/range/adaptors.hpp>
-
 #include <spdlog/fmt/ostr.h>
 
-#include "UpgradeChecker.hh"
-#include "UpgradeInstaller.hh"
 #include "Platform.hh"
 #include "Settings.hh"
 #include "SettingsStorage.hh"
-
-#include "unfold/Unfold.hh"
-#include "unfold/UnfoldErrors.hh"
-
+#include "UpgradeChecker.hh"
+#include "UpgradeInstaller.hh"
 #include "crypto/SignatureVerifier.hh"
 #include "http/HttpClient.hh"
+#include "sigstore/Context.hh"
+#include "unfold/Unfold.hh"
+#include "unfold/UnfoldErrors.hh"
 #include "utils/TimeSource.hh"
 
 namespace
@@ -68,12 +65,13 @@ UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform,
                                unfold::coro::IOContext &io_context)
   : platform(platform)
   , http(std::make_shared<unfold::http::HttpClient>())
-  , verifier(std::make_shared<unfold::crypto::SignatureVerifier>())
+  , signature_verifier(std::make_shared<unfold::crypto::SignatureVerifier>())
+  , sigstore_verifier(std::make_shared<SigstoreVerifier>(sigstore::Context::instance_default(), http))
   , hooks(std::make_shared<Hooks>())
   , storage(SettingsStorage::create())
   , state(std::make_shared<Settings>(storage))
-  , installer(std::make_shared<UpgradeInstaller>(platform, http, verifier, hooks))
-  , checker(std::make_shared<UpgradeChecker>(platform, http, hooks))
+  , installer(std::make_shared<UpgradeInstaller>(platform, http, signature_verifier, sigstore_verifier, hooks))
+  , checker(std::make_shared<UpgradeChecker>(platform, http, sigstore_verifier, hooks))
   , time_source(std::move(time_source))
   , check_timer(io_context.get_io_context())
 {
@@ -85,7 +83,8 @@ UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform,
 
 UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform,
                                std::shared_ptr<unfold::http::HttpClient> http,
-                               std::shared_ptr<unfold::crypto::SignatureVerifier> verifier,
+                               std::shared_ptr<unfold::crypto::SignatureVerifier> signature_verifier,
+                               std::shared_ptr<SigstoreVerifier> sigstore_verifier,
                                std::shared_ptr<SettingsStorage> storage,
                                std::shared_ptr<Installer> installer,
                                std::shared_ptr<Checker> checker,
@@ -93,7 +92,8 @@ UpgradeControl::UpgradeControl(std::shared_ptr<Platform> platform,
                                unfold::coro::IOContext &io_context)
   : platform(std::move(platform))
   , http(std::move(http))
-  , verifier(std::move(verifier))
+  , signature_verifier(std::move(signature_verifier))
+  , sigstore_verifier(std::move(sigstore_verifier))
   , hooks(std::make_shared<Hooks>())
   , storage(storage)
   , state(std::make_shared<Settings>(storage))
@@ -126,7 +126,7 @@ UpgradeControl::set_allowed_channels(const std::vector<std::string> &channels)
 outcome::std_result<void>
 UpgradeControl::set_signature_verification_key(const std::string &key)
 {
-  auto result = verifier->set_key(unfold::crypto::SignatureAlgorithmType::ECDSA, key);
+  auto result = signature_verifier->set_key(unfold::crypto::SignatureAlgorithmType::ECDSA, key);
   if (!result)
     {
       logger->error("invalid signature verification key '{}' ({})", key, result.error().message());
@@ -219,6 +219,24 @@ void
 UpgradeControl::set_installer_validation_callback(installer_validation_callback_t callback)
 {
   installer->set_installer_validation_callback(callback);
+}
+
+void
+UpgradeControl::set_sigstore_verification_enabled(bool enabled)
+{
+  if (sigstore_verifier)
+    {
+      sigstore_verifier->set_verification_enabled(enabled);
+    }
+}
+
+void
+UpgradeControl::set_sigstore_validation_callback(sigstore_validation_callback_t callback)
+{
+  if (sigstore_verifier)
+    {
+      sigstore_verifier->set_validation_callback(callback);
+    }
 }
 
 std::optional<std::chrono::system_clock::time_point>

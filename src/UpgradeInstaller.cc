@@ -24,17 +24,15 @@
 #include <memory>
 #include <system_error>
 #include <utility>
-#include <spdlog/fmt/ostr.h>
+#include <vector>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/outcome/try.hpp>
+#include <boost/url/parse.hpp>
+#include <boost/url/url.hpp>
+#include <boost/version.hpp>
 #include <fmt/os.h>
 #include <fmt/std.h>
-#include <vector>
-
-#include <boost/outcome/try.hpp>
-#include <boost/url/url.hpp>
-#include <boost/url/parse.hpp>
-#include <boost/algorithm/string/split.hpp>
-
-#include <boost/version.hpp>
+#include <spdlog/fmt/ostr.h>
 #if BOOST_VERSION < 108800
 #  include <boost/process.hpp>
 #else
@@ -42,20 +40,21 @@
 #  include <boost/process/v1/spawn.hpp>
 #endif
 
+#include "Platform.hh"
 #include "Unfold.hh"
 #include "UnfoldErrors.hh"
 #include "crypto/SignatureVerifier.hh"
 #include "utils/TempDirectory.hh"
 
-#include "Platform.hh"
-
 UpgradeInstaller::UpgradeInstaller(std::shared_ptr<Platform> platform,
                                    std::shared_ptr<unfold::http::HttpClient> http,
-                                   std::shared_ptr<unfold::crypto::SignatureVerifier> verifier,
+                                   std::shared_ptr<unfold::crypto::SignatureVerifier> signature_verifier,
+                                   std::shared_ptr<SigstoreVerifier> sigstore_verifier,
                                    std::shared_ptr<Hooks> hooks)
   : platform(std::move(platform))
   , http(std::move(http))
-  , verifier(std::move(verifier))
+  , signature_verifier(std::move(signature_verifier))
+  , sigstore_verifier(std::move(sigstore_verifier))
   , hooks(std::move(hooks))
 {
 }
@@ -177,6 +176,7 @@ UpgradeInstaller::verify_installer()
       co_return outcome::failure(unfold::UnfoldErrc::InstallerVerificationFailed);
     }
 
+  logger->info("verifying installer {} ({} {} bytes)", installer_path.string(), item->enclosure->length, size);
   if (item->enclosure->length != size)
     {
       logger->error("incorrect installer file size ({} instead of {})", size, item->enclosure->length);
@@ -186,7 +186,7 @@ UpgradeInstaller::verify_installer()
   auto rc = co_await boost::asio::async_compose<decltype(boost::asio::use_awaitable), void(outcome::std_result<void>)>(
     [this](auto &&self) {
       std::thread([this, self = std::move(self)]() mutable {
-        auto result = verifier->verify(installer_path.string(), item->enclosure->signature);
+        auto result = signature_verifier->verify(installer_path.string(), item->enclosure->signature);
         self.complete(result);
       }).detach();
     },
@@ -194,7 +194,16 @@ UpgradeInstaller::verify_installer()
 
   if (!rc)
     {
-      logger->error("signature failure ({})", rc.error().message());
+      logger->error("installer signature failure ({})", rc.error().message());
+      co_return outcome::failure(unfold::UnfoldErrc::InstallerVerificationFailed);
+    }
+
+  rc  = co_await sigstore_verifier->verify(item->enclosure->url + ".sigstore", installer_path);
+  logger->info("sigstore verification result: {}", rc.has_value() ? "success" : "failure");
+
+  if (!rc)
+    {
+      logger->error("installer sigstore signature failure ({})", rc.error().message());
       co_return outcome::failure(unfold::UnfoldErrc::InstallerVerificationFailed);
     }
 
@@ -206,10 +215,7 @@ UpgradeInstaller::fix_permissions()
 {
 #if !defined(_WIN32)
   std::error_code ec;
-  std::filesystem::permissions(installer_path.string(),
-                               std::filesystem::perms::owner_exec,
-                               std::filesystem::perm_options::add,
-                               ec);
+  std::filesystem::permissions(installer_path.string(), std::filesystem::perms::owner_exec, std::filesystem::perm_options::add, ec);
   if (ec)
     {
       logger->error("failed to make installer {} executable ({})", installer_path.string(), ec.message());

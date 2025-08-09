@@ -18,6 +18,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Debug
+        shell: bash
+        run: |
+          ls -la test/data
+          
       - name: Download extra packages
         shell: bash
         run: |

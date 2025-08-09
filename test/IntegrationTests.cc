@@ -1767,7 +1767,7 @@ TEST_F(IntegrationTest, CheckReleaseInvalidAppcastSigstore)
     boost::asio::detached);
   ioc.run();
   EXPECT_EQ(status.has_value(), false);
-  EXPECT_EQ(*last_stage, unfold::UpdateStage::DownloadInstaller);
+  EXPECT_EQ(last_stage.has_value(), false);
 }
 
 TEST_F(IntegrationTest, CheckReleaseInvalidInstallerSigstore)

@@ -22,6 +22,7 @@
 
 #include <exception>
 #include <memory>
+#include <optional>
 #include <system_error>
 #include <utility>
 #include <vector>
@@ -33,6 +34,8 @@
 #include <fmt/os.h>
 #include <fmt/std.h>
 #include <spdlog/fmt/ostr.h>
+
+#include "crypto/CertificateExtractor.hh"
 #if BOOST_VERSION < 108800
 #  include <boost/process.hpp>
 #else
@@ -88,11 +91,30 @@ UpgradeInstaller::install(std::shared_ptr<AppcastItem> item)
   // Validate installer if callback is set
   if (installer_validation_callback)
     {
-      unfold::UpdateEnclosureInfo install_info{
-        .download_url = item->enclosure->url,
-        .installer_filename = installer_path.filename().string(),
-        .installer_arguments = item->enclosure->installer_arguments,
-      };
+      unfold::crypto::CertificateExtractor cert_extractor;
+      auto cert_result = cert_extractor.extract_windows_authenticode(installer_path.string());
+
+      std::optional<unfold::AuthenticodeInfo> authenticode_info;
+      if (cert_result.has_value())
+        {
+          auto cert = cert_result.value();
+          authenticode_info = unfold::AuthenticodeInfo{.is_signed = cert.is_signed,
+                                                       .is_valid = cert.is_valid,
+                                                       .subject_name = cert.subject_name,
+                                                       .issuer_name = cert.issuer_name,
+                                                       .thumbprint = cert.thumbprint,
+                                                       .serial_number = cert.serial_number,
+                                                       .not_before = cert.not_before,
+                                                       .not_after = cert.not_after,
+                                                       .certificate_chain = cert.certificate_chain,
+                                                       .signature_algorithm = cert.signature_algorithm,
+                                                       .hash_algorithm = cert.hash_algorithm};
+        }
+
+      unfold::UpdateEnclosureInfo install_info{.download_url = item->enclosure->url,
+                                               .installer_filename = installer_path.filename().string(),
+                                               .installer_arguments = item->enclosure->installer_arguments,
+                                               .authenticode_info = authenticode_info};
 
       auto validation_result = installer_validation_callback(install_info);
       if (!validation_result)

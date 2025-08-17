@@ -21,20 +21,23 @@
 #ifndef CERTIFICATE_EXTRACTOR_HH
 #define CERTIFICATE_EXTRACTOR_HH
 
+// clang-format off
+#include <windows.h>
+// clang-format on
+
+#include <chrono>
 #include <minwindef.h>
 #include <string>
 #include <vector>
-#include <chrono>
+#include <wincrypt.h>
 #include <boost/outcome/std_result.hpp>
 
-#include <windows.h>
-#include <wincrypt.h>
+#include "utils/Logging.hh"
 
 namespace outcome = boost::outcome_v2;
 
 namespace unfold::crypto
 {
-
   struct CertificateInfo
   {
     bool is_signed{false};
@@ -96,12 +99,21 @@ namespace unfold::crypto
   class CertificateExtractor
   {
   public:
-    static outcome::std_result<CertificateInfo> extract_windows_authenticode(const std::string &file_path);
+    outcome::std_result<CertificateInfo> extract_windows_authenticode(const std::string &file_path);
 
   private:
-    static std::string get_certificate_name(PCCERT_CONTEXT cert_context, DWORD name_type);
-    static std::string get_certificate_thumbprint(PCCERT_CONTEXT cert_context);
-    static std::chrono::system_clock::time_point filetime_to_time_point(const FILETIME &ft);
+    outcome::std_result<CertificateInfo> extract_certificate_info_ng(const std::wstring &wide_path);
+    outcome::std_result<LONG> verify_file_signature(const std::wstring &wide_path);
+    outcome::std_result<PCCERT_CONTEXT> find_signer_certificate(HCRYPTMSG crypt_msg, HCERTSTORE cert_store);
+    std::chrono::system_clock::time_point filetime_to_time_point(const FILETIME &ft);
+    std::string get_certificate_name(PCCERT_CONTEXT cert_context, DWORD name_type, bool is_issuer = false);
+    std::string get_certificate_thumbprint(PCCERT_CONTEXT cert_context);
+    std::string get_signature_algorithm(const char *oid);
+    std::string get_hash_algorithm(const char *oid);
+    std::vector<std::string> extract_certificate_chain(HCERTSTORE cert_store);
+
+  private:
+    std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:crypto")};
   };
 
 } // namespace unfold::crypto

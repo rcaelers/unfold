@@ -33,11 +33,11 @@
 #endif
 #include <spdlog/fmt/ostr.h>
 
+#include "crypto/CertificateExtractor.hh"
 #include "crypto/SignatureVerifier.hh"
 #include "crypto/SignatureVerifierErrors.hh"
 #include "utils/Logging.hh"
 #include "utils/TestUtils.hh"
-// #include "crypto/CertificateExtractor.hh"
 
 using namespace unfold::crypto;
 using namespace unfold::utils;
@@ -222,25 +222,73 @@ TEST_F(CryptoTest, signature_verify_without_valid_pubkey)
   EXPECT_EQ(result.error(), SignatureVerifierErrc::InvalidPublicKey);
 }
 
-// TEST_F(CryptoTest, signature_verify_authenticode)
-// {
-//   std::string filename = "c:\\mystuff\\workrave-windows-1.11.0-rc.1.exe";
+TEST_F(CryptoTest, signature_verify_authenticode)
+{
+  std::string test_data_dir = TEST_DATA_DIR;
+  std::filesystem::path test_data_path = std::filesystem::path(test_data_dir).parent_path().parent_path().parent_path() / "test"
+                                         / "test-signed-installer.exe";
+  std::string filename = test_data_path.make_preferred().string();
 
-//   CertificateExtractor extractor;
-//   auto cert_info = extractor.extract_windows_authenticode(filename);
-//   EXPECT_TRUE(cert_info.has_value());
-//   if (cert_info.has_value())
-//     {
-//       auto &info = cert_info.value();
-//       EXPECT_EQ(info.signature_algorithm, "RSA");
-//       EXPECT_EQ(info.hash_algorithm, "SHA256");
-//       EXPECT_EQ(info.subject_name, "Rob Caelers");
-//       EXPECT_EQ(info.issuer_name, "Rob Caelers");
-//       EXPECT_EQ(info.thumbprint, "21cb7b51c1d30226fa537c5e117b50cf65bb14eb");
-//       // EXPECT_EQ(info.valid_from, std::chrono::system_clock::from_time_t(1633036800)); // 2021-10-01 00:00:00 UTC
-//       // EXPECT_EQ(info.valid_until, std::chrono::system_clock::from_time_t(1664572800)); // 2022-10-01 00:00:00 UTC
-//       EXPECT_EQ(info.is_valid, true);
-//       EXPECT_EQ(info.certificate_chain.size(), 0);
-//       // EXPECT_EQ(info.certificate_chain[0], "Workrave Project");
-//     }
-// }
+  spdlog::info("Verifying signature of {}", filename);
+
+  CertificateExtractor extractor;
+  auto cert_info = extractor.extract_windows_authenticode(filename);
+  EXPECT_TRUE(cert_info.has_value());
+  if (cert_info.has_value())
+    {
+      auto &info = cert_info.value();
+      EXPECT_EQ(info.signature_algorithm, "RSA-SHA256");
+      EXPECT_EQ(info.hash_algorithm, "SHA256");
+      EXPECT_EQ(info.subject_name, "Rob Caelers");
+      EXPECT_EQ(info.issuer_name, "Certum Code Signing 2021 CA");
+      EXPECT_EQ(info.thumbprint, "21cb7b51c1d30226fa537c5e117b50cf65bb14eb");
+      EXPECT_EQ(info.serial_number, "50ffb5e95d7027a5810e50a37b9b2723");
+      EXPECT_EQ(info.not_before, std::chrono::system_clock::from_time_t(1690005253)); // 2023-07-22 05:54:13 UTC
+      EXPECT_EQ(info.not_after, std::chrono::system_clock::from_time_t(1784613252));  // 2026-07-21 05:54:12 UTC
+      EXPECT_EQ(info.is_signed, true);
+      EXPECT_EQ(info.is_valid, true);
+      EXPECT_EQ(info.certificate_chain.size(), 4); // Full chain: signer + intermediate + intermediate + root
+      // Verify the complete certificate chain
+      if (info.certificate_chain.size() >= 4)
+        {
+          EXPECT_EQ(info.certificate_chain[0], "Rob Caelers");                 // Signing certificate
+          EXPECT_EQ(info.certificate_chain[1], "Certum Code Signing 2021 CA"); // Intermediate CA
+          EXPECT_EQ(info.certificate_chain[2], "Certum Trusted Network CA 2"); // Intermediate CA
+          EXPECT_EQ(info.certificate_chain[3], "Certum Trusted Network CA");   // Root CA
+        }
+    }
+}
+
+TEST_F(CryptoTest, signature_verify_authenticode_not_signed)
+{
+  std::string test_data_dir = TEST_DATA_DIR;
+  std::filesystem::path test_data_path = std::filesystem::path(test_data_dir).parent_path().parent_path().parent_path() / "bin"
+                                         / "test-installer.exe";
+  std::string filename = test_data_path.make_preferred().string();
+
+  spdlog::info("Verifying signature of {}", filename);
+
+  CertificateExtractor extractor;
+  auto cert_info = extractor.extract_windows_authenticode(filename);
+  EXPECT_TRUE(cert_info.has_value());
+  if (cert_info.has_value())
+    {
+      auto &info = cert_info.value();
+      EXPECT_EQ(info.is_signed, false);
+      EXPECT_EQ(info.is_valid, false);
+    }
+}
+
+TEST_F(CryptoTest, signature_verify_authenticode_not_found)
+{
+  std::string test_data_dir = TEST_DATA_DIR;
+  std::filesystem::path test_data_path = std::filesystem::path(test_data_dir).parent_path().parent_path().parent_path() / "bin"
+                                         / "non-existent-file.exe";
+  std::string filename = test_data_path.make_preferred().string();
+
+  spdlog::info("Verifying signature of {}", filename);
+
+  CertificateExtractor extractor;
+  auto cert_info = extractor.extract_windows_authenticode(filename);
+  EXPECT_TRUE(cert_info.has_error());
+}

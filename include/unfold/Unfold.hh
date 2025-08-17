@@ -56,11 +56,27 @@ namespace unfold
     std::list<UpdateReleaseNotes> release_notes;
   };
 
+  struct AuthenticodeInfo
+  {
+    bool is_signed{false};
+    bool is_valid{false};
+    std::string subject_name;
+    std::string issuer_name;
+    std::string thumbprint;
+    std::string serial_number;
+    std::chrono::system_clock::time_point not_before;
+    std::chrono::system_clock::time_point not_after;
+    std::vector<std::string> certificate_chain;
+    std::string signature_algorithm;
+    std::string hash_algorithm;
+  };
+
   struct UpdateEnclosureInfo
   {
     std::string download_url;
     std::string installer_filename;
     std::string installer_arguments;
+    std::optional<AuthenticodeInfo> authenticode_info;
   };
 
   enum class UpdateResponse

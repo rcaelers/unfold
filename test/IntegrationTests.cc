@@ -1592,8 +1592,15 @@ TEST_F(IntegrationTest, CheckReleaseValidSigstore)
   control.set_sigstore_verification_enabled(true);
 
   control.set_sigstore_validation_callback([](std::shared_ptr<sigstore::Bundle> bundle) -> outcome::std_result<bool> {
-    spdlog::info("Validating sigstore at {}", bundle->get_certificate_info()->subject_email());
+    spdlog::info("Validating sigstore: {}", bundle->get_certificate_info()->subject_email());
+    EXPECT_EQ(bundle->get_certificate_info()->subject_email(), "rob.caelers@gmail.com");
     return true;
+  });
+
+  control.set_pre_install_validation_callback([&](const unfold::UpdateEnclosureInfo &install_info) -> outcome::std_result<bool> {
+    spdlog::info("Validating installer: {}", install_info.authenticode_info->subject_name);
+    EXPECT_EQ(install_info.authenticode_info->subject_name, "Rob Caelers");
+    return outcome::success(true);
   });
 
   double last_progress = 0.0;

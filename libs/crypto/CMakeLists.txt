@@ -6,6 +6,7 @@ target_sources(unfold-crypto PRIVATE
   src/SignatureAlgorithm.cc
   src/SignatureVerifier.cc
   src/SignatureVerifierErrors.cc
+  src/CertificateExtractor.cc
 )
 
 target_link_libraries(unfold-crypto PRIVATE unfold-utils spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto imagehlp crypt32 wintrust)

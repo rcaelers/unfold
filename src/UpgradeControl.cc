@@ -209,16 +209,16 @@ UpgradeControl::set_update_status_callback(update_status_callback_t callback)
 }
 
 void
-UpgradeControl::set_update_validation_callback(update_validation_callback_t callback)
+UpgradeControl::set_pre_download_validation_callback(pre_download_validation_callback_t callback)
 {
   update_validation_callback = callback;
-  checker->set_update_validation_callback(callback);
+  checker->set_pre_download_validation_callback(callback);
 }
 
 void
-UpgradeControl::set_installer_validation_callback(installer_validation_callback_t callback)
+UpgradeControl::set_pre_install_validation_callback(pre_install_validation_callback_t callback)
 {
-  installer->set_installer_validation_callback(callback);
+  installer->set_pre_install_validation_callback(callback);
 }
 
 void

@@ -56,6 +56,13 @@ namespace unfold
     std::list<UpdateReleaseNotes> release_notes;
   };
 
+  struct UpdateEnclosureInfo
+  {
+    std::string download_url;
+    std::string installer_filename;
+    std::string installer_arguments;
+  };
+
   enum class UpdateResponse
   {
     Install,
@@ -88,8 +95,8 @@ namespace unfold
     using update_available_callback_t = std::function<boost::asio::awaitable<UpdateResponse>()>;
     using update_status_callback_t = std::function<void(outcome::std_result<void>)>;
     using download_progress_callback_t = std::function<void(UpdateStage stage, double progress)>;
-    using update_validation_callback_t = std::function<outcome::std_result<bool>(const UpdateInfo &update_info)>;
-    using installer_validation_callback_t = std::function<outcome::std_result<bool>(const std::string &installer_path)>;
+    using pre_download_validation_callback_t = std::function<outcome::std_result<bool>(const UpdateInfo &update_info)>;
+    using pre_install_validation_callback_t = std::function<outcome::std_result<bool>(const UpdateEnclosureInfo &installer_info)>;
     using sigstore_validation_callback_t = std::function<outcome::std_result<bool>(std::shared_ptr<sigstore::Bundle>)>;
 
     static std::shared_ptr<Unfold> create(unfold::coro::IOContext &io_context);
@@ -113,8 +120,8 @@ namespace unfold
     virtual void set_update_available_callback(update_available_callback_t callback) = 0;
     virtual void set_download_progress_callback(download_progress_callback_t callback) = 0;
     virtual void set_update_status_callback(update_status_callback_t callback) = 0;
-    virtual void set_update_validation_callback(update_validation_callback_t callback) = 0;
-    virtual void set_installer_validation_callback(installer_validation_callback_t callback) = 0;
+    virtual void set_pre_download_validation_callback(pre_download_validation_callback_t callback) = 0;
+    virtual void set_pre_install_validation_callback(pre_install_validation_callback_t callback) = 0;
     virtual void set_sigstore_verification_enabled(bool enabled) = 0;
     virtual void set_sigstore_validation_callback(sigstore_validation_callback_t callback) = 0;
 

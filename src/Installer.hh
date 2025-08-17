@@ -23,8 +23,8 @@
 
 #include <memory>
 
-#include "unfold/Unfold.hh"
 #include "AppCast.hh"
+#include "unfold/Unfold.hh"
 
 namespace outcome = boost::outcome_v2;
 
@@ -34,7 +34,7 @@ public:
   virtual ~Installer() = default;
 
   virtual void set_download_progress_callback(unfold::Unfold::download_progress_callback_t callback) = 0;
-  virtual void set_installer_validation_callback(unfold::Unfold::installer_validation_callback_t callback) = 0;
+  virtual void set_pre_install_validation_callback(unfold::Unfold::pre_install_validation_callback_t callback) = 0;
   virtual boost::asio::awaitable<outcome::std_result<void>> install(std::shared_ptr<AppcastItem> item) = 0;
 };
 

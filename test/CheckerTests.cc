@@ -921,7 +921,7 @@ TEST(CheckerTest, UpdateValidationCallbackAccept)
   EXPECT_EQ(rc.has_error(), false);
 
   bool validation_called = false;
-  checker.set_update_validation_callback([&](const unfold::UpdateInfo &update_info) -> outcome::std_result<bool> {
+  checker.set_pre_download_validation_callback([&](const unfold::UpdateInfo &update_info) -> outcome::std_result<bool> {
     validation_called = true;
     EXPECT_EQ(update_info.version, "1.11.0-alpha.1");
     return outcome::success(true); // Accept the update
@@ -991,7 +991,7 @@ TEST(CheckerTest, UpdateValidationCallbackReject)
   EXPECT_EQ(rc.has_error(), false);
 
   bool validation_called = false;
-  checker.set_update_validation_callback([&](const unfold::UpdateInfo &update_info) -> outcome::std_result<bool> {
+  checker.set_pre_download_validation_callback([&](const unfold::UpdateInfo &update_info) -> outcome::std_result<bool> {
     validation_called = true;
     EXPECT_EQ(update_info.version, "1.11.0-alpha.1");
     return outcome::success(false); // Reject the update
@@ -1048,7 +1048,7 @@ TEST(CheckerTest, UpdateValidationCallbackError)
   EXPECT_EQ(rc.has_error(), false);
 
   bool validation_called = false;
-  checker.set_update_validation_callback([&](const unfold::UpdateInfo &update_info) -> outcome::std_result<bool> {
+  checker.set_pre_download_validation_callback([&](const unfold::UpdateInfo &update_info) -> outcome::std_result<bool> {
     validation_called = true;
     return outcome::failure(unfold::UnfoldErrc::InternalError); // Validation error
   });
@@ -1094,8 +1094,8 @@ TEST(CheckerTest, SigstoreNotOk)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs(
-      []() -> boost::asio::awaitable<outcome::std_result<void>> { co_return unfold::UnfoldErrc::SigstoreVerificationFailed; }));
+    .WillRepeatedly(
+      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return unfold::UnfoldErrc::SigstoreVerificationFailed; }));
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, sigstore_verifier, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");

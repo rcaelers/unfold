@@ -21,20 +21,19 @@
 #ifndef UPGRADE_INSTALLER_HH
 #define UPGRADE_INSTALLER_HH
 
+#include <filesystem>
 #include <memory>
 #include <string>
-#include <filesystem>
 
-#include "SigstoreVerifier.hh"
-#include "http/HttpClient.hh"
-#include "crypto/SignatureVerifier.hh"
-#include "utils/Logging.hh"
-
-#include "unfold/Unfold.hh"
 #include "AppCast.hh"
-#include "Platform.hh"
 #include "Hooks.hh"
 #include "Installer.hh"
+#include "Platform.hh"
+#include "SigstoreVerifier.hh"
+#include "crypto/SignatureVerifier.hh"
+#include "http/HttpClient.hh"
+#include "unfold/Unfold.hh"
+#include "utils/Logging.hh"
 
 class UpgradeInstaller : public Installer
 {
@@ -46,7 +45,7 @@ public:
                             std::shared_ptr<Hooks> hooks);
 
   void set_download_progress_callback(unfold::Unfold::download_progress_callback_t callback) override;
-  void set_installer_validation_callback(unfold::Unfold::installer_validation_callback_t callback) override;
+  void set_pre_install_validation_callback(unfold::Unfold::pre_install_validation_callback_t callback) override;
 
   boost::asio::awaitable<outcome::std_result<void>> install(std::shared_ptr<AppcastItem> item) override;
 
@@ -68,7 +67,7 @@ private:
   std::shared_ptr<AppcastItem> item;
   std::filesystem::path installer_path;
   unfold::Unfold::download_progress_callback_t progress_callback;
-  unfold::Unfold::installer_validation_callback_t installer_validation_callback;
+  unfold::Unfold::pre_install_validation_callback_t installer_validation_callback;
   unfold::Unfold::update_status_callback_t update_status_callback;
   std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:installer")};
 };

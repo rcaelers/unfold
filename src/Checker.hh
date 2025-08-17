@@ -24,9 +24,8 @@
 #include <chrono>
 #include <string>
 
-#include "unfold/Unfold.hh"
-
 #include "AppCast.hh"
+#include "unfold/Unfold.hh"
 
 namespace outcome = boost::outcome_v2;
 
@@ -43,7 +42,7 @@ public:
   virtual void clear_xmldsig_trusted_keys() = 0;
   virtual void set_xmldsig_verification_enabled(bool enabled) = 0;
 #endif
-  virtual void set_update_validation_callback(unfold::Unfold::update_validation_callback_t callback) = 0;
+  virtual void set_pre_download_validation_callback(unfold::Unfold::pre_download_validation_callback_t callback) = 0;
   virtual std::shared_ptr<unfold::UpdateInfo> get_update_info() const = 0;
   virtual std::shared_ptr<AppcastItem> get_selected_update() const = 0;
   virtual std::chrono::seconds get_rollout_delay_for_priority(int priority) const = 0;

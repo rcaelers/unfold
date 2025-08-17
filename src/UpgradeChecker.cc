@@ -78,7 +78,7 @@ UpgradeChecker::set_allowed_channels(const std::vector<std::string> &channels)
 }
 
 void
-UpgradeChecker::set_update_validation_callback(unfold::Unfold::update_validation_callback_t callback)
+UpgradeChecker::set_pre_download_validation_callback(unfold::Unfold::pre_download_validation_callback_t callback)
 {
   update_validation_callback = callback;
 }

@@ -846,11 +846,12 @@ TEST_F(UpgradeControlTest, CallbackInstall)
     status = rc;
   });
 
-  EXPECT_CALL(*installer, set_installer_validation_callback(_))
+  EXPECT_CALL(*installer, set_pre_install_validation_callback(_))
     .Times(AtLeast(1))
     .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<bool>> { co_return outcome::success(true); }));
 
-  control->set_installer_validation_callback([&](const std::string &installer_path) -> outcome::std_result<bool> { return outcome::success(true); });
+  control->set_pre_install_validation_callback(
+    [&](const unfold::UpdateEnclosureInfo &install_info) -> outcome::std_result<bool> { return outcome::success(true); });
 
   EXPECT_CALL(*checker, check_for_update())
     .Times(AtLeast(1))

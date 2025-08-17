@@ -66,7 +66,7 @@ UpgradeInstaller::set_download_progress_callback(unfold::Unfold::download_progre
 }
 
 void
-UpgradeInstaller::set_installer_validation_callback(unfold::Unfold::installer_validation_callback_t callback)
+UpgradeInstaller::set_pre_install_validation_callback(unfold::Unfold::pre_install_validation_callback_t callback)
 {
   this->installer_validation_callback = callback;
 }
@@ -88,7 +88,13 @@ UpgradeInstaller::install(std::shared_ptr<AppcastItem> item)
   // Validate installer if callback is set
   if (installer_validation_callback)
     {
-      auto validation_result = installer_validation_callback(installer_path.string());
+      unfold::UpdateEnclosureInfo install_info{
+        .download_url = item->enclosure->url,
+        .installer_filename = installer_path.filename().string(),
+        .installer_arguments = item->enclosure->installer_arguments,
+      };
+
+      auto validation_result = installer_validation_callback(install_info);
       if (!validation_result)
         {
           logger->error("installer validation failed: {}", validation_result.error().message());
@@ -198,7 +204,7 @@ UpgradeInstaller::verify_installer()
       co_return outcome::failure(unfold::UnfoldErrc::InstallerVerificationFailed);
     }
 
-  rc  = co_await sigstore_verifier->verify(item->enclosure->url + ".sigstore", installer_path);
+  rc = co_await sigstore_verifier->verify(item->enclosure->url + ".sigstore", installer_path);
   logger->info("sigstore verification result: {}", rc.has_value() ? "success" : "failure");
 
   if (!rc)

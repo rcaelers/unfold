@@ -21,11 +21,10 @@
 #ifndef CHECKER_MOCK_HH
 #define CHECKER_MOCK_HH
 
-#include "gmock/gmock.h"
-
 #include <boost/outcome/std_result.hpp>
 
 #include "Checker.hh"
+#include "gmock/gmock.h"
 
 class CheckerMock : public Checker
 {
@@ -39,7 +38,7 @@ public:
   MOCK_METHOD(void, clear_xmldsig_trusted_keys, (), (override));
   MOCK_METHOD(void, set_xmldsig_verification_enabled, (bool enabled), (override));
 #endif
-  MOCK_METHOD(void, set_update_validation_callback, (unfold::Unfold::update_validation_callback_t callback), (override));
+  MOCK_METHOD(void, set_pre_download_validation_callback, (unfold::Unfold::pre_download_validation_callback_t callback), (override));
   MOCK_METHOD(std::shared_ptr<unfold::UpdateInfo>, get_update_info, (), (const, override));
   MOCK_METHOD(std::shared_ptr<AppcastItem>, get_selected_update, (), (const, override));
   MOCK_METHOD(std::chrono::seconds, get_rollout_delay_for_priority, (int priority), (const, override));

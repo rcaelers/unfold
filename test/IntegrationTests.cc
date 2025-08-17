@@ -377,7 +377,7 @@ TEST_F(IntegrationTest, UpdateError)
   });
 
   bool validation_called = false;
-  control.set_update_validation_callback([&](const unfold::UpdateInfo &update_info) -> outcome::std_result<bool> {
+  control.set_pre_download_validation_callback([&](const unfold::UpdateInfo &update_info) -> outcome::std_result<bool> {
     validation_called = true;
     return outcome::failure(unfold::UnfoldErrc::InternalError); // Validation error
   });
@@ -472,7 +472,7 @@ TEST_F(IntegrationTest, UpdateRejected)
   });
 
   bool validation_called = false;
-  control.set_update_validation_callback([&](const unfold::UpdateInfo &update_info) -> outcome::std_result<bool> {
+  control.set_pre_download_validation_callback([&](const unfold::UpdateInfo &update_info) -> outcome::std_result<bool> {
     validation_called = true;
     return outcome::success(false); // Reject the update
   });
@@ -568,7 +568,7 @@ TEST_F(IntegrationTest, UpdateAccepted)
   });
 
   bool validation_called = false;
-  control.set_update_validation_callback([&](const unfold::UpdateInfo &update_info) -> outcome::std_result<bool> {
+  control.set_pre_download_validation_callback([&](const unfold::UpdateInfo &update_info) -> outcome::std_result<bool> {
     validation_called = true;
     return outcome::success(true); // Accept the update
   });
@@ -664,7 +664,7 @@ TEST_F(IntegrationTest, InstallerAccepted)
   });
 
   bool validation_called = false;
-  control.set_installer_validation_callback([&](const std::string &installer_path) -> outcome::std_result<bool> {
+  control.set_pre_install_validation_callback([&](const unfold::UpdateEnclosureInfo &install_info) -> outcome::std_result<bool> {
     validation_called = true;
     return outcome::success(true); // Accept the installer
   });
@@ -759,7 +759,7 @@ TEST_F(IntegrationTest, InstallerRejected)
   });
 
   bool validation_called = false;
-  control.set_installer_validation_callback([&](const std::string &installer_path) -> outcome::std_result<bool> {
+  control.set_pre_install_validation_callback([&](const unfold::UpdateEnclosureInfo &install_info) -> outcome::std_result<bool> {
     validation_called = true;
     return outcome::success(false);
   });
@@ -854,7 +854,7 @@ TEST_F(IntegrationTest, InstallerError)
   });
 
   bool validation_called = false;
-  control.set_installer_validation_callback([&](const std::string &installer_path) -> outcome::std_result<bool> {
+  control.set_pre_install_validation_callback([&](const unfold::UpdateEnclosureInfo &install_info) -> outcome::std_result<bool> {
     validation_called = true;
     return outcome::failure(unfold::UnfoldErrc::InternalError); // Simulate an error during installer validation
   });

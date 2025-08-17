@@ -53,7 +53,7 @@ public:
   void clear_xmldsig_trusted_keys() override;
   void set_xmldsig_verification_enabled(bool enabled) override;
 #endif
-  void set_update_validation_callback(unfold::Unfold::update_validation_callback_t callback) override;
+  void set_pre_download_validation_callback(unfold::Unfold::pre_download_validation_callback_t callback) override;
   std::shared_ptr<unfold::UpdateInfo> get_update_info() const override;
   std::shared_ptr<AppcastItem> get_selected_update() const override;
   std::chrono::seconds get_rollout_delay_for_priority(int priority) const override;
@@ -79,7 +79,7 @@ private:
 
   std::shared_ptr<AppcastItem> selected_item;
   std::shared_ptr<unfold::UpdateInfo> update_info;
-  unfold::Unfold::update_validation_callback_t update_validation_callback;
+  unfold::Unfold::pre_download_validation_callback_t update_validation_callback;
   std::shared_ptr<AppcastReader> appcast_reader;
 
   std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:checker")};

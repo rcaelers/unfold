@@ -74,8 +74,8 @@ public:
   void set_update_available_callback(update_available_callback_t callback) override;
   void set_download_progress_callback(download_progress_callback_t callback) override;
   void set_update_status_callback(update_status_callback_t callback) override;
-  void set_update_validation_callback(update_validation_callback_t callback) override;
-  void set_installer_validation_callback(installer_validation_callback_t callback) override;
+  void set_pre_download_validation_callback(pre_download_validation_callback_t callback) override;
+  void set_pre_install_validation_callback(pre_install_validation_callback_t callback) override;
   void set_sigstore_verification_enabled(bool enabled) override;
   void set_sigstore_validation_callback(sigstore_validation_callback_t callback) override;
   std::optional<std::chrono::system_clock::time_point> get_last_update_check_time() override;
@@ -121,7 +121,7 @@ private:
 
   update_available_callback_t update_available_callback;
   update_status_callback_t update_status_callback;
-  update_validation_callback_t update_validation_callback;
+  pre_download_validation_callback_t update_validation_callback;
 
   std::shared_ptr<spdlog::logger> logger{unfold::utils::Logging::create("unfold:control")};
 };

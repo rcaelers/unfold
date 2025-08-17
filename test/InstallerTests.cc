@@ -774,7 +774,7 @@ TEST(Installer, ValidationCallbackAccept)
   UpgradeInstaller installer(std::make_shared<TestPlatform>(), http, signature_verifier, sigstore_verifier, hooks);
 
   bool validation_called = false;
-  installer.set_installer_validation_callback([&](const std::string &installer_path) -> outcome::std_result<bool> {
+  installer.set_pre_install_validation_callback([&](const unfold::UpdateEnclosureInfo &install_info) -> outcome::std_result<bool> {
     validation_called = true;
     return outcome::success(true); // Accept the installer
   });
@@ -840,7 +840,7 @@ TEST(Installer, ValidationCallbackReject)
   UpgradeInstaller installer(std::make_shared<TestPlatform>(), http, signature_verifier, sigstore_verifier, hooks);
 
   bool validation_called = false;
-  installer.set_installer_validation_callback([&](const std::string &installer_path) -> outcome::std_result<bool> {
+  installer.set_pre_install_validation_callback([&](const unfold::UpdateEnclosureInfo &install_info) -> outcome::std_result<bool> {
     validation_called = true;
     return outcome::success(false); // Reject the installer
   });

@@ -106,7 +106,7 @@ if(NOT ${spdlog_FOUND})
       spdlog
       GIT_REPOSITORY https://github.com/gabime/spdlog.git
       GIT_SHALLOW TRUE
-      GIT_TAG v1.15.2
+      GIT_TAG v1.15.3
     )
   set(SPDLOG_BUILD_SHARED ON)
   FetchContent_MakeAvailable(spdlog)
@@ -120,7 +120,7 @@ add_definitions(-DSPDLOG_WCHAR_TO_UTF8_SUPPORT)
 FetchContent_Declare(
   sigstore
   GIT_REPOSITORY https://github.com/rcaelers/sigstore-verifier-cpp
-  GIT_TAG a280f24e9c1510117d6a06b591cf84b640fa4b95
+  GIT_TAG 00c7784b3983e0e450b4ef2005e75667bbf4f781
 )
 FetchContent_MakeAvailable(sigstore)
 
@@ -161,7 +161,7 @@ if (UNFOLD_WITH_TESTS)
     googletest
     GIT_REPOSITORY https://github.com/google/googletest.git
     GIT_SHALLOW TRUE
-    GIT_TAG v1.16.0
+    GIT_TAG v1.17.0
   )
   # For Windows: Prevent overriding the parent project's compiler/linker settings
   set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)

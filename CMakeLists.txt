@@ -106,7 +106,7 @@ if(NOT ${spdlog_FOUND})
       spdlog
       GIT_REPOSITORY https://github.com/gabime/spdlog.git
       GIT_SHALLOW TRUE
-      GIT_TAG v1.15.3
+      GIT_TAG v1.17.0
     )
   set(SPDLOG_BUILD_SHARED ON)
   FetchContent_MakeAvailable(spdlog)

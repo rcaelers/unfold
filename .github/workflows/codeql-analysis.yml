@@ -9,7 +9,7 @@
 # the `language` matrix defined below to confirm you have the correct set of
 # supported CodeQL languages.
 #
-name: "CodeQL"
+name: 'CodeQL'
 
 on:
   push:
@@ -19,7 +19,7 @@ on:
     branches:
       - main
   schedule:
-    - cron: "34 13 * * 6"
+    - cron: '34 13 * * 6'
 
 jobs:
   analyze:
@@ -35,7 +35,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -68,7 +68,7 @@ jobs:
             tar
             xz
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: 3.9
 

@@ -21,7 +21,6 @@
 #include "WindowsPlatform.hh"
 
 #include <windows.h>
-
 #include <boost/algorithm/string.hpp>
 
 #include "semver.hpp"
@@ -33,8 +32,13 @@ WindowsPlatform::is_supported_os(const std::string &os)
     {
       return true;
     }
-#ifdef _WIN64
+#if defined(_M_X64) || defined(__x86_64__)
   if (boost::iequals(os, "windows-x64"))
+    {
+      return true;
+    }
+#elif defined(_M_ARM64) || defined(__aarch64__)
+  if (boost::iequals(os, "windows-arm64"))
     {
       return true;
     }
@@ -63,13 +67,12 @@ WindowsPlatform::is_supported_os_version(const std::string &minimum_version)
 
   OSVERSIONINFOEXW osvi = {sizeof(osvi), version.major, version.minor, version.patch, 0, {0}, 0, 0};
 
-  return !VerifyVersionInfoW(&osvi,
-                             VER_MAJORVERSION | VER_MINORVERSION | VER_SERVICEPACKMAJOR,
-                             VerSetConditionMask(VerSetConditionMask(VerSetConditionMask(0, VER_MAJORVERSION, VER_GREATER_EQUAL),
-                                                                     VER_MINORVERSION,
-                                                                     VER_GREATER_EQUAL),
-                                                 VER_SERVICEPACKMAJOR,
-                                                 VER_GREATER_EQUAL));
+  return !VerifyVersionInfoW(
+    &osvi,
+    VER_MAJORVERSION | VER_MINORVERSION | VER_SERVICEPACKMAJOR,
+    VerSetConditionMask(VerSetConditionMask(VerSetConditionMask(0, VER_MAJORVERSION, VER_GREATER_EQUAL), VER_MINORVERSION, VER_GREATER_EQUAL),
+                        VER_SERVICEPACKMAJOR,
+                        VER_GREATER_EQUAL));
 }
 
 void

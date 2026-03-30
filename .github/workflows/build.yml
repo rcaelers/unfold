@@ -22,36 +22,6 @@ jobs:
         shell: bash
         run: |
           ls -la test/data
-          
-      - name: Download extra packages
-        shell: bash
-        run: |
-          gh release download windows-latest \
-            --repo rcaelers/workrave-dependencies \
-            --pattern "workrave-mingw-packages.tar.gz"
-          echo "Downloaded files:"
-          ls -la *.tar.gz
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Verify attestation
-        shell: bash
-        run: |
-          gh attestation verify workrave-mingw-packages.tar.gz \
-            --repo rcaelers/workrave-dependencies \
-            --format json > attestation-result.json
-          echo "Attestation verification successful!"
-          cat attestation-result.json | jq '.'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract and verify contents
-        shell: bash
-        run: |
-          mkdir _ext
-          tar -xzf workrave-mingw-packages.tar.gz -C _ext
-          echo "Extracted contents:"
-          find _ext -type f -name "*.pkg.tar.*" | head -10
 
       - uses: msys2/setup-msys2@v2
         with:
@@ -84,7 +54,6 @@ jobs:
 
       - shell: msys2 {0}
         run: |
-          pacman -U _ext/*.pkg.tar.zst --noconfirm --needed
           mkdir _build _deploy
           export MINGW_ROOT=/c/msys64
           export MSYSTEM=CLANG64

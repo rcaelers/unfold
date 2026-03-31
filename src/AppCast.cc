@@ -293,7 +293,7 @@ AppcastReader::parse_item(boost::property_tree::ptree item_pt)
   item->release_notes_link = item_pt.get<std::string>("sparkle:releaseNotesLink", "");
   item->publication_date = item_pt.get<std::string>("pubDate", "");
   item->minimum_system_version = item_pt.get<std::string>("sparkle:minimumSystemVersion", "");
-  item->minimum_auto_update_version = item_pt.get<std::string>("sparkle:minimumAutoupdateVersion>", "");
+  item->minimum_auto_update_version = item_pt.get<std::string>("sparkle:minimumAutoupdateVersion", "");
   item->ignore_skipped_upgrades_below_version = item_pt.get<std::string>("sparkle:ignoreSkippedUpgradesBelowVersion", "");
 
   // Parse rollout intervals
@@ -494,6 +494,11 @@ AppcastReader::validate_item(std::shared_ptr<AppcastItem> item)
   if (!item->release_notes_link.empty() && !is_secure_url(item->release_notes_link))
     {
       logger->warn("release notes URL is not secure (HTTP instead of HTTPS): {}", item->release_notes_link);
+    }
+
+  if (!item->minimum_auto_update_version.empty() && !is_valid_version(item->minimum_auto_update_version))
+    {
+      throw std::runtime_error("invalid minimum auto-update version: " + item->minimum_auto_update_version);
     }
 
   if (item->critical_update)

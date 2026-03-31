@@ -1231,6 +1231,66 @@ TEST(AppCastTest, MissingEnclosureForItem)
   EXPECT_EQ(appcast->items.size(), 0); // Item is filtered out due to missing enclosure
 }
 
+TEST(AppCastTest, MinimumAutoupdateVersion)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  std::string appcast_str =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\"\n"
+    "    xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 2.1</title>\n"
+    "            <link>https://example.com</link>\n"
+    "            <sparkle:version>2.1.0</sparkle:version>\n"
+    "            <sparkle:minimumAutoupdateVersion>2.0.0</sparkle:minimumAutoupdateVersion>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure url=\"https://example.com/v2.zip\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"1234\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(appcast_str);
+
+  ASSERT_NE(appcast, nullptr);
+  ASSERT_EQ(appcast->items.size(), 1);
+  EXPECT_EQ(appcast->items[0]->version, "2.1.0");
+  EXPECT_EQ(appcast->items[0]->minimum_auto_update_version, "2.0.0");
+}
+
+TEST(AppCastTest, InvalidMinimumAutoupdateVersion)
+{
+  auto reader = std::make_shared<AppcastReader>([](auto item) { return true; });
+
+  std::string appcast_str =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\"\n"
+    "    xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Test Appcast</title>\n"
+    "        <description>Test updates</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://example.com/</link>\n"
+    "        <item>\n"
+    "            <title>Version 2.1</title>\n"
+    "            <link>https://example.com</link>\n"
+    "            <sparkle:version>2.1.0</sparkle:version>\n"
+    "            <sparkle:minimumAutoupdateVersion>not-a-version</sparkle:minimumAutoupdateVersion>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure url=\"https://example.com/v2.zip\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"1234\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  auto appcast = reader->load_from_string(appcast_str);
+  EXPECT_EQ(appcast, nullptr);
+}
+
 #ifdef UNFOLD_WITH_XMLSEC
 
 TEST(AppCastTest, XMLDSigVerificationDisabledByDefault)

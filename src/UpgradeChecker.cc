@@ -20,6 +20,7 @@
 
 #include "UpgradeChecker.hh"
 
+#include <algorithm>
 #include <exception>
 #include <memory>
 #include <utility>
@@ -225,14 +226,41 @@ UpgradeChecker::parse_appcast(const std::string &appcast_xml)
       return unfold::UnfoldErrc::InvalidAppcast;
     }
 
-  auto items = appcast->items;
-  std::sort(items.begin(), items.end(), [&](auto a, auto b) -> bool {
-    semver::version versiona;
-    auto rca = versiona.from_string_noexcept(a->version);
-    semver::version versionb;
-    auto rcb = versionb.from_string_noexcept(b->version);
-    return rca && rcb && a < b;
+  auto &items = appcast->items;
+  std::ranges::sort(items, [](const auto &a, const auto &b) -> bool {
+    semver::version va;
+    semver::version vb;
+    bool oka = va.from_string_noexcept(a->version);
+    bool okb = vb.from_string_noexcept(b->version);
+    if (!oka || !okb)
+      {
+        return oka && !okb;
+      }
+    return va < vb;
   });
+
+  // If an item has minimumAutoupdateVersion set and current_version < that version,
+  // that item and all higher-versioned items are not applicable.
+  auto it = std::ranges::find_if(items, [this](const auto &item) {
+    if (item->minimum_auto_update_version.empty())
+      {
+        return false;
+      }
+    semver::version min_version;
+    if (!min_version.from_string_noexcept(item->minimum_auto_update_version))
+      {
+        return false;
+      }
+    return current_version < min_version;
+  });
+
+  if (it != items.end())
+    {
+      items.erase(it, items.end());
+    }
+
+  // Reverse to descending order (highest version first)
+  std::ranges::reverse(items);
 
   return appcast;
 }
@@ -250,8 +278,7 @@ UpgradeChecker::is_applicable(std::shared_ptr<AppcastItem> item)
       return false;
     }
 
-  if (!item->channel.empty() && !allowed_channels.empty()
-      && std::find(allowed_channels.begin(), allowed_channels.end(), item->channel) == allowed_channels.end())
+  if (!item->channel.empty() && !allowed_channels.empty() && std::ranges::find(allowed_channels, item->channel) == allowed_channels.end())
     {
       return false;
     }

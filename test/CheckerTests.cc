@@ -1126,3 +1126,331 @@ TEST(CheckerTest, SigstoreNotOk)
 
   server.stop();
 }
+
+TEST(CheckerTest, MinimumAutoupdateVersionBlocksUpdate)
+{
+  // Versions 1-6 in appcast. Version 5 has minimumAutoupdateVersion=3.0.0.
+  // Current version is 2.0.0 (below 3.0.0), so version 5 and 6 are not applicable.
+  // The update should propose version 4.0.0.
+  std::string appcast_str =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\"\n"
+    "    xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Workrave</title>\n"
+    "        <description>Workrave</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://workrave.org/</link>\n"
+    "        <item>\n"
+    "            <title>Version 6.0.0</title>\n"
+    "            <link>https://workrave.org</link>\n"
+    "            <sparkle:version>6.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure os=\"windows-x64\" url=\"https://127.0.0.1:1337/dummy.exe\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"8192\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "        <item>\n"
+    "            <title>Version 5.0.0</title>\n"
+    "            <link>https://workrave.org</link>\n"
+    "            <sparkle:version>5.0.0</sparkle:version>\n"
+    "            <sparkle:minimumAutoupdateVersion>3.0.0</sparkle:minimumAutoupdateVersion>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure os=\"windows-x64\" url=\"https://127.0.0.1:1337/dummy.exe\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"8192\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "        <item>\n"
+    "            <title>Version 4.0.0</title>\n"
+    "            <link>https://workrave.org</link>\n"
+    "            <sparkle:version>4.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure os=\"windows-x64\" url=\"https://127.0.0.1:1337/dummy.exe\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"8192\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "        <item>\n"
+    "            <title>Version 3.0.0</title>\n"
+    "            <link>https://workrave.org</link>\n"
+    "            <sparkle:version>3.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure os=\"windows-x64\" url=\"https://127.0.0.1:1337/dummy.exe\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"8192\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "        <item>\n"
+    "            <title>Version 2.0.0</title>\n"
+    "            <link>https://workrave.org</link>\n"
+    "            <sparkle:version>2.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure os=\"windows-x64\" url=\"https://127.0.0.1:1337/dummy.exe\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"8192\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "        <item>\n"
+    "            <title>Version 1.0.0</title>\n"
+    "            <link>https://workrave.org</link>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure os=\"windows-x64\" url=\"https://127.0.0.1:1337/dummy.exe\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"8192\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  unfold::http::HttpServer server;
+  server.add("/appcast.xml", appcast_str);
+  server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
+  options.add_ca_cert(cert);
+
+  auto hooks = std::make_shared<Hooks>();
+  auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
+
+  EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+  UpgradeChecker checker(std::make_shared<TestPlatform>(), http, sigstore_verifier, hooks);
+
+  auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = checker.set_current_version("2.0.0");
+  EXPECT_EQ(rc.has_error(), false);
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto check_result = co_await checker.check_for_update();
+          EXPECT_EQ(check_result.has_error(), false);
+          EXPECT_EQ(check_result.value(), true);
+
+          auto info = checker.get_update_info();
+          EXPECT_NE(info, nullptr);
+          EXPECT_EQ(info->version, "4.0.0");
+          EXPECT_EQ(info->release_notes.size(), 2);
+          EXPECT_EQ(info->release_notes.front().version, "4.0.0");
+          EXPECT_EQ(info->release_notes.back().version, "3.0.0");
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          EXPECT_TRUE(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+
+  server.stop();
+}
+
+TEST(CheckerTest, MinimumAutoupdateVersionAllowsUpdateWhenAtMinimum)
+{
+  // Same appcast as above but current version is 3.0.0 (== minimumAutoupdateVersion).
+  // Version 5 and 6 are now applicable, so update to version 6 is proposed.
+  std::string appcast_str =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\"\n"
+    "    xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Workrave</title>\n"
+    "        <description>Workrave</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://workrave.org/</link>\n"
+    "        <item>\n"
+    "            <title>Version 6.0.0</title>\n"
+    "            <link>https://workrave.org</link>\n"
+    "            <sparkle:version>6.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure os=\"windows-x64\" url=\"https://127.0.0.1:1337/dummy.exe\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"8192\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "        <item>\n"
+    "            <title>Version 5.0.0</title>\n"
+    "            <link>https://workrave.org</link>\n"
+    "            <sparkle:version>5.0.0</sparkle:version>\n"
+    "            <sparkle:minimumAutoupdateVersion>3.0.0</sparkle:minimumAutoupdateVersion>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure os=\"windows-x64\" url=\"https://127.0.0.1:1337/dummy.exe\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"8192\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "        <item>\n"
+    "            <title>Version 4.0.0</title>\n"
+    "            <link>https://workrave.org</link>\n"
+    "            <sparkle:version>4.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure os=\"windows-x64\" url=\"https://127.0.0.1:1337/dummy.exe\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"8192\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "        <item>\n"
+    "            <title>Version 3.0.0</title>\n"
+    "            <link>https://workrave.org</link>\n"
+    "            <sparkle:version>3.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure os=\"windows-x64\" url=\"https://127.0.0.1:1337/dummy.exe\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"8192\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "        <item>\n"
+    "            <title>Version 2.0.0</title>\n"
+    "            <link>https://workrave.org</link>\n"
+    "            <sparkle:version>2.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure os=\"windows-x64\" url=\"https://127.0.0.1:1337/dummy.exe\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"8192\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "        <item>\n"
+    "            <title>Version 1.0.0</title>\n"
+    "            <link>https://workrave.org</link>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure os=\"windows-x64\" url=\"https://127.0.0.1:1337/dummy.exe\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"8192\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  unfold::http::HttpServer server;
+  server.add("/appcast.xml", appcast_str);
+  server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
+  options.add_ca_cert(cert);
+
+  auto hooks = std::make_shared<Hooks>();
+  auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
+
+  EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+  UpgradeChecker checker(std::make_shared<TestPlatform>(), http, sigstore_verifier, hooks);
+
+  auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = checker.set_current_version("3.0.0");
+  EXPECT_EQ(rc.has_error(), false);
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto check_result = co_await checker.check_for_update();
+          EXPECT_EQ(check_result.has_error(), false);
+          EXPECT_EQ(check_result.value(), true);
+
+          auto info = checker.get_update_info();
+          EXPECT_NE(info, nullptr);
+          EXPECT_EQ(info->version, "6.0.0");
+          EXPECT_EQ(info->release_notes.size(), 3);
+          EXPECT_EQ(info->release_notes.front().version, "6.0.0");
+          EXPECT_EQ(info->release_notes.back().version, "4.0.0");
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          EXPECT_TRUE(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+
+  server.stop();
+}
+
+TEST(CheckerTest, MinimumAutoupdateVersionAllowsUpdateWhenAboveMinimum)
+{
+  // Same appcast, current version is 4.0.0 (above minimumAutoupdateVersion=3.0.0).
+  // All items are applicable, so update to version 6 is proposed.
+  std::string appcast_str =
+    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+    "<rss version=\"2.0\"\n"
+    "    xmlns:sparkle=\"http://www.andymatuschak.org/xml-namespaces/sparkle\">\n"
+    "    <channel>\n"
+    "        <title>Workrave</title>\n"
+    "        <description>Workrave</description>\n"
+    "        <language>en</language>\n"
+    "        <link>https://workrave.org/</link>\n"
+    "        <item>\n"
+    "            <title>Version 6.0.0</title>\n"
+    "            <link>https://workrave.org</link>\n"
+    "            <sparkle:version>6.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure os=\"windows-x64\" url=\"https://127.0.0.1:1337/dummy.exe\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"8192\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "        <item>\n"
+    "            <title>Version 5.0.0</title>\n"
+    "            <link>https://workrave.org</link>\n"
+    "            <sparkle:version>5.0.0</sparkle:version>\n"
+    "            <sparkle:minimumAutoupdateVersion>3.0.0</sparkle:minimumAutoupdateVersion>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure os=\"windows-x64\" url=\"https://127.0.0.1:1337/dummy.exe\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"8192\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "        <item>\n"
+    "            <title>Version 4.0.0</title>\n"
+    "            <link>https://workrave.org</link>\n"
+    "            <sparkle:version>4.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure os=\"windows-x64\" url=\"https://127.0.0.1:1337/dummy.exe\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"8192\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "        <item>\n"
+    "            <title>Version 3.0.0</title>\n"
+    "            <link>https://workrave.org</link>\n"
+    "            <sparkle:version>3.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure os=\"windows-x64\" url=\"https://127.0.0.1:1337/dummy.exe\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"8192\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "        <item>\n"
+    "            <title>Version 2.0.0</title>\n"
+    "            <link>https://workrave.org</link>\n"
+    "            <sparkle:version>2.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure os=\"windows-x64\" url=\"https://127.0.0.1:1337/dummy.exe\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"8192\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "        <item>\n"
+    "            <title>Version 1.0.0</title>\n"
+    "            <link>https://workrave.org</link>\n"
+    "            <sparkle:version>1.0.0</sparkle:version>\n"
+    "            <pubDate>Sun, 17 Apr 2022 19:30:14 +0200</pubDate>\n"
+    "            <enclosure os=\"windows-x64\" url=\"https://127.0.0.1:1337/dummy.exe\" sparkle:edSignature=\"aagGLGqLIRVHOBPn+dwXmkJTp6fg2BOGX7v29ZsKPBE/6wTqFpwMqQpuXBrK0hrzZdx5TjMUvfEEHUvUmQW5BA==\" length=\"8192\" type=\"application/octet-stream\" />\n"
+    "        </item>\n"
+    "    </channel>\n"
+    "</rss>\n";
+
+  unfold::http::HttpServer server;
+  server.add("/appcast.xml", appcast_str);
+  server.run();
+
+  auto http = std::make_shared<unfold::http::HttpClient>();
+  auto &options = http->options();
+  options.add_ca_cert(cert);
+
+  auto hooks = std::make_shared<Hooks>();
+  auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
+
+  EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
+    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+  UpgradeChecker checker(std::make_shared<TestPlatform>(), http, sigstore_verifier, hooks);
+
+  auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
+  EXPECT_EQ(rc.has_error(), false);
+
+  rc = checker.set_current_version("4.0.0");
+  EXPECT_EQ(rc.has_error(), false);
+
+  boost::asio::io_context ioc;
+  boost::asio::co_spawn(
+    ioc,
+    [&]() -> boost::asio::awaitable<void> {
+      try
+        {
+          auto check_result = co_await checker.check_for_update();
+          EXPECT_EQ(check_result.has_error(), false);
+          EXPECT_EQ(check_result.value(), true);
+
+          auto info = checker.get_update_info();
+          EXPECT_NE(info, nullptr);
+          EXPECT_EQ(info->version, "6.0.0");
+          EXPECT_EQ(info->release_notes.size(), 2);
+          EXPECT_EQ(info->release_notes.front().version, "6.0.0");
+          EXPECT_EQ(info->release_notes.back().version, "5.0.0");
+        }
+      catch (std::exception &e)
+        {
+          spdlog::info("Exception {}", e.what());
+          EXPECT_TRUE(false);
+        }
+    },
+    boost::asio::detached);
+  ioc.run();
+
+  server.stop();
+}

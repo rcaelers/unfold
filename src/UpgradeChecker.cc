@@ -319,6 +319,22 @@ UpgradeChecker::build_update_info(std::shared_ptr<Appcast> appcast)
         {
           spdlog::info("applicable {}", x->version);
 
+          if (x->critical_update)
+            {
+              if (x->critical_update_version.empty())
+                {
+                  update_info->critical_update = true;
+                }
+              else
+                {
+                  semver::version critical_version;
+                  if (critical_version.from_string_noexcept(x->critical_update_version) && current_version < critical_version)
+                    {
+                      update_info->critical_update = true;
+                    }
+                }
+            }
+
           auto r = unfold::UpdateReleaseNotes{.version = x->version, .date = x->publication_date, .markdown = x->description};
           update_info->release_notes.push_back(r);
         }

@@ -63,8 +63,8 @@ struct AppcastItem
   std::string minimum_system_version;
   std::string minimum_auto_update_version;
   std::string ignore_skipped_upgrades_below_version; // TODO: not supported
-  bool critical_update{false};                       // TODO: not supported
-  std::string critical_update_version;               // TODO: not supported
+  bool critical_update{false};
+  std::string critical_update_version;
   CanaryRolloutIntervals canary_rollout_intervals;
 
   std::shared_ptr<AppcastEnclosure> enclosure;

@@ -53,6 +53,7 @@ namespace unfold
     std::string version;
     std::string current_version;
     std::string download_url;
+    bool critical_update{false};
     std::list<UpdateReleaseNotes> release_notes;
   };
 

@@ -120,7 +120,7 @@ add_definitions(-DSPDLOG_WCHAR_TO_UTF8_SUPPORT)
 FetchContent_Declare(
   sigstore
   GIT_REPOSITORY https://github.com/rcaelers/sigstore-verifier-cpp
-  GIT_TAG 8807ab6361aa4bf4b5437f0371d8c2240b3bd367
+  GIT_TAG 7307be16737c7f6bad1d0ee876a17941e7931907
 )
 FetchContent_MakeAvailable(sigstore)
 
@@ -157,16 +157,27 @@ endif()
 # Google test/mock
 
 if (UNFOLD_WITH_TESTS)
-  FetchContent_Declare(
-    googletest
-    GIT_REPOSITORY https://github.com/google/googletest.git
-    GIT_SHALLOW TRUE
-    GIT_TAG v1.17.0
-  )
-  # For Windows: Prevent overriding the parent project's compiler/linker settings
-  set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-  set(BUILD_SHARED_LIBS ON)
-  FetchContent_MakeAvailable(googletest)
+  # Prefer system/MSYS gtest when available; fallback to FetchContent.
+  find_package(GTest CONFIG QUIET)
+  if(NOT GTest_FOUND)
+    find_package(GTest QUIET)
+  endif()
+
+  if(GTest_FOUND)
+    message(STATUS "Using system GoogleTest")
+  else()
+    message(STATUS "System GoogleTest not found; using FetchContent")
+    FetchContent_Declare(
+      googletest
+      GIT_REPOSITORY https://github.com/google/googletest.git
+      GIT_SHALLOW TRUE
+      GIT_TAG v1.17.0
+    )
+    # For Windows: Prevent overriding the parent project's compiler/linker settings
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    set(BUILD_SHARED_LIBS ON)
+    FetchContent_MakeAvailable(googletest)
+  endif()
 endif()
 
 #----------------------------------------------------------------------------------------------------

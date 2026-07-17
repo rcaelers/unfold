@@ -16,7 +16,7 @@ if (HAVE_TESTS)
   endif()
 
   target_link_libraries(unfold-test PRIVATE unfold unfold-coro unfold-crypto unfold-utils unfold-http)
-  target_link_libraries(unfold-test PRIVATE gtest_main gmock_main)
+  target_link_libraries(unfold-test PRIVATE ${UNFOLD_GTEST_MAIN_TARGET} ${UNFOLD_GMOCK_MAIN_TARGET})
   target_link_libraries(unfold-test PRIVATE spdlog::spdlog semver::semver OpenSSL::SSL OpenSSL::Crypto)
   target_link_libraries(unfold-test PRIVATE ${EXTRA_LIBRARIES})
 

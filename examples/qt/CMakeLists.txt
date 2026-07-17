@@ -10,7 +10,7 @@ target_sources(qt_example PRIVATE
 
 target_link_libraries(qt_example PRIVATE unfold unfold-coro unfold-http unfold-utils)
 target_link_libraries(qt_example PRIVATE spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto)
-target_link_libraries(qt_example PRIVATE cmark  Qt6::Gui Qt6::Widgets Qt6::Svg Qt6::Xml)
+target_link_libraries(qt_example PRIVATE ${UNFOLD_CMARK_TARGET} Qt6::Gui Qt6::Widgets Qt6::Svg Qt6::Xml)
 
 target_compile_definitions(qt_example PRIVATE CMARK_NO_SHORT_NAMES)
 

@@ -32,19 +32,22 @@ jobs:
             mingw-w64-clang-x86_64-boost
             mingw-w64-clang-x86_64-clang
             mingw-w64-clang-x86_64-cmake
+            mingw-w64-clang-x86_64-cmark
             mingw-w64-clang-x86_64-compiler-rt
             mingw-w64-clang-x86_64-glib2
+            mingw-w64-clang-x86_64-gtest
             mingw-w64-clang-x86_64-gtkmm3
             mingw-w64-clang-x86_64-lld
             mingw-w64-clang-x86_64-ninja
             mingw-w64-clang-x86_64-openssl
+            mingw-w64-clang-x86_64-protobuf
             mingw-w64-clang-x86_64-python
             mingw-w64-clang-x86_64-python-pip
-            mingw-w64-clang-x86_64-spdlog
             mingw-w64-clang-x86_64-qt6-base
             mingw-w64-clang-x86_64-qt6-svg
             mingw-w64-clang-x86_64-qt6-tools
-            mingw-w64-clang-x86_64-protobuf
+            mingw-w64-clang-x86_64-spdlog
+            mingw-w64-clang-x86_64-webview2-loader
             tar
             xz
 
@@ -57,7 +60,7 @@ jobs:
           mkdir _build _deploy
           export MINGW_ROOT=/c/msys64
           export MSYSTEM=CLANG64
-          cmake -GNinja -B_build -H. -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/msys2.cmake -DUNFOLD_WITH_XMLSEC=OFF -DCMAKE_INSTALL_PREFIX=_deploy -DUNFOLD_WITH_TESTS=ON -DCMAKE_BUILD_TYPE=${{ matrix.configuration }}
+          cmake -GNinja -B_build -H. -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/msys2.cmake -DUNFOLD_WITH_XMLSEC=OFF -DCMAKE_INSTALL_PREFIX=_deploy -DUNFOLD_WITH_TESTS=ON -DUNFOLD_WITH_EXAMPLE=ON -DCMAKE_BUILD_TYPE=${{ matrix.configuration }}
           ninja -C _build -v install
           cd _build
           ctest -V

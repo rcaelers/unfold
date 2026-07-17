@@ -1,38 +1,57 @@
 if(WIN32)
-  FetchContent_Declare(
-    webview2
-    URL https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/1.0.3856.49
-    URL_HASH SHA1=688937fd04b7d1a1d69fcbd914063895fa26d38c
-  )
-  FetchContent_MakeAvailable(webview2)
+  # Prefer system/MSYS2 WebView2 (headers + loader lib); fallback to NuGet package.
+  find_path(UNFOLD_WEBVIEW2_INCLUDE_DIR NAMES WebView2.h)
+  find_library(UNFOLD_WEBVIEW2_LOADER_LIBRARY NAMES WebView2Loader)
+  if(NOT UNFOLD_WEBVIEW2_LOADER_LIBRARY)
+    # MSYS2 ships only the DLL, no import lib; MinGW ld/lld can link against the DLL directly.
+    find_file(UNFOLD_WEBVIEW2_LOADER_LIBRARY NAMES WebView2Loader.dll PATH_SUFFIXES bin)
+  endif()
 
   add_library(webview2 INTERFACE)
-  target_include_directories(webview2 INTERFACE "${webview2_SOURCE_DIR}/build/native/include/")
   target_compile_options(webview2 INTERFACE -Wno-unknown-pragmas)
 
-  if (WIN32 AND (NOT MSVC) AND ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"))
-    execute_process(COMMAND ${CMAKE_CXX_COMPILER} -print-target-triple OUTPUT_VARIABLE CLANG_TRIPLE)
-    string(REGEX MATCH "x86_64-.*" _clang_is_x86 ${CLANG_TRIPLE})
-    if (CLANG_TRIPLE MATCHES "x86_64")
-      set(CMAKE_SYSTEM_PROCESSOR "amd64")
-    else()
-      set(CMAKE_SYSTEM_PROCESSOR "arm64")
+  if (UNFOLD_WEBVIEW2_INCLUDE_DIR AND UNFOLD_WEBVIEW2_LOADER_LIBRARY)
+    message(STATUS "Using system WebView2")
+    target_include_directories(webview2 INTERFACE "${UNFOLD_WEBVIEW2_INCLUDE_DIR}")
+    target_link_libraries(webview2 INTERFACE "${UNFOLD_WEBVIEW2_LOADER_LIBRARY}")
+    if(UNFOLD_WEBVIEW2_LOADER_LIBRARY MATCHES "\\.dll$")
+      install(FILES "${UNFOLD_WEBVIEW2_LOADER_LIBRARY}" DESTINATION bin)
     endif()
-  endif()
-
-  if(CMAKE_SYSTEM_PROCESSOR MATCHES "amd64|AMD64")
-    target_link_directories(webview2 INTERFACE ${webview2_SOURCE_DIR}/build/native/x64)
-    install(FILES ${webview2_SOURCE_DIR}/runtimes/win-x64/native/WebView2Loader.dll DESTINATION bin)
-  elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "x86|X86")
-    target_link_directories(webview2 INTERFACE ${webview2_SOURCE_DIR}/build/native/x86)
-    install(FILES ${webview2_SOURCE_DIR}/runtimes/win-x86/native/WebView2Loader.dll DESTINATION bin)
-  elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|ARM64")
-    target_link_directories(webview2 INTERFACE ${webview2_SOURCE_DIR}/build/native/arm64)
-    install(FILES ${webview2_SOURCE_DIR}/runtimes/win-arm64/native/WebView2Loader.dll DESTINATION bin)
   else()
-    message(FATAL_ERROR "Unsupported processor: ${CMAKE_SYSTEM_PROCESSOR}")
+    message(STATUS "System WebView2 not found; using NuGet WebView2 package")
+    FetchContent_Declare(
+      webview2_pkg
+      URL https://www.nuget.org/api/v2/package/Microsoft.Web.WebView2/1.0.3856.49
+      URL_HASH SHA1=688937fd04b7d1a1d69fcbd914063895fa26d38c
+    )
+    FetchContent_MakeAvailable(webview2_pkg)
+
+    target_include_directories(webview2 INTERFACE "${webview2_pkg_SOURCE_DIR}/build/native/include/")
+
+    if (WIN32 AND (NOT MSVC) AND ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"))
+      execute_process(COMMAND ${CMAKE_CXX_COMPILER} -print-target-triple OUTPUT_VARIABLE CLANG_TRIPLE)
+      string(REGEX MATCH "x86_64-.*" _clang_is_x86 ${CLANG_TRIPLE})
+      if (CLANG_TRIPLE MATCHES "x86_64")
+        set(CMAKE_SYSTEM_PROCESSOR "amd64")
+      else()
+        set(CMAKE_SYSTEM_PROCESSOR "arm64")
+      endif()
+    endif()
+
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES "amd64|AMD64")
+      target_link_directories(webview2 INTERFACE ${webview2_pkg_SOURCE_DIR}/build/native/x64)
+      install(FILES ${webview2_pkg_SOURCE_DIR}/runtimes/win-x64/native/WebView2Loader.dll DESTINATION bin)
+    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "x86|X86")
+      target_link_directories(webview2 INTERFACE ${webview2_pkg_SOURCE_DIR}/build/native/x86)
+      install(FILES ${webview2_pkg_SOURCE_DIR}/runtimes/win-x86/native/WebView2Loader.dll DESTINATION bin)
+    elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|ARM64")
+      target_link_directories(webview2 INTERFACE ${webview2_pkg_SOURCE_DIR}/build/native/arm64)
+      install(FILES ${webview2_pkg_SOURCE_DIR}/runtimes/win-arm64/native/WebView2Loader.dll DESTINATION bin)
+    else()
+      message(FATAL_ERROR "Unsupported processor: ${CMAKE_SYSTEM_PROCESSOR}")
+    endif()
+    target_link_libraries(webview2 INTERFACE WebView2Loader)
   endif()
-  target_link_libraries(webview2 INTERFACE WebView2Loader)
 endif()
 
 add_executable(gtk_example)
@@ -48,7 +67,7 @@ target_link_libraries(gtk_example PRIVATE spdlog::spdlog OpenSSL::SSL OpenSSL::C
 
 if (WIN32)
   target_sources(gtk_example PRIVATE Edge.cc)
-  target_link_libraries(gtk_example PRIVATE cmark webview2 ws2_32 mswsock)
+  target_link_libraries(gtk_example PRIVATE ${UNFOLD_CMARK_TARGET} webview2 ws2_32 mswsock)
 endif()
 
 pkg_check_modules(

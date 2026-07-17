@@ -4,6 +4,9 @@
 /_build*
 .DS_Store
 
+/schemas
+/ext
+
 .vscode/*
 !.vscode/settings.json.default
 !.vscode/tasks.json.default

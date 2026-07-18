@@ -291,7 +291,7 @@ TEST_F(IntegrationTest, InvalidSignature)
           EXPECT_EQ(update_info->release_notes.size(), 4);
           EXPECT_EQ(update_info->release_notes.front().version, "1.11.0-alpha.1");
 
-          std::filesystem::remove("installer.log");
+          remove_installer_log();
 
           auto ri = co_await control.install_update();
           EXPECT_EQ(ri.has_error(), true);
@@ -396,7 +396,7 @@ TEST_F(IntegrationTest, UpdateError)
           auto update_info = control.get_update_info();
           EXPECT_EQ(update_info, nullptr);
 
-          std::filesystem::remove("installer.log");
+          remove_installer_log();
 
           auto ri = co_await control.install_update();
           EXPECT_EQ(ri.has_error(), true);
@@ -492,7 +492,7 @@ TEST_F(IntegrationTest, UpdateRejected)
           auto update_info = control.get_update_info();
           EXPECT_EQ(update_info, nullptr);
 
-          std::filesystem::remove("installer.log");
+          remove_installer_log();
 
           auto ri = co_await control.install_update();
           EXPECT_EQ(ri.has_error(), true);
@@ -587,7 +587,7 @@ TEST_F(IntegrationTest, UpdateAccepted)
           auto update_info = control.get_update_info();
           EXPECT_NE(update_info, nullptr);
 
-          std::filesystem::remove("installer.log");
+          remove_installer_log();
 
           auto ri = co_await control.install_update();
           EXPECT_EQ(ri.has_error(), false);
@@ -683,7 +683,7 @@ TEST_F(IntegrationTest, InstallerAccepted)
           auto update_info = control.get_update_info();
           EXPECT_NE(update_info, nullptr);
 
-          std::filesystem::remove("installer.log");
+          remove_installer_log();
 
           auto ri = co_await control.install_update();
           EXPECT_EQ(ri.has_error(), false);
@@ -778,7 +778,7 @@ TEST_F(IntegrationTest, InstallerRejected)
           auto update_info = control.get_update_info();
           EXPECT_NE(update_info, nullptr);
 
-          std::filesystem::remove("installer.log");
+          remove_installer_log();
 
           auto ri = co_await control.install_update();
           EXPECT_EQ(ri.has_error(), true);
@@ -873,7 +873,7 @@ TEST_F(IntegrationTest, InstallerError)
           auto update_info = control.get_update_info();
           EXPECT_NE(update_info, nullptr);
 
-          std::filesystem::remove("installer.log");
+          remove_installer_log();
 
           auto ri = co_await control.install_update();
           EXPECT_EQ(ri.has_error(), true);
@@ -978,7 +978,7 @@ TEST_F(IntegrationTest, CheckAlpha)
           EXPECT_EQ(update_info->release_notes.size(), 4);
           EXPECT_EQ(update_info->release_notes.front().version, "1.11.0-alpha.1");
 
-          std::filesystem::remove("installer.log");
+          remove_installer_log();
 
           auto ri = co_await control.install_update();
           EXPECT_EQ(ri.has_error(), false);
@@ -1084,7 +1084,7 @@ TEST_F(IntegrationTest, CheckAlphaAndRelease)
           EXPECT_EQ(update_info->release_notes.size(), 4);
           EXPECT_EQ(update_info->release_notes.front().version, "1.11.0-alpha.1");
 
-          std::filesystem::remove("installer.log");
+          remove_installer_log();
 
           auto ri = co_await control.install_update();
           EXPECT_EQ(ri.has_error(), false);
@@ -1189,7 +1189,7 @@ TEST_F(IntegrationTest, CheckRelease)
           EXPECT_EQ(update_info->release_notes.size(), 3);
           EXPECT_EQ(update_info->release_notes.front().version, "1.10.49");
 
-          std::filesystem::remove("installer.log");
+          remove_installer_log();
 
           auto ri = co_await control.install_update();
           EXPECT_EQ(ri.has_error(), false);
@@ -1547,7 +1547,7 @@ TEST_F(IntegrationTest, PeriodicCheckInstallNow)
   });
 
   control.set_periodic_update_check_enabled(true);
-  std::filesystem::remove("installer.log");
+  remove_installer_log();
 
   io_context.wait();
   int tries = 100;
@@ -1654,7 +1654,7 @@ TEST_F(IntegrationTest, CheckReleaseValidSigstore)
           EXPECT_EQ(update_info->release_notes.size(), 3);
           EXPECT_EQ(update_info->release_notes.front().version, "1.10.49");
 
-          std::filesystem::remove("installer.log");
+          remove_installer_log();
 
           auto ri = co_await control.install_update();
           EXPECT_EQ(ri.has_error(), false);
@@ -1862,7 +1862,7 @@ TEST_F(IntegrationTest, CheckReleaseInvalidInstallerSigstore)
           EXPECT_EQ(update_info->release_notes.size(), 3);
           EXPECT_EQ(update_info->release_notes.front().version, "1.10.49");
 
-          std::filesystem::remove("installer.log");
+          remove_installer_log();
 
           auto ri = co_await control.install_update();
           EXPECT_EQ(ri.has_error(), true);
@@ -2058,7 +2058,7 @@ TEST_F(IntegrationTest, CheckReleaseRejectInstallerSigstore)
           EXPECT_EQ(update_info->release_notes.size(), 3);
           EXPECT_EQ(update_info->release_notes.front().version, "1.10.49");
 
-          std::filesystem::remove("installer.log");
+          remove_installer_log();
 
           auto ri = co_await control.install_update();
           EXPECT_EQ(ri.has_error(), true);

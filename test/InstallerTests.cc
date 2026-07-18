@@ -540,7 +540,7 @@ TEST_P(InstallerTest, InstallerStartedInstaller)
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::filesystem::path>()))
     .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
 
-  std::filesystem::remove("installer.log");
+  remove_installer_log();
 
   auto platform = std::make_shared<TestPlatform>();
 
@@ -658,7 +658,7 @@ TEST(Installer, StartedInstallerWithArgs)
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::filesystem::path>()))
     .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
 
-  std::filesystem::remove("installer.log");
+  remove_installer_log();
 
   auto platform = std::make_shared<TestPlatform>();
 

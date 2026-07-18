@@ -20,8 +20,11 @@
 
 #pragma once
 
-#include <string>
+#include <chrono>
 #include <filesystem>
+#include <string>
+#include <system_error>
+#include <thread>
 
 inline std::string
 find_test_data_file(const std::string &filename)
@@ -45,4 +48,22 @@ find_test_bin_file(const std::string &filename)
   std::filesystem::path test_bin_path = std::filesystem::current_path() / filename;
 #endif
   return test_bin_path.string();
+}
+
+// On Windows, a just-terminated child process (e.g. test-installer.exe from a previous test)
+// can hold its handle to installer.log open for a short while after exiting, so an immediate
+// remove() can transiently fail with "used by another process". Retry instead of failing the test.
+inline void
+remove_installer_log()
+{
+  std::error_code ec;
+  for (int attempt = 0; attempt < 100; ++attempt)
+    {
+      std::filesystem::remove("installer.log", ec);
+      if (!ec)
+        {
+          return;
+        }
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
 }

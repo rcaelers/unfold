@@ -61,7 +61,7 @@ UpgradeChecker::set_current_version(const std::string &version)
   try
     {
       current_version_str = version;
-      current_version.from_string(version);
+      current_version = semver::from_string(version);
     }
   catch (std::exception &e)
     {
@@ -228,15 +228,13 @@ UpgradeChecker::parse_appcast(const std::string &appcast_xml)
 
   auto &items = appcast->items;
   std::ranges::sort(items, [](const auto &a, const auto &b) -> bool {
-    semver::version va;
-    semver::version vb;
-    bool oka = va.from_string_noexcept(a->version);
-    bool okb = vb.from_string_noexcept(b->version);
-    if (!oka || !okb)
+    auto va = semver::try_parse(a->version);
+    auto vb = semver::try_parse(b->version);
+    if (!va || !vb)
       {
-        return oka && !okb;
+        return va.has_value() && !vb.has_value();
       }
-    return va < vb;
+    return *va < *vb;
   });
 
   // If an item has minimumAutoupdateVersion set and current_version < that version,
@@ -246,12 +244,12 @@ UpgradeChecker::parse_appcast(const std::string &appcast_xml)
       {
         return false;
       }
-    semver::version min_version;
-    if (!min_version.from_string_noexcept(item->minimum_auto_update_version))
+    auto min_version = semver::try_parse(item->minimum_auto_update_version);
+    if (!min_version)
       {
         return false;
       }
-    return current_version < min_version;
+    return current_version < *min_version;
   });
 
   if (it != items.end())
@@ -284,14 +282,13 @@ UpgradeChecker::is_applicable(std::shared_ptr<AppcastItem> item)
     }
 
   // TODO: custom version comparator
-  semver::version version;
-  bool version_ok = version.from_string_noexcept(item->version);
-  if (!version_ok)
+  auto version = semver::try_parse(item->version);
+  if (!version)
     {
       return false;
     }
 
-  if (version <= current_version)
+  if (*version <= current_version)
     {
       return false;
     }
@@ -327,8 +324,8 @@ UpgradeChecker::build_update_info(std::shared_ptr<Appcast> appcast)
                 }
               else
                 {
-                  semver::version critical_version;
-                  if (critical_version.from_string_noexcept(x->critical_update_version) && current_version < critical_version)
+                  auto critical_version = semver::try_parse(x->critical_update_version);
+                  if (critical_version && current_version < *critical_version)
                     {
                       update_info->critical_update = true;
                     }

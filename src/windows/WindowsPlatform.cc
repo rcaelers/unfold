@@ -58,14 +58,13 @@ WindowsPlatform::is_supported_os_version(const std::string &minimum_version)
     {
       return true;
     }
-  semver::version version;
-  bool version_ok = version.from_string_noexcept(minimum_version);
-  if (!version_ok)
+  auto version = semver::try_parse(minimum_version);
+  if (!version)
     {
       return false;
     }
 
-  OSVERSIONINFOEXW osvi = {sizeof(osvi), version.major, version.minor, version.patch, 0, {0}, 0, 0};
+  OSVERSIONINFOEXW osvi = {sizeof(osvi), version->major(), version->minor(), version->patch(), 0, {0}, 0, 0};
 
   return !VerifyVersionInfoW(
     &osvi,

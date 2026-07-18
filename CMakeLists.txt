@@ -130,7 +130,7 @@ FetchContent_MakeAvailable(sigstore)
 FetchContent_Declare(
   semver
   GIT_REPOSITORY https://github.com/Neargye/semver
-  GIT_TAG v0.3.1
+  GIT_TAG a72ace81a5bb56f49a0cb379318cf92c29e733cc
 )
 FetchContent_MakeAvailable(semver)
 

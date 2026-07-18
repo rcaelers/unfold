@@ -75,7 +75,7 @@ private:
   std::string sigstore_url;
   std::vector<std::string> allowed_channels;
   std::string current_version_str;
-  semver::version current_version;
+  semver::version<> current_version;
 
   std::shared_ptr<AppcastItem> selected_item;
   std::shared_ptr<unfold::UpdateInfo> update_info;

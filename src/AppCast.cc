@@ -758,20 +758,7 @@ AppcastReader::is_valid_version(const std::string &version)
       return false;
     }
 
-  try
-    {
-      semver::version parsed_version;
-      if (parsed_version.from_string_noexcept(version))
-        {
-          return true;
-        }
-    }
-  catch (const std::exception &e)
-    {
-      logger->error("version parsing failed for '{}': {}", version, e.what());
-    }
-
-  return false;
+  return semver::valid(version);
 }
 
 bool

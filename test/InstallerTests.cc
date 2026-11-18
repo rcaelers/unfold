@@ -39,7 +39,6 @@
 using ::testing::_;
 using ::testing::An;
 using ::testing::AtLeast;
-using ::testing::InvokeWithoutArgs;
 using ::testing::Return;
 
 namespace
@@ -131,7 +130,7 @@ TEST(Installer, MissingLength)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
 
   UpgradeInstaller installer(std::make_shared<TestPlatform>(), http, signature_verifier, sigstore_verifier, hooks);
 
@@ -202,7 +201,7 @@ TEST(Installer, NotFound)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
 
   UpgradeInstaller installer(std::make_shared<TestPlatform>(), http, signature_verifier, sigstore_verifier, hooks);
 
@@ -266,7 +265,7 @@ TEST(Installer, InvalidHost)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
 
   UpgradeInstaller installer(std::make_shared<TestPlatform>(), http, signature_verifier, sigstore_verifier, hooks);
 
@@ -315,7 +314,7 @@ TEST(Installer, InvalidSignature)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
 
   EXPECT_CALL(*signature_verifier, set_key(_, _)).Times(0);
 
@@ -370,9 +369,9 @@ TEST(Installer, FailedToInstall)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::filesystem::path>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
 
   EXPECT_CALL(*signature_verifier, set_key(_, _)).Times(0);
 
@@ -426,7 +425,7 @@ TEST(Installer, SigstoreVerificationFailed)
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
     .WillRepeatedly(
-      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return unfold::UnfoldErrc::InstallerVerificationFailed; }));
+      []() -> boost::asio::awaitable<outcome::std_result<void>> { co_return unfold::UnfoldErrc::InstallerVerificationFailed; });
 
   EXPECT_CALL(*signature_verifier, set_key(_, _)).Times(0);
 
@@ -536,9 +535,9 @@ TEST_P(InstallerTest, InstallerStartedInstaller)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::filesystem::path>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
 
   remove_installer_log();
 
@@ -654,9 +653,9 @@ TEST(Installer, StartedInstallerWithArgs)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::filesystem::path>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
 
   remove_installer_log();
 
@@ -769,7 +768,7 @@ TEST(Installer, ValidationCallbackAccept)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
 
   UpgradeInstaller installer(std::make_shared<TestPlatform>(), http, signature_verifier, sigstore_verifier, hooks);
 
@@ -835,7 +834,7 @@ TEST(Installer, ValidationCallbackReject)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
 
   UpgradeInstaller installer(std::make_shared<TestPlatform>(), http, signature_verifier, sigstore_verifier, hooks);
 

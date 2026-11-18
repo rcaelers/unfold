@@ -34,7 +34,6 @@
 using ::testing::_;
 using ::testing::An;
 using ::testing::AtLeast;
-using ::testing::InvokeWithoutArgs;
 using ::testing::Return;
 
 namespace
@@ -74,7 +73,7 @@ TEST(CheckerTest, AppcastNotFound)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
 
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, sigstore_verifier, hooks);
 
@@ -120,7 +119,7 @@ TEST(CheckerTest, InvalidHost)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, sigstore_verifier, hooks);
 
   auto rc = checker.set_appcast("https://300.0.0.1.2:1337/appcastxxx.xml");
@@ -161,7 +160,7 @@ TEST(CheckerTest, InvalidVersion)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, sigstore_verifier, hooks);
 
   auto rc = checker.set_current_version("1.12.0.1.2");
@@ -182,7 +181,7 @@ TEST(CheckerTest, InvalidAppcast)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, sigstore_verifier, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
@@ -227,7 +226,7 @@ TEST(CheckerTest, EmptyAppcast)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, sigstore_verifier, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
@@ -326,7 +325,7 @@ TEST(CheckerTest, InvalidItemsInAppcast)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, sigstore_verifier, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
@@ -373,7 +372,7 @@ TEST(CheckerTest, NoUpgrade)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, sigstore_verifier, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
@@ -423,7 +422,7 @@ TEST(CheckerTest, HasUpgrade)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, sigstore_verifier, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
@@ -482,7 +481,7 @@ TEST(CheckerTest, Delay)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, sigstore_verifier, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
@@ -583,7 +582,7 @@ TEST(CheckerTest, EarliestRollout)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, sigstore_verifier, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
@@ -666,7 +665,7 @@ TEST(CheckerTest, ChannelsAllowedNone)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, sigstore_verifier, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
@@ -725,7 +724,7 @@ TEST(CheckerTest, ChannelsAllowedAlpha)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, sigstore_verifier, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
@@ -787,7 +786,7 @@ TEST(CheckerTest, ChannelsAllowedRelease)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, sigstore_verifier, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
@@ -849,7 +848,7 @@ TEST(CheckerTest, ChannelsAllowedEmpty)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, sigstore_verifier, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
@@ -911,7 +910,7 @@ TEST(CheckerTest, UpdateValidationCallbackAccept)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, sigstore_verifier, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
@@ -981,7 +980,7 @@ TEST(CheckerTest, UpdateValidationCallbackReject)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, sigstore_verifier, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
@@ -1038,7 +1037,7 @@ TEST(CheckerTest, UpdateValidationCallbackError)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, sigstore_verifier, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
@@ -1095,7 +1094,7 @@ TEST(CheckerTest, SigstoreNotOk)
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
     .WillRepeatedly(
-      InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return unfold::UnfoldErrc::SigstoreVerificationFailed; }));
+      []() -> boost::asio::awaitable<outcome::std_result<void>> { co_return unfold::UnfoldErrc::SigstoreVerificationFailed; });
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, sigstore_verifier, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
@@ -1199,7 +1198,7 @@ TEST(CheckerTest, MinimumAutoupdateVersionBlocksUpdate)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, sigstore_verifier, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
@@ -1308,7 +1307,7 @@ TEST(CheckerTest, MinimumAutoupdateVersionAllowsUpdateWhenAtMinimum)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, sigstore_verifier, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
@@ -1417,7 +1416,7 @@ TEST(CheckerTest, MinimumAutoupdateVersionAllowsUpdateWhenAboveMinimum)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, sigstore_verifier, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
@@ -1489,7 +1488,7 @@ TEST(CheckerTest, CriticalUpdateWithoutVersion)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, sigstore_verifier, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
@@ -1560,7 +1559,7 @@ TEST(CheckerTest, CriticalUpdateWithVersionBelowThreshold)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, sigstore_verifier, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");
@@ -1631,7 +1630,7 @@ TEST(CheckerTest, CriticalUpdateWithVersionAboveThreshold)
   auto sigstore_verifier = std::make_shared<SigstoreVerifierMock>();
 
   EXPECT_CALL(*sigstore_verifier, verify(An<std::string>(), An<std::string>()))
-    .WillRepeatedly(InvokeWithoutArgs([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); }));
+    .WillRepeatedly([]() -> boost::asio::awaitable<outcome::std_result<void>> { co_return outcome::success(); });
   UpgradeChecker checker(std::make_shared<TestPlatform>(), http, sigstore_verifier, hooks);
 
   auto rc = checker.set_appcast("https://127.0.0.1:1337/appcast.xml");

@@ -43,7 +43,6 @@
 
 using ::testing::_;
 using ::testing::AtLeast;
-using ::testing::InvokeWithoutArgs;
 using ::testing::Return;
 using ::testing::StrictMock;
 

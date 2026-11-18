@@ -120,7 +120,7 @@ add_definitions(-DSPDLOG_WCHAR_TO_UTF8_SUPPORT)
 FetchContent_Declare(
   sigstore
   GIT_REPOSITORY https://github.com/rcaelers/sigstore-verifier-cpp
-  GIT_TAG 8b62465cbe474519d2e4d149a5430a13fcbf97a9
+  GIT_TAG e0584ac41a5e7dc94cf3ff69de6e0a784623932f
 )
 FetchContent_MakeAvailable(sigstore)
 

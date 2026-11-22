@@ -12,10 +12,10 @@ target_code_coverage(unfold-http ALL AUTO)
 
 if(WIN32)
   target_sources(unfold-http PRIVATE src/windows/WindowsSystemProxy.cc)
-  target_link_libraries(unfold-http PUBLIC ws2_32 mswsock crypt32)
+  target_link_libraries(unfold-http PUBLIC ws2_32 mswsock crypt32 winhttp)
 endif()
 
-target_link_libraries(unfold-http PUBLIC Boost::url PRIVATE unfold-utils spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto winhttp)
+target_link_libraries(unfold-http PUBLIC Boost::url PRIVATE unfold-utils spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto)
 target_compile_definitions(unfold-http PRIVATE BOOST_URL_NO_LIB)
 
 target_include_directories(

@@ -20,11 +20,17 @@
 
 #include "utils/StringUtils.hh"
 
-#include <windows.h>
+#ifdef _WIN32
+#  include <windows.h>
+#else
+#  include <codecvt>
+#  include <locale>
+#endif
 
 std::string
 unfold::utils::utf16_to_utf8(const std::wstring &s)
 {
+#ifdef _WIN32
   std::string ret;
   int len = WideCharToMultiByte(CP_UTF8, 0, s.c_str(), s.length(), nullptr, 0, nullptr, nullptr);
   if (len > 0)
@@ -33,11 +39,21 @@ unfold::utils::utf16_to_utf8(const std::wstring &s)
       WideCharToMultiByte(CP_UTF8, 0, s.c_str(), s.length(), ret.data(), len, nullptr, nullptr);
     }
   return ret;
+#else
+  if (s.empty())
+    {
+      return {};
+    }
+
+  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+  return converter.to_bytes(s);
+#endif
 }
 
 std::wstring
 unfold::utils::utf8_to_utf16(const std::string &s)
 {
+#ifdef _WIN32
   std::wstring ret;
   int len = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), s.length(), nullptr, 0);
   if (len > 0)
@@ -46,4 +62,13 @@ unfold::utils::utf8_to_utf16(const std::string &s)
       MultiByteToWideChar(CP_UTF8, 0, s.c_str(), s.length(), ret.data(), len);
     }
   return ret;
+#else
+  if (s.empty())
+    {
+      return std::wstring();
+    }
+
+  std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+  return converter.from_bytes(s);
+#endif
 }

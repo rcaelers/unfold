@@ -1,4 +1,4 @@
-if (HAVE_TESTS)
+if (HAVE_TESTS AND UNFOLD_WITH_GTK3)
   # add_executable(coro-test CoroTest.cc)
   # target_link_libraries(coro-test PRIVATE unfold-coro unfold-http unfold-utils)
   # target_link_libraries(coro-test PRIVATE spdlog::spdlog OpenSSL::SSL OpenSSL::Crypto)

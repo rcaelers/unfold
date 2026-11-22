@@ -79,7 +79,7 @@ HttpStream::get_proxy_for_url(std::string url) const
 #if defined(WIN32)
       co_return co_await system_proxy->get_system_proxy_for_url(url);
 #else
-      return std::optional<std::string>{};
+      co_return std::optional<std::string>{};
 #endif
     }
 
